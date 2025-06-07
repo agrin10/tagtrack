@@ -1,1 +1,10 @@
-Flask 
+pymysql
+requests
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask_JWT_Extended
+Flask_SocketIO
+Flask_Logging
+Flask-Login 
+python-dotenv
