@@ -20,7 +20,7 @@ def login():
             if request.is_json:
                 return jsonify(response)
             flash('Login successful!', 'success')
-            return redirect(url_for('main.index'))
+            return redirect(url_for('index'))
         else:
             if request.is_json:
                 return jsonify(response), 401
