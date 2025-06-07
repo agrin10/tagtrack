@@ -1,12 +1,13 @@
 from src import create_app, db
 from sqlalchemy import text
+from flask import render_template
 
 app = create_app()
 
 
 @app.route('/')
 def index():
-    return 'this is test'
+    return render_template('base.html')
 
 @app.route('/test-db')
 def test_db():
