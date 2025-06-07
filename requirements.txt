@@ -8,3 +8,6 @@ Flask_SocketIO
 Flask_Logging
 Flask-Login 
 python-dotenv
+flask-seeder
+sqlalchemyseed 
+sqlalchemy_seeder

@@ -17,5 +17,13 @@ def create_app(config_obj='config.Config'):
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
+    from src.auth.routes import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+
+    from src.seeders import seed_roles
+    app.cli.add_command(seed_roles)
 
     return app
+
+import src.auth.models      # ← this brings in Role & User
