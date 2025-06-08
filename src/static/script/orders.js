@@ -167,6 +167,21 @@ document.addEventListener('DOMContentLoaded', function () {
                         document.getElementById('edit_office_notes').value = order.office_notes || '';
                         document.getElementById('edit_factory_notes').value = order.factory_notes || '';
                         
+                        // Format and set created_at datetime
+                        if (order.created_at) {
+                            // Convert ISO string to datetime-local input format (YYYY-MM-DDThh:mm)
+                            const createdDate = new Date(order.created_at);
+                            const year = createdDate.getFullYear();
+                            const month = String(createdDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(createdDate.getDate()).padStart(2, '0');
+                            const hours = String(createdDate.getHours()).padStart(2, '0');
+                            const minutes = String(createdDate.getMinutes()).padStart(2, '0');
+                            const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+                            document.getElementById('edit_created_at').value = formattedDateTime;
+                        } else {
+                            document.getElementById('edit_created_at').value = '';
+                        }
+                        
                         // Update form action
                         editForm.action = `/orders/${currentOrderId}`;
                         
@@ -193,7 +208,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = {};
         formData.forEach((value, key) => {
             // Convert empty strings to null, but keep 0 values
-            data[key] = value === '' ? null : value;
+            if (key === 'created_at' && value) {
+                // Convert datetime-local input to ISO string
+                const date = new Date(value);
+                data[key] = date.toISOString();
+            } else {
+                data[key] = value === '' ? null : value;
+            }
         });
 
         // Log the data being sent
@@ -260,63 +281,130 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.duplicate-order-btn').forEach(button => {
         button.addEventListener('click', function() {
             const orderId = this.getAttribute('data-order-id');
-            const duplicateBtn = this;
-            
-            // Disable button and show loading state
-            duplicateBtn.disabled = true;
-            duplicateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            // Fetch order details and create a duplicate
-            fetch(`/orders/${orderId}/duplicate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
+            if (confirm('Are you sure you want to duplicate this order?')) {
+                fetch(`/orders/${orderId}/duplicate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to duplicate order');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'Order duplicated successfully!');
+                        window.location.reload(); // Reload to see the new order
+                    } else {
                         throw new Error(data.error || 'Failed to duplicate order');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Show success message
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                    alertDiv.innerHTML = `
-                        Order duplicated successfully!
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    `;
-                    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
-
-                    // Reload the page to show the new order
-                    window.location.reload();
-                } else {
-                    throw new Error(data.error || 'Failed to duplicate order');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Show error message
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    <strong>Error duplicating order:</strong> ${error.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
-            })
-            .finally(() => {
-                // Reset button state
-                duplicateBtn.disabled = false;
-                duplicateBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error duplicating order:', error);
+                    alert(`Error duplicating order: ${error.message || 'An unknown error occurred.'}`);
+                });
+            }
         });
     });
-      
+
+    // Export to Excel functionality
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', function() {
+            const searchInput = document.getElementById('searchInput');
+            const statusFilterDropdown = document.getElementById('statusFilterDropdown');
+
+            const currentSearch = searchInput ? searchInput.value : '';
+            const currentStatus = statusFilterDropdown ? statusFilterDropdown.getAttribute('data-current-status') || 'all' : 'all';
+
+            let exportUrl = `/orders/export/excel?`;
+            const params = [];
+
+            if (currentSearch) {
+                params.push(`search=${encodeURIComponent(currentSearch)}`);
+            }
+            if (currentStatus && currentStatus !== 'all') {
+                params.push(`status=${encodeURIComponent(currentStatus)}`);
+            }
+
+            exportUrl += params.join('&');
+
+            window.location.href = exportUrl;
+        });
+    }
+
+
+    // Function to get current URL parameters
+    function getUrlParams() {
+        const params = {};
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        for (const [key, value] of urlParams.entries()) {
+            params[key] = value;
+        }
+        return params;
+    }
+
+    // Function to update URL parameters and reload
+    function updateUrlAndReload(newParams) {
+        const currentParams = getUrlParams();
+        const updatedParams = { ...currentParams, ...newParams };
+
+        // Remove empty or 'all' status parameters
+        for (const key in updatedParams) {
+            if (updatedParams[key] === '' || updatedParams[key] === 'all') {
+                delete updatedParams[key];
+            }
+        }
+
+        const queryString = new URLSearchParams(updatedParams).toString();
+        window.location.href = `${window.location.pathname}?${queryString}`;
+    }
+
+    // Initialize search input from URL
+    const searchInput = document.getElementById('searchInput');
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialSearch = urlParams.get('search');
+    if (searchInput && initialSearch) {
+        searchInput.value = initialSearch;
+    }
+
+    // Initialize status dropdown from URL
+    const statusFilterDropdown = document.getElementById('statusFilterDropdown');
+    const initialStatus = urlParams.get('status');
+    if (statusFilterDropdown) {
+        const statusText = document.querySelector(`#statusFilterDropdown`);
+        const selectedStatusLink = document.querySelector(`.filter-status[data-status="${initialStatus || 'all'}"]`);
+        if (selectedStatusLink) {
+            statusText.textContent = selectedStatusLink.textContent;
+            statusFilterDropdown.setAttribute('data-current-status', initialStatus || 'all');
+        }
+    }
+
+    // Debounce for search input
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                updateUrlAndReload({ search: this.value, page: 1 });
+            }, 500);
+        });
+    }
+
+    // Status filter clicks
+    document.querySelectorAll('.filter-status').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.getAttribute('data-status');
+            updateUrlAndReload({ status: status, page: 1 });
+        });
+    });
 });
 document.addEventListener('DOMContentLoaded', () => {
     const statusItems   = document.querySelectorAll('.filter-status');

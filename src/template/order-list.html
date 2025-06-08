@@ -44,9 +44,12 @@
                     </ul>
                 </div>
 
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
-                    <i class="fas fa-plus"></i> New Order
+                <button type="button" class="btn btn-success" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i> Export to Excel
                 </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                <i class="fas fa-plus"></i> New Order
+            </button>
             </div>
         </div>
         <div class="card-body">
@@ -100,7 +103,7 @@
                                 </span>
                             </td>
                             <td>
-                                <small class="text-muted" title="{{ order.created_at or '' }}">
+                                <small class="text-muted" title="{{ order.updated_at or '' }}">
                                     {% if order.created_at %}
                                         {{ order.created_at.split('T')[0] if 'T' in order.created_at else order.created_at }}
                                     {% else %}
@@ -128,7 +131,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
+</div>
 
             <!-- Pagination Controls -->
             {% if pagination %}

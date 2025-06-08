@@ -5,6 +5,9 @@ from datetime import datetime, date
 from typing import Tuple, Dict, Any, List
 import traceback
 from sqlalchemy import func
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
 def _get_next_form_number_for_year() -> int:
     current_year = datetime.now().year
@@ -181,28 +184,62 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
     Update an existing order with the provided form data.
     """
     try:
+        print(f"Starting update for order {order_id}")
+        print("Received form data:", form_data)
+        
         order = Order.query.get(order_id)
         if not order:
+            print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
+        
+        print("Found order:", order.to_dict())
         
         # Update fields from form_data
         for key, value in form_data.items():
+            print(f"Processing field {key} with value {value} (type: {type(value)})")
             if hasattr(order, key):
+                if key == 'created_at' and value:
+                    print(f"Processing created_at value: {value} (type: {type(value)})")
+                    try:
+                        # Convert ISO string to datetime
+                        value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        print(f"Converted created_at to datetime: {value}")
+                    except ValueError as e:
+                        print(f"Error converting created_at: {str(e)}")
+                        return False, {"error": f"Invalid created_at datetime format: {str(e)}"}
+                elif key == 'delivery_date' and value:
+                    try:
+                        # Convert ISO string to date
+                        value = datetime.fromisoformat(value).date()
+                        print(f"Converted delivery_date to date: {value}")
+                    except ValueError as e:
+                        print(f"Error converting delivery_date: {str(e)}")
+                        return False, {"error": f"Invalid delivery_date format: {str(e)}"}
+                print(f"Setting {key} to {value}")
                 setattr(order, key, value)
+            else:
+                print(f"Field {key} not found in Order model")
         
         # Update timestamps
         order.updated_at = datetime.utcnow()
+        print("Updated timestamps")
         
+        print("Committing changes to database")
         db.session.commit()
+        print("Changes committed successfully")
+        
+        updated_order = order.to_dict()
+        print("Updated order data:", updated_order)
         
         return True, {
             "message": "Order updated successfully",
-            "order": order.to_dict()
+            "order": updated_order
         }
         
     except Exception as e:
         db.session.rollback()
         print(f"Error updating order {order_id}: {str(e)}")
+        print("Full error details:", traceback.format_exc())
         return False, {"error": f"Failed to update order: {str(e)}"}
 
 def duplicate_order(order_id):
@@ -252,3 +289,121 @@ def duplicate_order(order_id):
     except Exception as e:
         print(f"Error in duplicate_order: {str(e)}")
         return False, {"error": "An error occurred while duplicating the order"}
+
+def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Generate an Excel report of orders, with optional search/status filters.
+    Returns a tuple of (success, response) where response contains either the Excel file buffer or an error message.
+    """
+    try:
+        query = Order.query
+
+        # Apply search filter
+        if search:
+            query = query.filter(
+                db.or_(
+                    Order.customer_name.ilike(f'%{search}%'),
+                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')
+                )
+            )
+        
+        # Apply status filter
+        if status and status.lower() != 'all':
+            query = query.filter(Order.status == status)
+
+        # Order by created_at descending (newest first)
+        orders = query.order_by(Order.created_at.desc()).all()
+
+        # Create a new workbook and select the active worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Orders Report"
+
+        # Define headers and their corresponding order attributes
+        headers = [
+            "Form Number", "Customer Name", "Fabric Name", "Fabric Code",
+            "Width", "Height", "Quantity", "Total Length (m)",
+            "Delivery Date", "Print Type", "Lamination Type", "Cut Type",
+            "Label Type", "Design Specification", "Office Notes",
+            "Factory Notes", "Status", "Created At", "Updated At", "Created By"
+        ]
+        order_attributes = [
+            "form_number", "customer_name", "fabric_name", "fabric_code",
+            "width", "height", "quantity", "total_length_meters",
+            "delivery_date", "print_type", "lamination_type", "cut_type",
+            "label_type", "design_specification", "office_notes",
+            "factory_notes", "status", "created_at", "updated_at", "created_by"
+        ]
+
+        # Write headers
+        ws.append(headers)
+
+        # Style headers
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_border = Border(left=Side(style='thin'), 
+                               right=Side(style='thin'), 
+                               top=Side(style='thin'), 
+                               bottom=Side(style='thin'))
+
+        for col in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = header_border
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+        # Write order data
+        for order in orders:
+            row_data = []
+            order_dict = order.to_dict() # Get the dictionary representation of the order
+            for attr in order_attributes:
+                value = order_dict.get(attr)
+                
+                # Format dates to YYYY-MM-DD
+                if isinstance(value, (datetime, date)):
+                    value = value.strftime('%Y-%m-%d')
+                elif isinstance(value, str) and 'T' in value and (
+                    attr == 'created_at' or attr == 'updated_at'):
+                    # Handle ISO format strings from to_dict()
+                    try:
+                        value = datetime.fromisoformat(value).strftime('%Y-%m-%d')
+                    except ValueError:
+                        pass # Keep original string if parsing fails
+                
+                row_data.append(value)
+            ws.append(row_data)
+
+        # Auto-size columns
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2) * 1.2 # Add a small buffer
+            ws.column_dimensions[column].width = adjusted_width
+
+        # Save workbook to a BytesIO object
+        excel_file_buffer = io.BytesIO()
+        wb.save(excel_file_buffer)
+        excel_file_buffer.seek(0) # Rewind the buffer to the beginning
+        
+        current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f"orders_report_{current_date}.xlsx"
+
+        return True, {
+            "message": "Excel report generated successfully",
+            "excel_file_buffer": excel_file_buffer,
+            "file_name": file_name
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        error_traceback = traceback.format_exc()
+        print("Error generating Excel report:")
+        print(error_traceback)
+        return False, {"error": f"Failed to generate Excel report: {str(e)}\nTraceback: {error_traceback}"}

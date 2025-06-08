@@ -1,9 +1,11 @@
 from src.orders import order_bp
-from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id , update_order_id, duplicate_order
-from flask import redirect, render_template, request, jsonify, flash, url_for
+from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id , update_order_id, duplicate_order, generate_excel_report
+from flask import redirect, render_template, request, jsonify, flash, url_for, send_file
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
 from src.orders.models import db , Order
+import io
+import traceback
 
 @order_bp.route('/')
 @login_required
@@ -130,22 +132,32 @@ def update_order(id):
     Update an existing order with the provided form data.
     """
     try:
+        print("Request method:", request.method)
+        print("Request content type:", request.content_type)
+        print("Request headers:", dict(request.headers))
+        
         if request.is_json:
             form_data = request.get_json()
+            print("Received JSON data:", form_data)
         else:
             form_data = {
                 key: value if value != '' else None 
                 for key, value in request.form.items()
             }
-        
+            print("Received form data:", form_data)
+            
+        print(f'Processing update for order {id} with data:', form_data)
         success, response = update_order_id(id, form_data)
         
         if success:
+            print("Update successful:", response)
             return jsonify(response), 200
+        print("Update failed:", response)
         return jsonify(response), 400
     
     except Exception as e:
         print(f"Error in update_order route: {str(e)}")
+        print("Full error details:", traceback.format_exc())
         return jsonify({"error": "An error occurred while updating the order"}), 500
 
 @order_bp.route('/<id>/duplicate', methods=['POST'])
@@ -173,3 +185,29 @@ def duplicate_order_route(id):
             "success": False,
             "error": "An error occurred while duplicating the order"
         }), 500
+
+@order_bp.route('/export/excel')
+@login_required
+@role_required('Admin', "OrderManager")
+def export_orders_excel():
+    """
+    Export orders to an Excel file.
+    """
+    search = request.args.get('search')
+    status = request.args.get('status')
+    
+    success, response = generate_excel_report(search=search, status=status)
+
+    if not success:
+        flash(response.get('error', 'Failed to generate Excel report'), 'error')
+        return redirect(url_for('order.order_list'))
+
+    excel_file_buffer = response.get('excel_file_buffer')
+    file_name = response.get('file_name', 'orders_report.xlsx')
+
+    return send_file(
+        excel_file_buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=file_name
+    )
