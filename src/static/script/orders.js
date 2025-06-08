@@ -10,13 +10,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     const order = data.order;
                     
-                    // Update status badge color based on status
+                    // Update status badge and progress bar based on status
                     const statusElement = document.getElementById('detail-status');
-                    statusElement.textContent = order.status || '-';
-                    statusElement.className = 'badge fs-6 px-3 py-2 ' + 
-                        (order.status === 'Completed' ? 'bg-success' : 
-                            order.status === 'In Progress' ? 'bg-warning' : 
-                            'bg-secondary');
+                    const progressBar = document.getElementById('detail-status-progress');
+                    const statusContainer = document.getElementById('detail-status-container');
+                    
+                    let statusClass, progressWidth, statusIcon;
+                    
+                    switch(order.status) {
+                        case 'Completed':
+                            statusClass = 'bg-success';
+                            progressWidth = '100%';
+                            statusIcon = '<i class="fas fa-check-circle me-1"></i>';
+                            break;
+                        case 'In Progress':
+                            statusClass = 'bg-warning';
+                            progressWidth = '60%';
+                            statusIcon = '<i class="fas fa-spinner fa-spin me-1"></i>';
+                            break;
+                        default:
+                            statusClass = 'bg-secondary';
+                            progressWidth = '30%';
+                            statusIcon = '<i class="fas fa-clock me-1"></i>';
+                    }
+                    
+                    statusElement.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
+                    statusElement.innerHTML = `${statusIcon}${order.status || '-'}`;
+                    
+                    progressBar.className = `progress-bar ${statusClass}`;
+                    progressBar.style.width = progressWidth;
+                    
+                    // Add a subtle animation to the progress bar
+                    progressBar.style.transition = 'width 0.6s ease-in-out';
 
                     document.getElementById('detail-form-number').textContent = `#${order.form_number}`;
                     document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
@@ -407,50 +432,93 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 document.addEventListener('DOMContentLoaded', () => {
-    const statusItems   = document.querySelectorAll('.filter-status');
-    const statusBtn     = document.getElementById('statusFilterDropdown');
-    const searchInput   = document.getElementById('searchInput');
-    const rows          = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
+    const statusItems = document.querySelectorAll('.filter-status');
+    const statusBtn = document.getElementById('statusFilterDropdown');
+    const statusText = document.getElementById('statusFilterText');
+    const statusBadge = document.getElementById('statusFilterBadge');
+    const searchInput = document.getElementById('searchInput');
+    const rows = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
   
     let currentStatus = 'all';
     let currentSearch = '';
   
+    // Function to update filter button appearance
+    function updateFilterButton(status) {
+        let badgeClass, badgeText, statusText;
+        
+        switch(status) {
+            case 'Completed':
+                badgeClass = 'bg-success';
+                badgeText = 'Completed';
+                statusText = 'Completed';
+                break;
+            case 'In Progress':
+                badgeClass = 'bg-warning';
+                badgeText = 'In Progress';
+                statusText = 'In Progress';
+                break;
+            case 'Pending':
+                badgeClass = 'bg-secondary';
+                badgeText = 'Pending';
+                statusText = 'Pending';
+                break;
+            default:
+                badgeClass = 'bg-secondary';
+                badgeText = 'All';
+                statusText = 'All Status';
+        }
+        
+        statusBadge.className = `badge rounded-pill ${badgeClass}`;
+        statusBadge.textContent = badgeText;
+        statusText.textContent = statusText;
+        
+        // Update active state in dropdown
+        statusItems.forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.status === status) {
+                item.classList.add('active');
+            }
+        });
+    }
+  
     // main filter function
     function filterRows() {
-      const s = currentSearch.toLowerCase();
+        const s = currentSearch.toLowerCase();
   
-      rows.forEach(row => {
-        // — status check —
-        const badge   = row.querySelector('td:nth-child(7) .badge');
-        const status  = badge ? badge.textContent.trim() : '';
-        const statusMatch = currentStatus === 'all' || status === currentStatus;
+        rows.forEach(row => {
+            // — status check —
+            const badge = row.querySelector('td:nth-child(7) .badge');
+            const status = badge ? badge.textContent.trim() : '';
+            const statusMatch = currentStatus === 'all' || status === currentStatus;
   
-        // — search check —
-        // concatenate the text of all cells you want searchable
-        const text = Array.from(row.cells)
-                          .map(cell => cell.textContent.trim().toLowerCase())
-                          .join(' ');
-        const searchMatch = text.includes(s);
+            // — search check —
+            const text = Array.from(row.cells)
+                            .map(cell => cell.textContent.trim().toLowerCase())
+                            .join(' ');
+            const searchMatch = text.includes(s);
   
-        // show only if both match
-        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
-      });
+            // show only if both match
+            row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+        });
     }
   
     // wire up status dropdown
     statusItems.forEach(item => {
-      item.addEventListener('click', e => {
-        e.preventDefault();
-        currentStatus = item.dataset.status;            // e.g. "Pending" or "all"
-        statusBtn.textContent = item.textContent;      // update label
-        filterRows();
-      });
+        item.addEventListener('click', e => {
+            e.preventDefault();
+            currentStatus = item.dataset.status;
+            updateFilterButton(currentStatus);
+            filterRows();
+        });
     });
   
     // wire up search box
     searchInput.addEventListener('input', () => {
-      currentSearch = searchInput.value;
-      filterRows();
+        currentSearch = searchInput.value;
+        filterRows();
     });
-  });
+    
+    // Initialize filter button
+    updateFilterButton('all');
+});
   

@@ -12,7 +12,14 @@
             <div class="modal-body">
                 <!-- Status Badge -->
                 <div class="text-center mb-4">
-                    <span id="detail-status" class="badge fs-6 px-3 py-2"></span>
+                    <div class="d-inline-block">
+                        <div id="detail-status-container" class="d-flex flex-column align-items-center">
+                            <span id="detail-status" class="badge fs-6 px-4 py-2 mb-2"></span>
+                            <div class="progress" style="width: 200px; height: 8px;">
+                                <div id="detail-status-progress" class="progress-bar" role="progressbar"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">
