@@ -25,8 +25,11 @@ class Order(db.Model):
     lamination_type = db.Column(db.String(50))    # e.g. براق, مات
     cut_type = db.Column(db.String(50))           # e.g. برش کامل, نیم تیغ
     label_type = db.Column(db.String(50))         # e.g. خشک, متوسط
+    status = db.Column(db.String(20))
 
+    created_by_user = db.relationship('User', backref='orders_created')
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -53,7 +56,9 @@ class Order(db.Model):
             "lamination_type": self.lamination_type,
             "cut_type": self.cut_type,
             "label_type": self.label_type,
+            "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "created_by": self.created_by
+            "created_by_id": self.created_by,
+            "created_by_username": self.created_by_user.username if self.created_by_user else None
         }

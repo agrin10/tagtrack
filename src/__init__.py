@@ -18,10 +18,14 @@ def create_app(config_obj='config.Config'):
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
 
-
-
     from src.auth.routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    from src.orders.routes import order_bp
+    app.register_blueprint(order_bp, url_prefix='/orders')
+
+    from src.auth.models import User, Role
+    from src.orders.models import Order
 
     with app.app_context():
         db.create_all()
