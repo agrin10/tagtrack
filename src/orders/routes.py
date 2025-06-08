@@ -1,5 +1,5 @@
 from src.orders import order_bp
-from src.orders.controller import add_order, get_orders
+from src.orders.controller import add_order, get_orders , get_order_by_id
 from flask import redirect, render_template, request, jsonify, flash, url_for
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
@@ -70,3 +70,15 @@ def create_order():
     
     return render_template('order-list.html')
     
+@order_bp.route('/<id>')
+def get_order_id(id):
+    """
+    Get a specific order by its ID.
+    """
+    success, response = get_order_by_id(id)
+    
+    if success:
+        return jsonify(response)
+    return jsonify(response), 404
+
+   

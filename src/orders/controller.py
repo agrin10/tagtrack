@@ -114,3 +114,22 @@ def get_orders() -> Tuple[bool, Dict[str, Any]]:
     except Exception as e:
         print(f"Error retrieving orders: {str(e)}")
         return False, {"error": "Failed to retrieve orders"}
+    
+def get_order_by_id(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get a specific order by its ID.
+    """
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+        
+        return True, {
+            "message": "Order retrieved successfully",
+            "order": order.to_dict()
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving order {order_id}: {str(e)}")
+        return False, {"error": f"Failed to retrieve order: {str(e)}"}
+    

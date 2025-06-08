@@ -29,15 +29,14 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover" id="ordersTable">
+                <table class="table table-hover" id="ordersTable">
                     <thead>
                         <tr>
-                            <th>Form #</th>
+                            <th>Form </th>
                             <th>Customer</th>
                             <th>Fabric</th>
                             <th>Dimensions</th>
                             <th>Quantity</th>
-                            <th>Print Type</th>
                             <th>Delivery Date</th>
                             <th>Status</th>
                             <th>Created</th>
@@ -47,7 +46,7 @@
                     <tbody>
                         {% for order in orders %}
                         <tr>
-                            <td>{{ order.form_number }}</td>
+                            <td style="padding: 30px;">{{ order.form_number }}</td>
                             <td>{{ order.customer_name }}</td>
                             <td>
                                 {% if order.fabric_name or order.fabric_code %}
@@ -70,21 +69,6 @@
                                 {% endif %}
                             </td>
                             <td>{{ order.quantity or '-' }}</td>
-                            <td>
-                                {% if order.print_type %}
-                                    {{ order.print_type }}
-                                    {% if order.lamination_type or order.cut_type or order.label_type %}
-                                        <br>
-                                        <small class="text-muted">
-                                            {% if order.lamination_type %}Lam: {{ order.lamination_type }}{% endif %}
-                                            {% if order.cut_type %} | Cut: {{ order.cut_type }}{% endif %}
-                                            {% if order.label_type %} | Label: {{ order.label_type }}{% endif %}
-                                        </small>
-                                    {% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
                             <td>{{ order.delivery_date or '-' }}</td>
                             <td>
                                 <span class="badge bg-{{ 'success' if order.status == 'Completed' else 'warning' if order.status == 'In Progress' else 'secondary' }}">
@@ -101,8 +85,8 @@
                                 </small>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-info" title="View Details">
+                                <div class="btn-group btn-group-sm gap-2">
+                                    <button type="button" class="btn btn-info view-details-btn" title="View Details" data-bs-toggle="modal" data-bs-target="#orderDetailsModal" data-order-id="{{ order.id }}">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <button type="button" class="btn btn-primary" title="Edit">
@@ -258,19 +242,227 @@
     </div>
 </div>
 
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="orderDetailsModalLabel">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Order Details <span id="detail-form-number" class="badge bg-primary ms-2"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Status Badge -->
+                <div class="text-center mb-4">
+                    <span id="detail-status" class="badge fs-6 px-3 py-2"></span>
+                </div>
+
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-6">
+                        <!-- Customer & Delivery Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Customer Name</label>
+                                            <div id="detail-customer-name" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Delivery Date</label>
+                                            <div id="detail-delivery-date" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fabric & Dimensions Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-cut me-2"></i>Fabric & Dimensions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Fabric Name</label>
+                                            <div id="detail-fabric-name" class="fw-bold"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Fabric Code</label>
+                                            <div id="detail-fabric-code" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Width</label>
+                                                <div id="detail-width" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Height</label>
+                                                <div id="detail-height" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Quantity</label>
+                                                <div id="detail-quantity" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Total Length (m)</label>
+                                                <div id="detail-total-length-meters" class="fw-bold"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Print & Finishing Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-print me-2"></i>Print & Finishing Details</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Print Type</label>
+                                        <div id="detail-print-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Lamination</label>
+                                        <div id="detail-lamination-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Cut Type</label>
+                                        <div id="detail-cut-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Label Type</label>
+                                        <div id="detail-label-type" class="fw-bold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-6">
+                        <!-- Notes Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes & Specifications</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Design Specification</label>
+                                    <div id="detail-design-specification" class="fw-bold"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Office Notes</label>
+                                    <div id="detail-office-notes" class="fw-bold"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Factory Notes</label>
+                                    <div id="detail-factory-notes" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Metadata Section -->
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Order Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Created By</label>
+                                            <div id="detail-created-by-username" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Created At</label>
+                                            <div id="detail-created-at" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
-    // Initialize DataTable
-    $(document).ready(function() {
-        $('#ordersTable').DataTable({
-            order: [[8, 'desc']], // Sort by created date by default
-            pageLength: 25,
-            language: {
-                search: "Search orders:"
-            }
+    document.addEventListener('DOMContentLoaded', function () {
+        const detailModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+    
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const orderId = this.getAttribute('data-order-id');
+    
+                fetch(`/orders/${orderId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const order = data.order;
+                        
+                        // Update status badge color based on status
+                        const statusElement = document.getElementById('detail-status');
+                        statusElement.textContent = order.status || '-';
+                        statusElement.className = 'badge fs-6 px-3 py-2 ' + 
+                            (order.status === 'Completed' ? 'bg-success' : 
+                             order.status === 'In Progress' ? 'bg-warning' : 
+                             'bg-secondary');
+    
+                        document.getElementById('detail-form-number').textContent = `#${order.form_number}`;
+                        document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
+                        document.getElementById('detail-fabric-name').textContent = order.fabric_name || '-';
+                        document.getElementById('detail-fabric-code').textContent = order.fabric_code || '-';
+                        document.getElementById('detail-width').textContent = order.width ? `${order.width} cm` : '-';
+                        document.getElementById('detail-height').textContent = order.height ? `${order.height} cm` : '-';
+                        document.getElementById('detail-quantity').textContent = order.quantity || '-';
+                        document.getElementById('detail-total-length-meters').textContent = order.total_length_meters ? `${order.total_length_meters} m` : '-';
+                        document.getElementById('detail-print-type').textContent = order.print_type || '-';
+                        document.getElementById('detail-lamination-type').textContent = order.lamination_type || '-';
+                        document.getElementById('detail-cut-type').textContent = order.cut_type || '-';
+                        document.getElementById('detail-label-type').textContent = order.label_type || '-';
+                        document.getElementById('detail-design-specification').textContent = order.design_specification || '-';
+                        document.getElementById('detail-office-notes').textContent = order.office_notes || '-';
+                        document.getElementById('detail-factory-notes').textContent = order.factory_notes || '-';
+                        document.getElementById('detail-delivery-date').textContent = order.delivery_date || '-';
+                        document.getElementById('detail-created-at').textContent = order.created_at ? order.created_at.split('T')[0] : '-';
+                        document.getElementById('detail-created-by-username').textContent = order.created_by_username || '-';
+    
+                        detailModal.show();
+                    })
+                    .catch(error => {
+                        console.error('❌ Error fetching order details:', error);
+                        alert('Error loading order details. Please try again.');
+                    });
+            });
         });
     });
 </script>
 {% endblock %}
+
