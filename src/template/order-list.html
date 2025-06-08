@@ -24,11 +24,17 @@
                 Orders (Total: {{ total }})
             </div>
             <div class="d-flex align-items-center gap-3">
+                <!-- Advanced Filter Button -->
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Filters</span>
+                    <span id="activeFiltersBadge" class="badge rounded-pill bg-secondary">0</span>
+                </button>
+
                 <!-- Search Input -->
                 <div class="input-group" style="width: 250px;">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control" id="searchInput"
-                        placeholder="Search by customer or order ID...">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search orders...">
                 </div>
 
                 <!-- Status Dropdown -->
@@ -74,11 +80,54 @@
                 <button type="button" class="btn btn-success" id="exportExcelBtn">
                     <i class="fas fa-file-excel"></i> Export to Excel
                 </button>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
-                <i class="fas fa-plus"></i> New Order
-            </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                    <i class="fas fa-plus"></i> New Order
+                </button>
             </div>
         </div>
+
+        <!-- Advanced Filters Collapse -->
+        <div class="collapse" id="filterCollapse">
+            <div class="card card-body border-0 shadow-sm mb-4">
+                <div class="row g-3">
+                    <!-- Customer Filter -->
+                    <div class="col-md-4">
+                        <label class="form-label">Customer Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="customerFilter" placeholder="Filter by customer name">
+                        </div>
+                    </div>
+
+                    <!-- Date Range Filter -->
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted mb-2">
+                            <i class="fas fa-calendar-alt me-1"></i>Date Range
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" class="form-control form-control-sm border-end-0" id="dateFromFilter" placeholder="From">
+                            <span class="input-group-text bg-white border-start-0 border-end-0 px-1">
+                                <i class="fas fa-arrow-right text-muted small"></i>
+                            </span>
+                            <input type="date" class="form-control form-control-sm border-start-0" id="dateToFilter" placeholder="To">
+                        </div>
+                    </div>
+
+                    <!-- Filter Actions -->
+                    <div class="col-12 mt-3">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1" id="applyFiltersBtn">
+                                <i class="fas fa-filter me-1"></i>Apply Filters
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" id="clearFiltersBtn">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover" id="ordersTable">
@@ -257,6 +306,101 @@
     .dropdown-menu {
         border: none;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .filter-active {
+        background-color: #e9ecef;
+    }
+    
+    #filterCollapse .card-body {
+        background-color: #f8f9fa;
+    }
+    
+    .input-group-text {
+        background-color: #fff;
+    }
+    
+    #filterCollapse .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    #filterCollapse .input-group {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Custom styles for date inputs */
+    .input-group-sm .form-control {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+        height: calc(1.5em + 0.5rem + 2px);
+    }
+
+    .input-group-sm .input-group-text {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+        height: calc(1.5em + 0.5rem + 2px);
+    }
+
+    /* Style for date inputs */
+    input[type="date"] {
+        position: relative;
+        background-color: #fff;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+        padding: 0.25rem;
+    }
+
+    input[type="date"]::-webkit-inner-spin-button,
+    input[type="date"]::-webkit-clear-button {
+        display: none;
+    }
+
+    /* Hover and focus states */
+    .input-group-sm .form-control:hover {
+        border-color: #86b7fe;
+    }
+
+    .input-group-sm .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Filter button styles */
+    #applyFiltersBtn, #clearFiltersBtn {
+        transition: all 0.2s ease-in-out;
+    }
+
+    #applyFiltersBtn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #clearFiltersBtn:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Filter collapse styles */
+    #filterCollapse .card-body {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #495057;
     }
 </style>
 

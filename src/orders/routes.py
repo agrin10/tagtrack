@@ -132,10 +132,6 @@ def update_order(id):
     Update an existing order with the provided form data.
     """
     try:
-        print("Request method:", request.method)
-        print("Request content type:", request.content_type)
-        print("Request headers:", dict(request.headers))
-        
         if request.is_json:
             form_data = request.get_json()
             print("Received JSON data:", form_data)

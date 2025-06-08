@@ -34,16 +34,18 @@ document.addEventListener('DOMContentLoaded', function () {
                             statusIcon = '<i class="fas fa-clock me-1"></i>';
                     }
                     
-                    statusElement.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
-                    statusElement.innerHTML = `${statusIcon}${order.status || '-'}`;
+                    if (statusElement) {
+                        statusElement.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
+                        statusElement.innerHTML = `${statusIcon}${order.status || '-'}`;
+                    }
                     
-                    progressBar.className = `progress-bar ${statusClass}`;
-                    progressBar.style.width = progressWidth;
+                    if (progressBar) {
+                        progressBar.className = `progress-bar ${statusClass}`;
+                        progressBar.style.width = progressWidth;
+                    }
                     
-                    // Add a subtle animation to the progress bar
-                    progressBar.style.transition = 'width 0.6s ease-in-out';
-
-                    document.getElementById('detail-form-number').textContent = `#${order.form_number}`;
+                    // Update other modal fields
+                    document.getElementById('detail-form-number').textContent = order.form_number;
                     document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
                     document.getElementById('detail-fabric-name').textContent = order.fabric_name || '-';
                     document.getElementById('detail-fabric-code').textContent = order.fabric_code || '-';
@@ -62,12 +64,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detail-created-at').textContent = order.created_at ? order.created_at.split('T')[0] : '-';
                     document.getElementById('detail-created-by-username').textContent = order.created_by_username || '-';
 
-
                     detailModal.show();
                 })
                 .catch(error => {
-                    console.error('❌ Error fetching order details:', error);
-                    alert('Error loading order details. Please try again.');
+                    console.error('Error fetching order details:', error);
                 });
         });
     });
@@ -363,162 +363,326 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
-    // Function to get current URL parameters
-    function getUrlParams() {
-        const params = {};
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString);
-        for (const [key, value] of urlParams.entries()) {
-            params[key] = value;
-        }
-        return params;
-    }
-
-    // Function to update URL parameters and reload
-    function updateUrlAndReload(newParams) {
-        const currentParams = getUrlParams();
-        const updatedParams = { ...currentParams, ...newParams };
-
-        // Remove empty or 'all' status parameters
-        for (const key in updatedParams) {
-            if (updatedParams[key] === '' || updatedParams[key] === 'all') {
-                delete updatedParams[key];
-            }
-        }
-
-        const queryString = new URLSearchParams(updatedParams).toString();
-        window.location.href = `${window.location.pathname}?${queryString}`;
-    }
-
-    // Initialize search input from URL
-    const searchInput = document.getElementById('searchInput');
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialSearch = urlParams.get('search');
-    if (searchInput && initialSearch) {
-        searchInput.value = initialSearch;
-    }
-
-    // Initialize status dropdown from URL
-    const statusFilterDropdown = document.getElementById('statusFilterDropdown');
-    const initialStatus = urlParams.get('status');
-    if (statusFilterDropdown) {
-        const statusText = document.querySelector(`#statusFilterDropdown`);
-        const selectedStatusLink = document.querySelector(`.filter-status[data-status="${initialStatus || 'all'}"]`);
-        if (selectedStatusLink) {
-            statusText.textContent = selectedStatusLink.textContent;
-            statusFilterDropdown.setAttribute('data-current-status', initialStatus || 'all');
-        }
-    }
-
-    // Debounce for search input
-    let searchTimeout;
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                updateUrlAndReload({ search: this.value, page: 1 });
-            }, 500);
-        });
-    }
-
-    // Status filter clicks
-    document.querySelectorAll('.filter-status').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const status = this.getAttribute('data-status');
-            updateUrlAndReload({ status: status, page: 1 });
-        });
-    });
-});
-document.addEventListener('DOMContentLoaded', () => {
+    // Filter Elements
     const statusItems = document.querySelectorAll('.filter-status');
     const statusBtn = document.getElementById('statusFilterDropdown');
     const statusText = document.getElementById('statusFilterText');
     const statusBadge = document.getElementById('statusFilterBadge');
     const searchInput = document.getElementById('searchInput');
     const rows = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
+    const customerFilter = document.getElementById('customerFilter');
+    const dateFromFilter = document.getElementById('dateFromFilter');
+    const dateToFilter = document.getElementById('dateToFilter');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    const activeFiltersBadge = document.getElementById('activeFiltersBadge');
+    const filterCollapse = document.getElementById('filterCollapse');
   
     let currentStatus = 'all';
     let currentSearch = '';
-  
+    let activeFilters = 0;
+
+    // Initialize from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialSearch = urlParams.get('search');
+    const initialStatus = urlParams.get('status');
+
+    if (searchInput && initialSearch) {
+        searchInput.value = initialSearch;
+        currentSearch = initialSearch;
+    }
+
+    if (statusBtn && initialStatus) {
+        const selectedStatusLink = document.querySelector(`.filter-status[data-status="${initialStatus}"]`);
+        if (selectedStatusLink) {
+            currentStatus = initialStatus;
+            updateFilterButton(currentStatus);
+        }
+    }
+    
+    // Function to count active filters
+    function updateActiveFiltersCount() {
+        let count = 0;
+        if (currentStatus !== 'all') count++;
+        if (currentSearch) count++;
+        if (customerFilter && customerFilter.value) count++;
+        if ((dateFromFilter && dateFromFilter.value) || (dateToFilter && dateToFilter.value)) count++;
+        
+        if (activeFiltersBadge) {
+            activeFilters = count;
+            activeFiltersBadge.textContent = count;
+            activeFiltersBadge.className = `badge rounded-pill ${count > 0 ? 'bg-primary' : 'bg-secondary'}`;
+        }
+    }
+    
+    // Function to clear all filters
+    function clearAllFilters() {
+        currentStatus = 'all';
+        currentSearch = '';
+        if (customerFilter) customerFilter.value = '';
+        if (dateFromFilter) dateFromFilter.value = '';
+        if (dateToFilter) dateToFilter.value = '';
+        if (searchInput) searchInput.value = '';
+        
+        updateFilterButton('all');
+        updateActiveFiltersCount();
+        filterRows();
+    }
+    
+    // Function to check if a date is within range
+    function isDateInRange(dateStr, fromDate, toDate) {
+        if (!dateStr) return false; // Changed to false to not show rows with no date
+        
+        try {
+            // Parse the date string from the table
+            let orderDate;
+            if (dateStr.includes('T')) {
+                // If it's a datetime string (created_at)
+                orderDate = new Date(dateStr);
+            } else {
+                // If it's just a date string (delivery_date)
+                const [year, month, day] = dateStr.split('-').map(Number);
+                orderDate = new Date(year, month - 1, day);
+            }
+            
+            // If no filters are set, return true
+            if (!fromDate && !toDate) return true;
+            
+            // Parse filter dates
+            const from = fromDate ? new Date(fromDate) : null;
+            const to = toDate ? new Date(toDate) : null;
+            
+            // Set time to start of day for from date and end of day for to date
+            if (from) {
+                from.setHours(0, 0, 0, 0);
+            }
+            if (to) {
+                to.setHours(23, 59, 59, 999);
+            }
+            
+            // For delivery dates, compare only the date part
+            if (!dateStr.includes('T')) {
+                orderDate.setHours(0, 0, 0, 0);
+            }
+            
+            // Check if date is within range
+            if (from && orderDate < from) return false;
+            if (to && orderDate > to) return false;
+            
+            return true;
+        } catch (error) {
+            console.error('Error comparing dates:', error, 'for date string:', dateStr);
+            return false; // Changed to false to not show rows with invalid dates
+        }
+    }
+
+    // Function to check if either date is in range
+    function isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate) {
+        // For created date, we want to check if it's within the range
+        const createdInRange = createdDate ? isDateInRange(createdDate, fromDate, toDate) : false;
+        
+        // For delivery date, we want to check if it's within the range
+        const deliveryInRange = deliveryDate ? isDateInRange(deliveryDate, fromDate, toDate) : false;
+        
+        // A row should be shown only if at least one date falls within the range
+        return createdInRange || deliveryInRange;
+    }
+
     // Function to update filter button appearance
     function updateFilterButton(status) {
-        let badgeClass, badgeText, statusText;
+        if (!statusBadge || !statusText) return;
+
+        let badgeClass, badgeText, statusDisplayText;
         
         switch(status) {
             case 'Completed':
                 badgeClass = 'bg-success';
                 badgeText = 'Completed';
-                statusText = 'Completed';
+                statusDisplayText = 'Completed';
                 break;
             case 'In Progress':
                 badgeClass = 'bg-warning';
                 badgeText = 'In Progress';
-                statusText = 'In Progress';
+                statusDisplayText = 'In Progress';
                 break;
             case 'Pending':
                 badgeClass = 'bg-secondary';
                 badgeText = 'Pending';
-                statusText = 'Pending';
+                statusDisplayText = 'Pending';
                 break;
             default:
                 badgeClass = 'bg-secondary';
                 badgeText = 'All';
-                statusText = 'All Status';
+                statusDisplayText = 'All Status';
         }
         
         statusBadge.className = `badge rounded-pill ${badgeClass}`;
         statusBadge.textContent = badgeText;
-        statusText.textContent = statusText;
+        statusText.textContent = statusDisplayText;
         
         // Update active state in dropdown
-        statusItems.forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.status === status) {
-                item.classList.add('active');
-            }
-        });
+        if (statusItems) {
+            statusItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.status === status) {
+                    item.classList.add('active');
+                }
+            });
+        }
     }
   
-    // main filter function
+    // Enhanced filter function
     function filterRows() {
-        const s = currentSearch.toLowerCase();
+        if (!rows.length) {
+            console.log('No rows found in the table');
+            return;
+        }
+
+        const searchText = currentSearch.toLowerCase();
+        const customerText = customerFilter ? customerFilter.value.toLowerCase() : '';
+        const fromDate = dateFromFilter ? dateFromFilter.value : '';
+        const toDate = dateToFilter ? dateToFilter.value : '';
+
+        console.log('Filtering with date range:', {
+            fromDate,
+            toDate,
+            fromDateObj: fromDate ? new Date(fromDate).toISOString() : null,
+            toDateObj: toDate ? new Date(toDate).toISOString() : null
+        });
   
+        let visibleCount = 0;
         rows.forEach(row => {
-            // — status check —
+            // Status check
             const badge = row.querySelector('td:nth-child(7) .badge');
             const status = badge ? badge.textContent.trim() : '';
             const statusMatch = currentStatus === 'all' || status === currentStatus;
   
-            // — search check —
+            // Customer name check
+            const customerCell = row.querySelector('td:nth-child(2)');
+            const customerName = customerCell ? customerCell.textContent.toLowerCase() : '';
+            const customerMatch = !customerText || customerName.includes(customerText);
+  
+            // Date checks - both created and delivery dates
+            const createdDateCell = row.querySelector('td:nth-child(8)');
+            const deliveryDateCell = row.querySelector('td:nth-child(6)');
+            
+            // Get created date from title attribute (contains full datetime)
+            const createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;
+            // Get delivery date from cell text (contains just the date)
+            const deliveryDate = deliveryDateCell ? deliveryDateCell.textContent.trim() : null;
+            
+            const dateMatch = isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate);
+            
+            if (!dateMatch) {
+                console.log('Row filtered out by date:', {
+                    customer: customerName,
+                    status: status,
+                    createdDate,
+                    deliveryDate,
+                    fromDate,
+                    toDate
+                });
+            }
+  
+            // Search text check (across all cells)
             const text = Array.from(row.cells)
                             .map(cell => cell.textContent.trim().toLowerCase())
                             .join(' ');
-            const searchMatch = text.includes(s);
+            const searchMatch = !searchText || text.includes(searchText);
   
-            // show only if both match
-            row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+            // Show row only if all conditions match
+            const shouldShow = statusMatch && customerMatch && dateMatch && searchMatch;
+            row.style.display = shouldShow ? '' : 'none';
+            
+            if (shouldShow) {
+                visibleCount++;
+                console.log('Row visible:', {
+                    customer: customerName,
+                    status: status,
+                    createdDate,
+                    deliveryDate,
+                    fromDate,
+                    toDate
+                });
+            }
+        });
+        
+        console.log(`Filtered results: ${visibleCount} rows visible out of ${rows.length} total rows`);
+        updateActiveFiltersCount();
+    }
+  
+    // Event Listeners
+    if (statusItems) {
+        statusItems.forEach(item => {
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                currentStatus = item.dataset.status;
+                updateFilterButton(currentStatus);
+                filterRows();
+            });
         });
     }
   
-    // wire up status dropdown
-    statusItems.forEach(item => {
-        item.addEventListener('click', e => {
-            e.preventDefault();
-            currentStatus = item.dataset.status;
-            updateFilterButton(currentStatus);
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            console.log('Search input changed:', searchInput.value);
+            currentSearch = searchInput.value;
             filterRows();
         });
-    });
-  
-    // wire up search box
-    searchInput.addEventListener('input', () => {
-        currentSearch = searchInput.value;
-        filterRows();
-    });
+    }
     
-    // Initialize filter button
+    if (customerFilter) {
+        customerFilter.addEventListener('input', () => {
+            console.log('Customer filter changed:', customerFilter.value);
+            filterRows();
+        });
+    }
+    
+    if (dateFromFilter) {
+        dateFromFilter.addEventListener('change', () => {
+            console.log('Date from changed:', dateFromFilter.value);
+            filterRows();
+        });
+    }
+    
+    if (dateToFilter) {
+        dateToFilter.addEventListener('change', () => {
+            console.log('Date to changed:', dateToFilter.value);
+            filterRows();
+        });
+    }
+    
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', () => {
+            clearAllFilters();
+        });
+    }
+    
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent any default form submission
+            console.log('Apply filters button clicked');
+            
+            // Update current search value
+            if (searchInput) {
+                currentSearch = searchInput.value;
+            }
+            
+            // Force filter update
+            filterRows();
+            
+            // Close the filter collapse if on mobile
+            if (window.innerWidth < 768 && filterCollapse) {
+                const bsCollapse = new bootstrap.Collapse(filterCollapse);
+                bsCollapse.hide();
+            }
+        });
+    }
+    
+    // Initialize filters
+    console.log('Initializing filters...');
     updateFilterButton('all');
+    updateActiveFiltersCount();
+    filterRows(); // Initial filter pass
 });
   
