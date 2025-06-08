@@ -4,6 +4,19 @@ from flask_login import current_user
 from datetime import datetime, date
 from typing import Tuple, Dict, Any, List
 import traceback
+from sqlalchemy import func
+
+def _get_next_form_number_for_year() -> int:
+    current_year = datetime.now().year
+    start_of_year = datetime(current_year, 1, 1)
+    end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+
+    # Query for the maximum form_number within the current year
+    max_form_number = db.session.query(func.max(Order.form_number)).filter(
+        Order.created_at.between(start_of_year, end_of_year)
+    ).scalar()
+
+    return (max_form_number or 0) + 1
 
 def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
     try:
@@ -16,22 +29,12 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
         
         print("Processed form data:", form_data)
 
-        # Validate required fields
-        if not form_data.get('form_number'):
-            return False, {"error": "Form number is required"}
+        # Customer name is required
         if not form_data.get('customer_name'):
             return False, {"error": "Customer name is required"}
 
-        # Convert form_number to integer
-        try:
-            form_number = int(form_data['form_number'])
-        except ValueError:
-            return False, {"error": "Form number must be a number"}
-
-        # Check if form number already exists
-        existing_order = Order.query.filter_by(form_number=form_number).first()
-        if existing_order:
-            return False, {"error": f"Order with form number {form_number} already exists"}
+        # Auto-generate form_number with yearly reset
+        form_number = _get_next_form_number_for_year()
 
         # Parse dates if provided
         delivery_date = None
@@ -52,7 +55,7 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
 
         # Create new order
         new_order = Order(
-            form_number=form_number,
+            form_number=form_number, # Use the auto-generated form number
             customer_name=form_data['customer_name'],
             fabric_name=form_data.get('fabric_name'),
             fabric_code=form_data.get('fabric_code'),
@@ -197,24 +200,12 @@ def duplicate_order(order_id):
         if not original_order:
             return False, {"error": "Order not found"}
 
-        # Get the latest form number
-        success, orders_response = get_orders()
-        if not success:
-            return False, {"error": "Failed to get orders"}
-
-        # Find the highest form number
-        orders = orders_response.get('orders', [])
-        highest_form_number = 0
-        for order in orders:
-            try:
-                form_num = int(order.get('form_number', 0))
-                highest_form_number = max(highest_form_number, form_num)
-            except (ValueError, TypeError):
-                continue
+        # Auto-generate form_number with yearly reset
+        form_number = _get_next_form_number_for_year()
 
         # Create a copy of the order data with a new form number
         new_order_data = {
-            'form_number': highest_form_number + 1,  # Use the next available form number
+            'form_number': form_number,  # Use the auto-generated form number
             'customer_name': original_order.get('customer_name'),
             'fabric_name': original_order.get('fabric_name'),
             'fabric_code': original_order.get('fabric_code'),
