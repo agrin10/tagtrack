@@ -1,5 +1,5 @@
 from src.orders import order_bp
-from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id
+from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id , update_order_id
 from flask import redirect, render_template, request, jsonify, flash, url_for
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
@@ -107,3 +107,28 @@ def delete_order(id):
             "success": False,
             "error": "An error occurred while deleting the order"
         }), 500
+@order_bp.route('/<id>', methods=['PUT', 'PATCH'])
+@login_required
+@role_required('Admin', "OrderManager")
+def update_order(id):
+    """
+    Update an existing order with the provided form data.
+    """
+    try:
+        if request.is_json:
+            form_data = request.get_json()
+        else:
+            form_data = {
+                key: value if value != '' else None 
+                for key, value in request.form.items()
+            }
+        
+        success, response = update_order_id(id, form_data)
+        
+        if success:
+            return jsonify(response), 200
+        return jsonify(response), 400
+    
+    except Exception as e:
+        print(f"Error in update_order route: {str(e)}")
+        return jsonify({"error": "An error occurred while updating the order"}), 500

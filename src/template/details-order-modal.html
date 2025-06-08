@@ -1,0 +1,172 @@
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="orderDetailsModalLabel">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Order Details <span id="detail-form-number" class="badge bg-primary ms-2"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Status Badge -->
+                <div class="text-center mb-4">
+                    <span id="detail-status" class="badge fs-6 px-3 py-2"></span>
+                </div>
+
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-6">
+                        <!-- Customer & Delivery Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Customer Name</label>
+                                            <div id="detail-customer-name" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Delivery Date</label>
+                                            <div id="detail-delivery-date" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fabric & Dimensions Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-cut me-2"></i>Fabric & Dimensions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Fabric Name</label>
+                                            <div id="detail-fabric-name" class="fw-bold"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Fabric Code</label>
+                                            <div id="detail-fabric-code" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Width</label>
+                                                <div id="detail-width" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Height</label>
+                                                <div id="detail-height" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Quantity</label>
+                                                <div id="detail-quantity" class="fw-bold"></div>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="text-muted small">Total Length (m)</label>
+                                                <div id="detail-total-length-meters" class="fw-bold"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Print & Finishing Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-print me-2"></i>Print & Finishing Details</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Print Type</label>
+                                        <div id="detail-print-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Lamination</label>
+                                        <div id="detail-lamination-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Cut Type</label>
+                                        <div id="detail-cut-type" class="fw-bold"></div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="text-muted small">Label Type</label>
+                                        <div id="detail-label-type" class="fw-bold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-6">
+                        <!-- Notes Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes & Specifications</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="text-muted small">Design Specification</label>
+                                    <div id="detail-design-specification" class="fw-bold"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Office Notes</label>
+                                    <div id="detail-office-notes" class="fw-bold"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="text-muted small">Factory Notes</label>
+                                    <div id="detail-factory-notes" class="fw-bold"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Metadata Section -->
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Order Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Created By</label>
+                                            <div id="detail-created-by-username" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Created At</label>
+                                            <div id="detail-created-at" class="fw-bold"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End of Order Details Modal -->
+            </div>
+        </div>
+    </div>

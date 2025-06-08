@@ -153,3 +153,32 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
         db.session.rollback()
         print(f"Error deleting order {order_id}: {str(e)}")
         return False, {"error": f"Failed to delete order: {str(e)}"}
+    
+def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Update an existing order with the provided form data.
+    """
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+        
+        # Update fields from form_data
+        for key, value in form_data.items():
+            if hasattr(order, key):
+                setattr(order, key, value)
+        
+        # Update timestamps
+        order.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return True, {
+            "message": "Order updated successfully",
+            "order": order.to_dict()
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating order {order_id}: {str(e)}")
+        return False, {"error": f"Failed to update order: {str(e)}"}
