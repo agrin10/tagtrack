@@ -3,12 +3,21 @@ from src.orders.controller import add_order, get_orders , get_order_by_id, delet
 from flask import redirect, render_template, request, jsonify, flash, url_for
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
+from src.orders.models import db , Order
 
 @order_bp.route('/')
 @login_required
 @role_required('Admin', "OrderManager")
 def order_list():
-    success, response = get_orders()
+    # Get pagination parameters from URL
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int) # Default to 10 items per page
+
+    # Get search and status filters from URL
+    search = request.args.get('search')
+    status = request.args.get('status')
+
+    success, response = get_orders(page=page, per_page=per_page, search=search, status=status)
     
     if request.is_json:
         if success:
@@ -18,11 +27,13 @@ def order_list():
     
     if not success:
         flash(response.get('error', 'Failed to load orders'), 'error')
-        return render_template('order-list.html', orders=[], total=0)
+        # Pass an empty pagination object to avoid template errors
+        return render_template('order-list.html', orders=[], total=0, pagination=None)
     
     return render_template('order-list.html', 
                          orders=response['orders'], 
-                         total=response['total'])
+                         total=response['total'],
+                         pagination=response['pagination'])
 
 @order_bp.route('/', methods=['GET', 'POST'])
 @login_required

@@ -96,22 +96,41 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
         # Return the actual error message for debugging
         return False, {"error": f"Failed to create order: {str(e)}\nTraceback: {error_traceback}"}
 
-def get_orders() -> Tuple[bool, Dict[str, Any]]:
+def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
     """
-    Get all orders with their details.
+    Get all orders with their details, with pagination and optional search/status filters.
     Returns a tuple of (success, response) where response contains either the orders list or an error message.
     """
     try:
-        # Get all orders, ordered by created_at descending (newest first)
-        orders = Order.query.order_by(Order.created_at.desc()).all()
+        query = Order.query
+
+        # Apply search filter
+        if search:
+            query = query.filter(
+                db.or_(
+                    Order.customer_name.ilike(f'%{search}%'),
+                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')
+                )
+            )
+        
+        # Apply status filter
+        if status and status.lower() != 'all':
+            query = query.filter(Order.status == status)
+
+        # Order by created_at descending (newest first)
+        query = query.order_by(Order.created_at.desc())
+        
+        # Paginate the results
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         # Convert orders to list of dictionaries
-        orders_list = [order.to_dict() for order in orders]
+        orders_list = [order.to_dict() for order in pagination.items]
         
         return True, {
             "message": "Orders retrieved successfully",
             "orders": orders_list,
-            "total": len(orders_list)
+            "total": pagination.total,
+            "pagination": pagination
         }
         
     except Exception as e:
