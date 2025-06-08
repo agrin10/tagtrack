@@ -1,5 +1,5 @@
 from src.orders import order_bp
-from src.orders.controller import add_order, get_orders , get_order_by_id
+from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id
 from flask import redirect, render_template, request, jsonify, flash, url_for
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
@@ -81,4 +81,29 @@ def get_order_id(id):
         return jsonify(response)
     return jsonify(response), 404
 
-   
+    
+@order_bp.route('/<id>', methods=['DELETE'])
+@login_required
+@role_required('Admin', "OrderManager")
+def delete_order(id):
+    """
+    Delete an order by its ID.
+    """
+    try:
+        success, response = delete_order_by_id(id)
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Order deleted successfully",
+                "order_id": id
+            })
+        return jsonify({
+            "success": False,
+            "error": response.get('error', 'Failed to delete order')
+        }), 400
+    except Exception as e:
+        print(f"Error in delete_order route: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while deleting the order"
+        }), 500

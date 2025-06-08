@@ -133,3 +133,23 @@ def get_order_by_id(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         print(f"Error retrieving order {order_id}: {str(e)}")
         return False, {"error": f"Failed to retrieve order: {str(e)}"}
     
+def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
+    """
+    Delete an order by its ID.
+    """
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+        
+        db.session.delete(order)
+        db.session.commit()
+        
+        return True, {
+            "message": "Order deleted successfully"
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting order {order_id}: {str(e)}")
+        return False, {"error": f"Failed to delete order: {str(e)}"}
