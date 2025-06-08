@@ -23,6 +23,10 @@ def create_app(config_obj='config.Config'):
 
     from src.orders.routes import order_bp
     app.register_blueprint(order_bp, url_prefix='/orders')
+    
+    from src.dashboard.routes import dashboard_bp
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+
 
     from src.auth.models import User, Role
     from src.orders.models import Order

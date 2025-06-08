@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Overview of your order management system</li>
+    </ol>
+
+    <div class="row">
+        <!-- Total Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Orders</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ total_orders }}</div>
+                            <div class="text-xs text-muted">{{ total_orders_change }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pending Orders</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ pending_orders }}</div>
+                            <div class="text-xs text-muted">Require attention</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">Completed Orders</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ completed_orders_this_month }}</div>
+                            <div class="text-xs text-muted">This month</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col me-2">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">Revenue</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ revenue }}</div>
+                            <div class="text-xs text-muted">{{ revenue_change }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- System Overview Card -->
+        <div class="col-xl-6 col-md-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">System Overview</h6>
+                </div>
+                <div class="card-body">
+                    <h1 class="display-4">{{ active_users }}</h1>
+                    <p class="mb-0">Active users across all roles</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Card -->
+        <div class="col-xl-6 col-md-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">Recent Activity</h6>
+                </div>
+                <div class="card-body">
+                    {% for activity in recent_activity %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3 text-primary"><i class="fas fa-circle"></i></div>
+                        <div>
+                            <div class="fw-bold">{{ activity.description }}</div>
+                            <div class="text-muted small">{{ activity.timestamp }} hours ago</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not recent_activity %}
+                    <p>No recent activity.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
