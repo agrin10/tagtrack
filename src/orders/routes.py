@@ -1,5 +1,5 @@
 from src.orders import order_bp
-from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id , update_order_id
+from src.orders.controller import add_order, get_orders , get_order_by_id, delete_order_by_id , update_order_id, duplicate_order
 from flask import redirect, render_template, request, jsonify, flash, url_for
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
@@ -132,3 +132,29 @@ def update_order(id):
     except Exception as e:
         print(f"Error in update_order route: {str(e)}")
         return jsonify({"error": "An error occurred while updating the order"}), 500
+
+@order_bp.route('/<id>/duplicate', methods=['POST'])
+@login_required
+@role_required('Admin', "OrderManager")
+def duplicate_order_route(id):
+    """
+    Duplicate an existing order with a new ID.
+    """
+    try:
+        success, response = duplicate_order(id)
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Order duplicated successfully",
+                "order": response.get('order')
+            })
+        return jsonify({
+            "success": False,
+            "error": response.get('error', 'Failed to duplicate order')
+        }), 400
+    except Exception as e:
+        print(f"Error in duplicate_order route: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while duplicating the order"
+        }), 500

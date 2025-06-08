@@ -255,3 +255,68 @@ document.addEventListener('DOMContentLoaded', function () {
         editForm.reset();
     });
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    // ... existing code ...
+
+    // Duplicate Order Functionality
+    document.querySelectorAll('.duplicate-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const duplicateBtn = this;
+            
+            // Disable button and show loading state
+            duplicateBtn.disabled = true;
+            duplicateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            // Fetch order details and create a duplicate
+            fetch(`/orders/${orderId}/duplicate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to duplicate order');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        Order duplicated successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+
+                    // Reload the page to show the new order
+                    window.location.reload();
+                } else {
+                    throw new Error(data.error || 'Failed to duplicate order');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Show error message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Error duplicating order:</strong> ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+            })
+            .finally(() => {
+                // Reset button state
+                duplicateBtn.disabled = false;
+                duplicateBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            });
+        });
+    });
+});

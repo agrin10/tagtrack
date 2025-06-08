@@ -182,3 +182,63 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
         db.session.rollback()
         print(f"Error updating order {order_id}: {str(e)}")
         return False, {"error": f"Failed to update order: {str(e)}"}
+
+def duplicate_order(order_id):
+    """
+    Duplicate an existing order with a new ID.
+    """
+    try:
+        # Get the original order
+        success, response = get_order_by_id(order_id)
+        if not success:
+            return False, {"error": "Order not found"}
+
+        original_order = response.get('order')
+        if not original_order:
+            return False, {"error": "Order not found"}
+
+        # Get the latest form number
+        success, orders_response = get_orders()
+        if not success:
+            return False, {"error": "Failed to get orders"}
+
+        # Find the highest form number
+        orders = orders_response.get('orders', [])
+        highest_form_number = 0
+        for order in orders:
+            try:
+                form_num = int(order.get('form_number', 0))
+                highest_form_number = max(highest_form_number, form_num)
+            except (ValueError, TypeError):
+                continue
+
+        # Create a copy of the order data with a new form number
+        new_order_data = {
+            'form_number': highest_form_number + 1,  # Use the next available form number
+            'customer_name': original_order.get('customer_name'),
+            'fabric_name': original_order.get('fabric_name'),
+            'fabric_code': original_order.get('fabric_code'),
+            'width': original_order.get('width'),
+            'height': original_order.get('height'),
+            'quantity': original_order.get('quantity'),
+            'total_length_meters': original_order.get('total_length_meters'),
+            'print_type': original_order.get('print_type'),
+            'lamination_type': original_order.get('lamination_type'),
+            'cut_type': original_order.get('cut_type'),
+            'label_type': original_order.get('label_type'),
+            'delivery_date': original_order.get('delivery_date'),
+            'status': 'Pending',  # Set status to Pending for the new order
+            'design_specification': original_order.get('design_specification'),
+            'office_notes': original_order.get('office_notes'),
+            'factory_notes': original_order.get('factory_notes')
+        }
+
+        # Add the new order
+        success, response = add_order(new_order_data)
+        if success:
+            return True, {"order": response.get('order')}
+        return False, response
+
+    except Exception as e:
+        print(f"Error in duplicate_order: {str(e)}")
+        return False, {"error": "An error occurred while duplicating the order"}
