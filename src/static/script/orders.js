@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detail-created-at').textContent = order.created_at ? order.created_at.split('T')[0] : '-';
                     document.getElementById('detail-created-by-username').textContent = order.created_by_username || '-';
 
+
                     detailModal.show();
                 })
                 .catch(error => {
@@ -254,10 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         currentOrderId = null;
         editForm.reset();
     });
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    // ... existing code ...
 
     // Duplicate Order Functionality
     document.querySelectorAll('.duplicate-order-btn').forEach(button => {
@@ -319,4 +316,53 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
+      
 });
+document.addEventListener('DOMContentLoaded', () => {
+    const statusItems   = document.querySelectorAll('.filter-status');
+    const statusBtn     = document.getElementById('statusFilterDropdown');
+    const searchInput   = document.getElementById('searchInput');
+    const rows          = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
+  
+    let currentStatus = 'all';
+    let currentSearch = '';
+  
+    // main filter function
+    function filterRows() {
+      const s = currentSearch.toLowerCase();
+  
+      rows.forEach(row => {
+        // — status check —
+        const badge   = row.querySelector('td:nth-child(7) .badge');
+        const status  = badge ? badge.textContent.trim() : '';
+        const statusMatch = currentStatus === 'all' || status === currentStatus;
+  
+        // — search check —
+        // concatenate the text of all cells you want searchable
+        const text = Array.from(row.cells)
+                          .map(cell => cell.textContent.trim().toLowerCase())
+                          .join(' ');
+        const searchMatch = text.includes(s);
+  
+        // show only if both match
+        row.style.display = (statusMatch && searchMatch) ? '' : 'none';
+      });
+    }
+  
+    // wire up status dropdown
+    statusItems.forEach(item => {
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        currentStatus = item.dataset.status;            // e.g. "Pending" or "all"
+        statusBtn.textContent = item.textContent;      // update label
+        filterRows();
+      });
+    });
+  
+    // wire up search box
+    searchInput.addEventListener('input', () => {
+      currentSearch = searchInput.value;
+      filterRows();
+    });
+  });
+  

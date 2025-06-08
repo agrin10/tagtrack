@@ -55,6 +55,8 @@ def create_order():
                 if request.is_json:
                     return jsonify(response), 400
                 flash(response.get('error', 'Failed to create order'), 'error')
+                return redirect(url_for('order.order_list'))
+
                 
         except Exception as e:
             print(f"Error in create_order route: {str(e)}")
@@ -62,6 +64,8 @@ def create_order():
             if request.is_json:
                 return jsonify({"error": error_msg}), 500
             flash(error_msg, 'error')
+            return redirect(url_for('order.order_list'))
+
     
     # Handle GET requests (for showing the form)
     if request.is_json:
