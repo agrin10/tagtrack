@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Update other modal fields
                     document.getElementById('detail-form-number').textContent = order.form_number;
                     document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
+                    document.getElementById('detail-sketch-name').textContent = order.sketch_name || '-';
+                    document.getElementById('detail-file-name').textContent = order.file_name || '-';
                     document.getElementById('detail-fabric-name').textContent = order.fabric_name || '-';
                     document.getElementById('detail-fabric-code').textContent = order.fabric_code || '-';
                     document.getElementById('detail-width').textContent = order.width ? `${order.width} cm` : '-';
@@ -60,7 +62,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detail-design-specification').textContent = order.design_specification || '-';
                     document.getElementById('detail-office-notes').textContent = order.office_notes || '-';
                     document.getElementById('detail-factory-notes').textContent = order.factory_notes || '-';
+                    document.getElementById('detail-customer-note-to-office').textContent = order.customer_note_to_office || '-';
                     document.getElementById('detail-delivery-date').textContent = order.delivery_date || '-';
+                    document.getElementById('detail-exit-from-office-date').textContent = order.exit_from_office_date || '-';
+                    document.getElementById('detail-exit-from-factory-date').textContent = order.exit_from_factory_date || '-';
                     document.getElementById('detail-created-at').textContent = order.created_at ? order.created_at.split('T')[0] : '-';
                     document.getElementById('detail-created-by-username').textContent = order.created_by_username || '-';
 
@@ -176,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Populate form fields
                         document.getElementById('edit_form_number').value = order.form_number || '';
                         document.getElementById('edit_customer_name').value = order.customer_name || '';
+                        document.getElementById('edit_sketch_name').value = order.sketch_name || '';
+                        document.getElementById('edit_file_name').value = order.file_name || '';
                         document.getElementById('edit_fabric_name').value = order.fabric_name || '';
                         document.getElementById('edit_fabric_code').value = order.fabric_code || '';
                         document.getElementById('edit_width').value = order.width || '';
@@ -187,10 +194,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         document.getElementById('edit_cut_type').value = order.cut_type || '';
                         document.getElementById('edit_label_type').value = order.label_type || '';
                         document.getElementById('edit_delivery_date').value = order.delivery_date || '';
+                        document.getElementById('edit_exit_from_office_date').value = order.exit_from_office_date || '';
+                        document.getElementById('edit_exit_from_factory_date').value = order.exit_from_factory_date || '';
                         document.getElementById('edit_status').value = order.status || 'Pending';
                         document.getElementById('edit_design_specification').value = order.design_specification || '';
                         document.getElementById('edit_office_notes').value = order.office_notes || '';
                         document.getElementById('edit_factory_notes').value = order.factory_notes || '';
+                        document.getElementById('edit_customer_note_to_office').value = order.customer_note_to_office || '';
                         
                         // Format and set created_at datetime
                         if (order.created_at) {

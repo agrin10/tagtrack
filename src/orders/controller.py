@@ -47,6 +47,21 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
             except ValueError:
                 return False, {"error": "Invalid delivery date format. Use YYYY-MM-DD"}
 
+        # Parse exit dates if provided
+        exit_from_office_date = None
+        if form_data.get('exit_from_office_date'):
+            try:
+                exit_from_office_date = datetime.strptime(form_data['exit_from_office_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return False, {"error": "Invalid exit from office date format. Use YYYY-MM-DD"}
+
+        exit_from_factory_date = None
+        if form_data.get('exit_from_factory_date'):
+            try:
+                exit_from_factory_date = datetime.strptime(form_data['exit_from_factory_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return False, {"error": "Invalid exit from factory date format. Use YYYY-MM-DD"}
+
         # Convert numeric fields
         try:
             width = float(form_data['width']) if form_data.get('width') else None
@@ -67,9 +82,14 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
             quantity=quantity,
             total_length_meters=total_length_meters,
             delivery_date=delivery_date,
+            exit_from_office_date=exit_from_office_date,
+            exit_from_factory_date=exit_from_factory_date,
+            sketch_name=form_data.get('sketch_name'),
+            file_name=form_data.get('file_name'),
             design_specification=form_data.get('design_specification'),
             office_notes=form_data.get('office_notes'),
             factory_notes=form_data.get('factory_notes'),
+            customer_note_to_office=form_data.get('customer_note_to_office'),
             print_type=form_data.get('print_type'),
             lamination_type=form_data.get('lamination_type'),
             cut_type=form_data.get('cut_type'),
@@ -215,6 +235,14 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
                     except ValueError as e:
                         print(f"Error converting delivery_date: {str(e)}")
                         return False, {"error": f"Invalid delivery_date format: {str(e)}"}
+                elif key in ['exit_from_office_date', 'exit_from_factory_date'] and value:
+                    try:
+                        # Convert ISO string to date
+                        value = datetime.fromisoformat(value).date()
+                        print(f"Converted {key} to date: {value}")
+                    except ValueError as e:
+                        print(f"Error converting {key}: {str(e)}")
+                        return False, {"error": f"Invalid {key} format: {str(e)}"}
                 print(f"Setting {key} to {value}")
                 setattr(order, key, value)
             else:
@@ -274,10 +302,15 @@ def duplicate_order(order_id):
             'cut_type': original_order.get('cut_type'),
             'label_type': original_order.get('label_type'),
             'delivery_date': original_order.get('delivery_date'),
+            'exit_from_office_date': original_order.get('exit_from_office_date'),
+            'exit_from_factory_date': original_order.get('exit_from_factory_date'),
+            'sketch_name': original_order.get('sketch_name'),
+            'file_name': original_order.get('file_name'),
             'status': 'Pending',  # Set status to Pending for the new order
             'design_specification': original_order.get('design_specification'),
             'office_notes': original_order.get('office_notes'),
-            'factory_notes': original_order.get('factory_notes')
+            'factory_notes': original_order.get('factory_notes'),
+            'customer_note_to_office': original_order.get('customer_note_to_office')
         }
 
         # Add the new order
@@ -321,18 +354,22 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
 
         # Define headers and their corresponding order attributes
         headers = [
-            "Form Number", "Customer Name", "Fabric Name", "Fabric Code",
-            "Width", "Height", "Quantity", "Total Length (m)",
-            "Delivery Date", "Print Type", "Lamination Type", "Cut Type",
-            "Label Type", "Design Specification", "Office Notes",
-            "Factory Notes", "Status", "Created At", "Updated At", "Created By"
+            "Form Number", "Customer Name", "Sketch Name", "File Name",
+            "Fabric Name", "Fabric Code", "Width", "Height", "Quantity", 
+            "Total Length (m)", "Delivery Date", "Exit from Office Date",
+            "Exit from Factory Date", "Print Type", "Lamination Type", 
+            "Cut Type", "Label Type", "Design Specification", "Office Notes",
+            "Factory Notes", "Customer Note to Office", "Status", 
+            "Created At", "Updated At", "Created By"
         ]
         order_attributes = [
-            "form_number", "customer_name", "fabric_name", "fabric_code",
-            "width", "height", "quantity", "total_length_meters",
-            "delivery_date", "print_type", "lamination_type", "cut_type",
-            "label_type", "design_specification", "office_notes",
-            "factory_notes", "status", "created_at", "updated_at", "created_by"
+            "form_number", "customer_name", "sketch_name", "file_name",
+            "fabric_name", "fabric_code", "width", "height", "quantity",
+            "total_length_meters", "delivery_date", "exit_from_office_date",
+            "exit_from_factory_date", "print_type", "lamination_type",
+            "cut_type", "label_type", "design_specification", "office_notes",
+            "factory_notes", "customer_note_to_office", "status",
+            "created_at", "updated_at", "created_by_username"
         ]
 
         # Write headers

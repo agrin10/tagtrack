@@ -27,6 +27,13 @@ class Order(db.Model):
     label_type = db.Column(db.String(50))         # e.g. خشک, متوسط
     status = db.Column(db.String(20))
 
+    # New columns for tracking dates and additional information
+    exit_from_office_date = db.Column(db.Date, nullable=True)
+    exit_from_factory_date = db.Column(db.Date, nullable=True)
+    sketch_name = db.Column(db.String(255))
+    file_name = db.Column(db.String(255))
+    customer_note_to_office = db.Column(db.Text)
+
     created_by_user = db.relationship('User', backref='orders_created')
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
@@ -57,6 +64,11 @@ class Order(db.Model):
             "cut_type": self.cut_type,
             "label_type": self.label_type,
             "status": self.status,
+            "exit_from_office_date": self.exit_from_office_date.isoformat() if self.exit_from_office_date else None,
+            "exit_from_factory_date": self.exit_from_factory_date.isoformat() if self.exit_from_factory_date else None,
+            "sketch_name": self.sketch_name,
+            "file_name": self.file_name,
+            "customer_note_to_office": self.customer_note_to_office,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "created_by_id": self.created_by,
