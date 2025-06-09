@@ -558,18 +558,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let badgeClass, badgeText, statusDisplayText;
         
-        switch(status) {
-            case 'Completed':
+        switch(status.toLowerCase()) {
+            case 'completed':
                 badgeClass = 'bg-success';
                 badgeText = 'Completed';
                 statusDisplayText = 'Completed';
                 break;
-            case 'In Progress':
+            case 'in progress':
                 badgeClass = 'bg-warning';
                 badgeText = 'In Progress';
                 statusDisplayText = 'In Progress';
                 break;
-            case 'Pending':
+            case 'pending':
                 badgeClass = 'bg-secondary';
                 badgeText = 'Pending';
                 statusDisplayText = 'Pending';
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (statusItems) {
             statusItems.forEach(item => {
                 item.classList.remove('active');
-                if (item.dataset.status === status) {
+                if (item.dataset.status.toLowerCase() === status.toLowerCase()) {
                     item.classList.add('active');
                 }
             });
@@ -607,28 +607,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const fromDate = dateFromFilter ? dateFromFilter.value : '';
         const toDate = dateToFilter ? dateToFilter.value : '';
 
-        console.log('Filtering with date range:', {
-            fromDate,
-            toDate,
-            fromDateObj: fromDate ? new Date(fromDate).toISOString() : null,
-            toDateObj: toDate ? new Date(toDate).toISOString() : null
-        });
+        console.log('Filtering with status:', currentStatus);
   
         let visibleCount = 0;
         rows.forEach(row => {
-            // Status check
-            const badge = row.querySelector('td:nth-child(7) .badge');
-            const status = badge ? badge.textContent.trim() : '';
-            const statusMatch = currentStatus === 'all' || status === currentStatus;
+            // Status check - make it case-insensitive
+            const badge = row.querySelector('td:nth-child(8) .badge');
+            const status = badge ? badge.textContent.trim().toLowerCase() : '';
+            const statusMatch = currentStatus.toLowerCase() === 'all' || status === currentStatus.toLowerCase();
   
             // Customer name check
-            const customerCell = row.querySelector('td:nth-child(2)');
+            const customerCell = row.querySelector('td:nth-child(4)');
             const customerName = customerCell ? customerCell.textContent.toLowerCase() : '';
             const customerMatch = !customerText || customerName.includes(customerText);
   
             // Date checks - both created and delivery dates
-            const createdDateCell = row.querySelector('td:nth-child(8)');
-            const deliveryDateCell = row.querySelector('td:nth-child(6)');
+            const createdDateCell = row.querySelector('td:nth-child(2)');
+            const deliveryDateCell = row.querySelector('td:nth-child(9)');
             
             // Get created date from title attribute (contains full datetime)
             const createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;

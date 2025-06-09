@@ -138,7 +138,7 @@ def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: st
         
         # Apply status filter
         if status and status.lower() != 'all':
-            query = query.filter(Order.status == status)
+            query = query.filter(db.func.lower(Order.status) == status.lower())
 
         # Order by created_at descending (newest first)
         query = query.order_by(Order.created_at.desc())
