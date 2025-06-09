@@ -167,66 +167,92 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.edit-order-btn').forEach(button => {
         button.addEventListener('click', function() {
             currentOrderId = this.getAttribute('data-order-id');
+            const editBtn = this;
+            
+            // Disable the button and show loading state
+            editBtn.disabled = true;
+            const originalIcon = editBtn.innerHTML;
+            editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             
             // Fetch order details
             fetch(`/orders/${currentOrderId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.order) {
-                        const order = data.order;
-                        
-                        // Update modal title
-                        document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
-                        
-                        // Populate form fields
-                        document.getElementById('edit_form_number').value = order.form_number || '';
-                        document.getElementById('edit_customer_name').value = order.customer_name || '';
-                        document.getElementById('edit_sketch_name').value = order.sketch_name || '';
-                        document.getElementById('edit_file_name').value = order.file_name || '';
-                        document.getElementById('edit_fabric_name').value = order.fabric_density || '';
-                        document.getElementById('edit_fabric_cut').value = order.fabric_cut || '';
-                        document.getElementById('edit_width').value = order.width || '';
-                        document.getElementById('edit_height').value = order.height || '';
-                        document.getElementById('edit_quantity').value = order.quantity || '';
-                        document.getElementById('edit_total_length_meters').value = order.total_length_meters || '';
-                        document.getElementById('edit_print_type').value = order.print_type || '';
-                        document.getElementById('edit_lamination_type').value = order.lamination_type || '';
-                        document.getElementById('edit_cut_type').value = order.cut_type || '';
-                        document.getElementById('edit_label_type').value = order.label_type || '';
-                        document.getElementById('edit_delivery_date').value = order.delivery_date || '';
-                        document.getElementById('edit_exit_from_office_date').value = order.exit_from_office_date || '';
-                        document.getElementById('edit_exit_from_factory_date').value = order.exit_from_factory_date || '';
-                        document.getElementById('edit_status').value = order.status || 'Pending';
-                        document.getElementById('edit_design_specification').value = order.design_specification || '';
-                        document.getElementById('edit_office_notes').value = order.office_notes || '';
-                        document.getElementById('edit_factory_notes').value = order.factory_notes || '';
-                        document.getElementById('edit_customer_note_to_office').value = order.customer_note_to_office || '';
-                        
-                        // Format and set created_at datetime
-                        if (order.created_at) {
-                            // Convert ISO string to datetime-local input format (YYYY-MM-DDThh:mm)
-                            const createdDate = new Date(order.created_at);
-                            const year = createdDate.getFullYear();
-                            const month = String(createdDate.getMonth() + 1).padStart(2, '0');
-                            const day = String(createdDate.getDate()).padStart(2, '0');
-                            const hours = String(createdDate.getHours()).padStart(2, '0');
-                            const minutes = String(createdDate.getMinutes()).padStart(2, '0');
-                            const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-                            document.getElementById('edit_created_at').value = formattedDateTime;
-                        } else {
-                            document.getElementById('edit_created_at').value = '';
-                        }
-                        
-                        // Update form action
-                        editForm.action = `/orders/${currentOrderId}`;
-                        
-                        // Show the modal
-                        editModal.show();
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to load order details');
+                        });
                     }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.order) {
+                        throw new Error('Order data not found');
+                    }
+                    
+                    const order = data.order;
+                    
+                    // Update modal title
+                    document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
+                    
+                    // Populate form fields
+                    document.getElementById('edit_form_number').value = order.form_number || '';
+                    document.getElementById('edit_customer_name').value = order.customer_name || '';
+                    document.getElementById('edit_sketch_name').value = order.sketch_name || '';
+                    document.getElementById('edit_file_name').value = order.file_name || '';
+                    document.getElementById('edit_fabric_density').value = order.fabric_density || '';
+                    document.getElementById('edit_fabric_cut').value = order.fabric_cut || '';
+                    document.getElementById('edit_width').value = order.width || '';
+                    document.getElementById('edit_height').value = order.height || '';
+                    document.getElementById('edit_quantity').value = order.quantity || '';
+                    document.getElementById('edit_total_length_meters').value = order.total_length_meters || '';
+                    document.getElementById('edit_print_type').value = order.print_type || '';
+                    document.getElementById('edit_lamination_type').value = order.lamination_type || '';
+                    document.getElementById('edit_cut_type').value = order.cut_type || '';
+                    document.getElementById('edit_label_type').value = order.label_type || '';
+                    document.getElementById('edit_delivery_date').value = order.delivery_date || '';
+                    document.getElementById('edit_exit_from_office_date').value = order.exit_from_office_date || '';
+                    document.getElementById('edit_exit_from_factory_date').value = order.exit_from_factory_date || '';
+                    document.getElementById('edit_status').value = order.status || 'Pending';
+                    document.getElementById('edit_design_specification').value = order.design_specification || '';
+                    document.getElementById('edit_office_notes').value = order.office_notes || '';
+                    document.getElementById('edit_factory_notes').value = order.factory_notes || '';
+                    document.getElementById('edit_customer_note_to_office').value = order.customer_note_to_office || '';
+                    
+                    // Format and set created_at datetime
+                    if (order.created_at) {
+                        const createdDate = new Date(order.created_at);
+                        const year = createdDate.getFullYear();
+                        const month = String(createdDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(createdDate.getDate()).padStart(2, '0');
+                        const hours = String(createdDate.getHours()).padStart(2, '0');
+                        const minutes = String(createdDate.getMinutes()).padStart(2, '0');
+                        const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+                        document.getElementById('edit_created_at').value = formattedDateTime;
+                    } else {
+                        document.getElementById('edit_created_at').value = '';
+                    }
+                    
+                    // Update form action
+                    editForm.action = `/orders/${currentOrderId}`;
+                    
+                    // Show the modal
+                    editModal.show();
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error loading order details. Please try again.');
+                    // Show error message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <strong>Error loading order details:</strong> ${error.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+                })
+                .finally(() => {
+                    // Reset the button state
+                    editBtn.disabled = false;
+                    editBtn.innerHTML = originalIcon;
                 });
         });
     });

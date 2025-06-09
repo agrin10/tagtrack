@@ -1,190 +1,290 @@
 <div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-light">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editOrderModalLabel">
-                    <i class="fas fa-edit me-2"></i>Edit Order <span id="edit-form-number" class="badge bg-primary ms-2"></span>
+                    <i class="fas fa-edit me-2"></i>Edit Order <span id="edit-form-number" class="badge bg-light text-primary ms-2"></span>
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="editOrderForm" method="POST">
-                <div class="modal-body">
-                    <div class="row">
-                        <!-- Left Column -->
-                        <div class="col-md-6">
-                            <!-- Section: Basic Information -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="edit_form_number" class="form-label">Form Number <span class="text-danger">*</span></label>
-                                            <input type="number" class="form-control" id="edit_form_number" name="form_number" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_customer_name" class="form-label">Customer Name <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="edit_customer_name" name="customer_name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_sketch_name" class="form-label">Sketch Name <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="edit_sketch_name" name="sketch_name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_file_name" class="form-label">File Name</label>
-                                            <input type="text" class="form-control" id="edit_file_name" name="file_name">
-                                        </div>
+                <div class="modal-body p-0">
+                    <!-- Progress Bar -->
+                    <div class="progress rounded-0" style="height: 4px;">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" id="editFormProgress"></div>
+                    </div>
+
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs nav-fill bg-light px-3 pt-3" id="editOrderFormTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="edit-basic-tab" data-bs-toggle="tab" data-bs-target="#edit-basic" type="button" role="tab">
+                                <i class="fas fa-info-circle me-2"></i>Basic Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-dimensions-tab" data-bs-toggle="tab" data-bs-target="#edit-dimensions" type="button" role="tab">
+                                <i class="fas fa-ruler-combined me-2"></i>Dimensions & Fabric
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-print-tab" data-bs-toggle="tab" data-bs-target="#edit-print" type="button" role="tab">
+                                <i class="fas fa-print me-2"></i>Print & Finishing
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-dates-tab" data-bs-toggle="tab" data-bs-target="#edit-dates" type="button" role="tab">
+                                <i class="fas fa-calendar-alt me-2"></i>Dates & Status
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-notes-tab" data-bs-toggle="tab" data-bs-target="#edit-notes" type="button" role="tab">
+                                <i class="fas fa-sticky-note me-2"></i>Notes
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content p-4" id="editOrderFormTabContent">
+                        <!-- Basic Info Tab -->
+                        <div class="tab-pane fade show active" id="edit-basic" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit_form_number" name="form_number" required>
+                                        <label for="edit_form_number">Form Number <span class="text-danger">*</span></label>
                                     </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="edit_customer_name" name="customer_name" required>
+                                        <label for="edit_customer_name">Customer Name <span class="text-danger">*</span></label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="edit_sketch_name" name="sketch_name" required>
+                                        <label for="edit_sketch_name">Sketch Name <span class="text-danger">*</span></label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Section: Fabric Information -->
-                            
-                            <!-- Section: Dimensions -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-cut me-2"></i>Fabric Details</h6>
-                                </div>
-                                <div class="card-body">
+                        <!-- Dimensions & Fabric Tab -->
+                        <div class="tab-pane fade" id="edit-dimensions" role="tabpanel">
+                            <div class="row g-4">
+                                <!-- Fabric Details -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Fabric Details</h6>
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="edit_fabric_name" class="form-label">Fabric Density</label>
-                                            <input type="number" step="0.01" class="form-control" id="edit_fabric_name" name="fabric_density">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="edit_fabric_density" name="fabric_density">
+                                                <label for="edit_fabric_density">Fabric Density</label>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="edit_fabric_cut" class="form-label">Fabric Cut</label>
-                                            <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
+                                                <label for="edit_fabric_cut">Fabric Cut</label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-ruler-combined me-2"></i>Dimensions</h6>
-                                </div>
-                                <div class="card-body">
+
+                                <!-- Dimensions -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Dimensions</h6>
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="edit_width" class="form-label">Width (cm)</label>
-                                            <input type="number" step="0.01" class="form-control" id="edit_width" name="width">
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="edit_width" name="width">
+                                                <label for="edit_width">Width (cm)</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_height" class="form-label">Height (cm)</label>
-                                            <input type="number" step="0.01" class="form-control" id="edit_height" name="height">
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="edit_height" name="height">
+                                                <label for="edit_height">Height (cm)</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_quantity" class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" id="edit_quantity" name="quantity">
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="edit_quantity" name="quantity">
+                                                <label for="edit_quantity">Quantity</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_total_length_meters" class="form-label">Total Length (m)</label>
-                                            <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
+                                                <label for="edit_total_length_meters">Total Length (m)</label>
+                                            </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Values Table -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Values</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm text-center align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Files Table -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Files</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>ردیف</th>
+                                                    <th>نام فایل</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Right Column -->
-                        <div class="col-md-6">
-                            <!-- Section: Print & Finishing Details -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-print me-2"></i>Print & Finishing Details</h6>
+                        <!-- Print & Finishing Tab -->
+                        <div class="tab-pane fade" id="edit-print" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_print_type" name="print_type">
+                                            <option value="">Select...</option>
+                                            <option value="قالب تکرار">قالب تکرار</option>
+                                            <option value="قالب جدید">قالب جدید</option>
+                                        </select>
+                                        <label for="edit_print_type">Print Type</label>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="edit_print_type" class="form-label">Print Type</label>
-                                            <select class="form-select" id="edit_print_type" name="print_type">
-                                                <option value="">Select...</option>
-                                                <option value="قالب تکرار">قالب تکرار</option>
-                                                <option value="قالب جدید">قالب جدید</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_lamination_type" class="form-label">Lamination</label>
-                                            <select class="form-select" id="edit_lamination_type" name="lamination_type">
-                                                <option value="">Select...</option>
-                                                <option value="براق">براق</option>
-                                                <option value="مات">مات</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_cut_type" class="form-label">Cut Type</label>
-                                            <select class="form-select" id="edit_cut_type" name="cut_type">
-                                                <option value="">Select...</option>
-                                                <option value="برش کامل">برش کامل</option>
-                                                <option value="نیم تیغ">نیم تیغ</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_label_type" class="form-label">Label Type</label>
-                                            <select class="form-select" id="edit_label_type" name="label_type">
-                                                <option value="">Select...</option>
-                                                <option value="خشک">خشک</option>
-                                                <option value="متوسط">متوسط</option>
-                                            </select>
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_lamination_type" name="lamination_type">
+                                            <option value="">Select...</option>
+                                            <option value="براق">براق</option>
+                                            <option value="مات">مات</option>
+                                        </select>
+                                        <label for="edit_lamination_type">Lamination Type</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_cut_type" name="cut_type">
+                                            <option value="">Select...</option>
+                                            <option value="برش کامل">برش کامل</option>
+                                            <option value="نیم تیغ">نیم تیغ</option>
+                                        </select>
+                                        <label for="edit_cut_type">Cut Type</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_label_type" name="label_type">
+                                            <option value="">Select...</option>
+                                            <option value="خشک">خشک</option>
+                                            <option value="متوسط">متوسط</option>
+                                        </select>
+                                        <label for="edit_label_type">Label Type</label>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Section: Dates & Status -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Dates & Status</h6>
+                        <!-- Dates & Status Tab -->
+                        <div class="tab-pane fade" id="edit-dates" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="datetime-local" class="form-control" id="edit_created_at" name="created_at" readonly>
+                                        <label for="edit_created_at">Created At</label>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="edit_created_at" class="form-label">Created At</label>
-                                            <input type="datetime-local" class="form-control" id="edit_created_at" name="created_at">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_delivery_date" class="form-label">Delivery Date</label>
-                                            <input type="date" class="form-control" id="edit_delivery_date" name="delivery_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_exit_from_office_date" class="form-label">Exit from Office Date</label>
-                                            <input type="date" class="form-control" id="edit_exit_from_office_date" name="exit_from_office_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_exit_from_factory_date" class="form-label">Exit from Factory Date</label>
-                                            <input type="date" class="form-control" id="edit_exit_from_factory_date" name="exit_from_factory_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="edit_status" class="form-label">Status</label>
-                                            <select class="form-select" id="edit_status" name="status">
-                                                <option value="Pending">Pending</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Completed">Completed</option>
-                                            </select>
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="edit_delivery_date" name="delivery_date">
+                                        <label for="edit_delivery_date">Delivery Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="edit_exit_from_office_date" name="exit_from_office_date">
+                                        <label for="edit_exit_from_office_date">Exit from Office Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="edit_exit_from_factory_date" name="exit_from_factory_date">
+                                        <label for="edit_exit_from_factory_date">Exit from Factory Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_status" name="status">
+                                            <option value="Pending">Pending</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                        <label for="edit_status">Status</label>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Section: Notes & Specifications -->
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes & Specifications</h6>
+                        <!-- Notes Tab -->
+                        <div class="tab-pane fade" id="edit-notes" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="edit_design_specification" name="design_specification" style="height: 100px"></textarea>
+                                        <label for="edit_design_specification">Design Specification</label>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="edit_design_specification" class="form-label">Design Specification</label>
-                                        <textarea class="form-control" id="edit_design_specification" name="design_specification" rows="2"></textarea>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="edit_office_notes" name="office_notes" style="height: 100px"></textarea>
+                                        <label for="edit_office_notes">Office Notes</label>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="edit_office_notes" class="form-label">Office Notes</label>
-                                        <textarea class="form-control" id="edit_office_notes" name="office_notes" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="edit_factory_notes" name="factory_notes" style="height: 100px"></textarea>
+                                        <label for="edit_factory_notes">Factory Notes</label>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="edit_factory_notes" class="form-label">Factory Notes</label>
-                                        <textarea class="form-control" id="edit_factory_notes" name="factory_notes" rows="2"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="edit_customer_note_to_office" class="form-label">Customer Note to Office</label>
-                                        <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
+                                        <label for="edit_customer_note_to_office">Customer Note to Office</label>
                                     </div>
                                 </div>
                             </div>
@@ -192,14 +292,71 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Changes
-                    </button>
+                    <div class="d-flex justify-content-between w-100">
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" id="editPrevTab">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-outline-primary me-2" id="editNextTab">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editTabs = document.querySelectorAll('#editOrderFormTabs button');
+    const editProgressBar = document.getElementById('editFormProgress');
+    const editPrevBtn = document.getElementById('editPrevTab');
+    const editNextBtn = document.getElementById('editNextTab');
+    let currentEditTab = 0;
+
+    function updateEditProgress() {
+        const progress = ((currentEditTab + 1) / editTabs.length) * 100;
+        editProgressBar.style.width = `${progress}%`;
+    }
+
+    function showEditTab(index) {
+        editTabs.forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('#editOrderFormTabContent .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+        
+        editTabs[index].classList.add('active');
+        document.querySelector(editTabs[index].dataset.bsTarget).classList.add('show', 'active');
+        
+        currentEditTab = index;
+        updateEditProgress();
+        
+        // Update button states
+        editPrevBtn.disabled = currentEditTab === 0;
+        editNextBtn.disabled = currentEditTab === editTabs.length - 1;
+    }
+
+    editPrevBtn.addEventListener('click', () => {
+        if (currentEditTab > 0) {
+            showEditTab(currentEditTab - 1);
+        }
+    });
+
+    editNextBtn.addEventListener('click', () => {
+        if (currentEditTab < editTabs.length - 1) {
+            showEditTab(currentEditTab + 1);
+        }
+    });
+
+    // Initialize edit form tabs
+    showEditTab(0);
+});
+</script>

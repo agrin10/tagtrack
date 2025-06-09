@@ -2,190 +2,276 @@
 <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-light">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="createOrderModalLabel">
                     <i class="fas fa-plus-circle me-2"></i>Create New Order
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{{ url_for('order.create_order') }}">
-                <div class="modal-body">
-                    <div class="row">
-                        <!-- Left Column -->
-                        <div class="col-md-6">
-                            <!-- Section: Basic Information -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="sketch_name" class="form-label">Sketch Name <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="sketch_name" name="sketch_name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="customer_name" class="form-label">Customer Name <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="customer_name" name="customer_name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="file_name" class="form-label">File Name</label>
-                                            <input type="text" class="form-control" id="file_name" name="file_name">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="modal-body p-0">
+                    <!-- Progress Bar -->
+                    <div class="progress rounded-0" style="height: 4px;">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" id="formProgress"></div>
+                    </div>
 
-                            <!-- Section: Fabric Information -->
-                            <div class="card mb-4">
-                            </div>
-                            
-                            <!-- Section: Dimensions -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-cut me-2"></i>Fabric Details</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="fabric_density" class="form-label">Fabric Density</label>
-                                            <input type="number" class="form-control" id="fabric_density" name="fabric_density">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="fabric_cut" class="form-label">Fabric Cut</label>
-                                            <input type="number" class="form-control" id="fabric_cut" name="fabric_cut">
-                                        </div>
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs nav-fill bg-light px-3 pt-3" id="orderFormTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                                <i class="fas fa-info-circle me-2"></i>Basic Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dimensions-tab" data-bs-toggle="tab" data-bs-target="#dimensions" type="button" role="tab">
+                                <i class="fas fa-ruler-combined me-2"></i>Dimensions & Fabric
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="print-tab" data-bs-toggle="tab" data-bs-target="#print" type="button" role="tab">
+                                <i class="fas fa-print me-2"></i>Print & Finishing
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dates-tab" data-bs-toggle="tab" data-bs-target="#dates" type="button" role="tab">
+                                <i class="fas fa-calendar-alt me-2"></i>Dates & Status
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+                                <i class="fas fa-sticky-note me-2"></i>Notes
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content p-4" id="orderFormTabContent">
+                        <!-- Basic Info Tab -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="sketch_name" name="sketch_name" required>
+                                        <label for="sketch_name">Sketch Name <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-ruler-combined me-2"></i>Dimensions</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="width" class="form-label">Width (cm)</label>
-                                            <input type="number" step="0.01" class="form-control" id="width" name="width">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="height" class="form-label">Height (cm)</label>
-                                            <input type="number" step="0.01" class="form-control" id="height" name="height">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="quantity" class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" id="quantity" name="quantity">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="total_length_meters" class="form-label">Total Length (m)</label>
-                                            <input type="number" step="0.01" class="form-control" id="total_length_meters" name="total_length_meters">
-                                        </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                                        <label for="customer_name">Customer Name <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Right Column -->
-                        <div class="col-md-6">
-                            <!-- Section: Print & Finishing Details -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-print me-2"></i>Print & Finishing Details</h6>
-                                </div>
-                                <div class="card-body">
+                        <!-- Dimensions & Fabric Tab -->
+                        <div class="tab-pane fade" id="dimensions" role="tabpanel">
+                            <div class="row g-4">
+                                <!-- Fabric Details -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Fabric Details</h6>
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="print_type" class="form-label">Print Type</label>
-                                            <select class="form-select" id="print_type" name="print_type">
-                                                <option value="">Select...</option>
-                                                <option value="برجسته و براق ">برجسته و براق </option>
-                                                <option value="براق">براق</option>
-                                                <option value="قالب تکرار">قالب تکرار</option>
-                                                <option value="قالب جدید">قالب جدید</option>
-                                            </select>
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="fabric_density" name="fabric_density">
+                                                <label for="fabric_density">Fabric Density</label>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="lamination_type" class="form-label">Lamination</label>
-                                            <select class="form-select" id="lamination_type" name="lamination_type">
-                                                <option value="">Select...</option>
-                                                <option value="براق">براق</option>
-                                                <option value="مات">مات</option>
-                                            </select>
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="fabric_cut" name="fabric_cut">
+                                                <label for="fabric_cut">Fabric Cut</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="cut_type" class="form-label">Cut Type</label>
-                                            <select class="form-select" id="cut_type" name="cut_type">
-                                                <option value="">Select...</option>
-                                                <option value="برش لیزر">برش لیزر</option>
-                                                <option value="برش بغل">برش بغل</option>
-                                                <option value="برش دانه ای ">برش دانه ای</option>
-                                                <option value="تا از وسط">تا از وسط</option>
-                                                <option value="برش یک طرف زیاد  ">برش یک طرف زیاد</option>
-                                            </select>
+                                    </div>
+                                </div>
+
+                                <!-- Dimensions -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Dimensions</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="width" name="width">
+                                                <label for="width">Width (cm)</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label for="label_type" class="form-label">Label Type</label>
-                                            <select class="form-select" id="label_type" name="label_type">
-                                                <option value="">Select...</option>
-                                                <option value="خشک">نرم</option>
-                                                <option value="خشک">خشک</option>
-                                                <option value="متوسط">متوسط</option>
-                                            </select>
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="height" name="height">
+                                                <label for="height">Height (cm)</label>
+                                            </div>
                                         </div>
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" id="quantity" name="quantity">
+                                                <label for="quantity">Quantity</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
+                                                <input type="number" step="0.01" class="form-control" id="total_length_meters" name="total_length_meters">
+                                                <label for="total_length_meters">Total Length (m)</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Values Table -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Values</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm text-center align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Files Table -->
+                                <div class="col-12">
+                                    <h6 class="border-bottom pb-2 mb-3">Files</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>ردیف</th>
+                                                    <th>نام فایل</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Section: Dates & Status -->
-                            <div class="card mb-4">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Dates & Status</h6>
+                        <!-- Print & Finishing Tab -->
+                        <div class="tab-pane fade" id="print" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="print_type" name="print_type">
+                                            <option value="">Select...</option>
+                                            <option value="قالب تکرار">قالب تکرار</option>
+                                            <option value="قالب جدید">قالب جدید</option>
+                                        </select>
+                                        <label for="print_type">Print Type</label>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="delivery_date" class="form-label">Delivery Date</label>
-                                            <input type="date" class="form-control" id="delivery_date" name="delivery_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="exit_from_office_date" class="form-label">Exit from Office Date</label>
-                                            <input type="date" class="form-control" id="exit_from_office_date" name="exit_from_office_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="exit_from_factory_date" class="form-label">Exit from Factory Date</label>
-                                            <input type="date" class="form-control" id="exit_from_factory_date" name="exit_from_factory_date">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="status" class="form-label">Status</label>
-                                            <select class="form-select" id="status" name="status">
-                                                <option value="Pending">Pending</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Completed">Completed</option>
-                                            </select>
-                                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="lamination_type" name="lamination_type">
+                                            <option value="">Select...</option>
+                                            <option value="براق">براق</option>
+                                            <option value="مات">مات</option>
+                                        </select>
+                                        <label for="lamination_type">Lamination Type</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="cut_type" name="cut_type">
+                                            <option value="">Select...</option>
+                                            <option value="برش کامل">برش کامل</option>
+                                            <option value="نیم تیغ">نیم تیغ</option>
+                                        </select>
+                                        <label for="cut_type">Cut Type</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="label_type" name="label_type">
+                                            <option value="">Select...</option>
+                                            <option value="خشک">خشک</option>
+                                            <option value="متوسط">متوسط</option>
+                                        </select>
+                                        <label for="label_type">Label Type</label>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Section: Notes & Specifications -->
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes & Specifications</h6>
+                        <!-- Dates & Status Tab -->
+                        <div class="tab-pane fade" id="dates" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="delivery_date" name="delivery_date">
+                                        <label for="delivery_date">Delivery Date</label>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label for="design_specification" class="form-label">Design Specification</label>
-                                        <textarea class="form-control" id="design_specification" name="design_specification" rows="2"></textarea>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="exit_from_office_date" name="exit_from_office_date">
+                                        <label for="exit_from_office_date">Exit from Office Date</label>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="office_notes" class="form-label">Office Notes</label>
-                                        <textarea class="form-control" id="office_notes" name="office_notes" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="exit_from_factory_date" name="exit_from_factory_date">
+                                        <label for="exit_from_factory_date">Exit from Factory Date</label>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="factory_notes" class="form-label">Factory Notes</label>
-                                        <textarea class="form-control" id="factory_notes" name="factory_notes" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="status" name="status">
+                                            <option value="Pending">Pending</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                        <label for="status">Status</label>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="customer_note_to_office" class="form-label">Customer Note to Office</label>
-                                        <textarea class="form-control" id="customer_note_to_office" name="customer_note_to_office" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Tab -->
+                        <div class="tab-pane fade" id="notes" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="design_specification" name="design_specification" style="height: 100px"></textarea>
+                                        <label for="design_specification">Design Specification</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="office_notes" name="office_notes" style="height: 100px"></textarea>
+                                        <label for="office_notes">Office Notes</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="factory_notes" name="factory_notes" style="height: 100px"></textarea>
+                                        <label for="factory_notes">Factory Notes</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
+                                        <label for="customer_note_to_office">Customer Note to Office</label>
                                     </div>
                                 </div>
                             </div>
@@ -193,15 +279,72 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Create Order
-                    </button>
+                    <div class="d-flex justify-content-between w-100">
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" id="prevTab">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-outline-primary me-2" id="nextTab">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Order
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
-<!-- End of Create Order Modal -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('#orderFormTabs button');
+    const progressBar = document.getElementById('formProgress');
+    const prevBtn = document.getElementById('prevTab');
+    const nextBtn = document.getElementById('nextTab');
+    let currentTab = 0;
+
+    function updateProgress() {
+        const progress = ((currentTab + 1) / tabs.length) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+
+    function showTab(index) {
+        tabs.forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+        
+        tabs[index].classList.add('active');
+        document.querySelector(tabs[index].dataset.bsTarget).classList.add('show', 'active');
+        
+        currentTab = index;
+        updateProgress();
+        
+        // Update button states
+        prevBtn.disabled = currentTab === 0;
+        nextBtn.disabled = currentTab === tabs.length - 1;
+    }
+
+    prevBtn.addEventListener('click', () => {
+        if (currentTab > 0) {
+            showTab(currentTab - 1);
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentTab < tabs.length - 1) {
+            showTab(currentTab + 1);
+        }
+    });
+
+    // Initialize
+    showTab(0);
+});
+</script>
+<!-- End of Create Order Modal --> 
