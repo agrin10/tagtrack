@@ -21,7 +21,7 @@ class Order(db.Model):
     office_notes = db.Column(db.Text)
     factory_notes = db.Column(db.Text)
 
-    print_type = db.Column(db.String(50))         # e.g. قالب تکرار, قالب جدید
+    fusing_type = db.Column(db.String(50))         # e.g. قالب تکرار, قالب جدید
     lamination_type = db.Column(db.String(50))    # e.g. براق, مات
     cut_type = db.Column(db.String(50))           # e.g. برش کامل, نیم تیغ
     label_type = db.Column(db.String(50))         # e.g. خشک, متوسط
@@ -59,7 +59,7 @@ class Order(db.Model):
             "design_specification": self.design_specification,
             "office_notes": self.office_notes,
             "factory_notes": self.factory_notes,
-            "print_type": self.print_type,
+            "fusing_type": self.fusing_type,
             "lamination_type": self.lamination_type,
             "cut_type": self.cut_type,
             "label_type": self.label_type,

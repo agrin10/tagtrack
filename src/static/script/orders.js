@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detail-height').textContent = order.height ? `${order.height} cm` : '-';
                     document.getElementById('detail-quantity').textContent = order.quantity || '-';
                     document.getElementById('detail-total-length-meters').textContent = order.total_length_meters ? `${order.total_length_meters} m` : '-';
-                    document.getElementById('detail-print-type').textContent = order.print_type || '-';
+                    document.getElementById('detail-fusing-type').textContent = order.fusing_type || '-';
                     document.getElementById('detail-lamination-type').textContent = order.lamination_type || '-';
                     document.getElementById('detail-cut-type').textContent = order.cut_type || '-';
                     document.getElementById('detail-label-type').textContent = order.label_type || '-';
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('edit_height').value = order.height || '';
                     document.getElementById('edit_quantity').value = order.quantity || '';
                     document.getElementById('edit_total_length_meters').value = order.total_length_meters || '';
-                    document.getElementById('edit_print_type').value = order.print_type || '';
+                    document.getElementById('edit_fusing_type').value = order.fusing_type || '';
                     document.getElementById('edit_lamination_type').value = order.lamination_type || '';
                     document.getElementById('edit_cut_type').value = order.cut_type || '';
                     document.getElementById('edit_label_type').value = order.label_type || '';
