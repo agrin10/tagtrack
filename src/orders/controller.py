@@ -75,8 +75,8 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
         new_order = Order(
             form_number=form_number, # Use the auto-generated form number
             customer_name=form_data['customer_name'],
-            fabric_name=form_data.get('fabric_name'),
-            fabric_code=form_data.get('fabric_code'),
+            fabric_density=form_data.get('fabric_density'),
+            fabric_cut=form_data.get('fabric_cut'),
             width=width,
             height=height,
             quantity=quantity,
@@ -291,8 +291,8 @@ def duplicate_order(order_id):
         new_order_data = {
             'form_number': form_number,  # Use the auto-generated form number
             'customer_name': original_order.get('customer_name'),
-            'fabric_name': original_order.get('fabric_name'),
-            'fabric_code': original_order.get('fabric_code'),
+            'fabric_density': original_order.get('fabric_density'),
+            'fabric_cut': original_order.get('fabric_cut'),
             'width': original_order.get('width'),
             'height': original_order.get('height'),
             'quantity': original_order.get('quantity'),
@@ -355,7 +355,7 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
         # Define headers and their corresponding order attributes
         headers = [
             "Form Number", "Customer Name", "Sketch Name", "File Name",
-            "Fabric Name", "Fabric Code", "Width", "Height", "Quantity", 
+            "Fabric Density", "Fabric Cut", "Width", "Height", "Quantity", 
             "Total Length (m)", "Delivery Date", "Exit from Office Date",
             "Exit from Factory Date", "Print Type", "Lamination Type", 
             "Cut Type", "Label Type", "Design Specification", "Office Notes",
@@ -364,7 +364,7 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
         ]
         order_attributes = [
             "form_number", "customer_name", "sketch_name", "file_name",
-            "fabric_name", "fabric_code", "width", "height", "quantity",
+            "fabric_density", "fabric_cut", "width", "height", "quantity",
             "total_length_meters", "delivery_date", "exit_from_office_date",
             "exit_from_factory_date", "print_type", "lamination_type",
             "cut_type", "label_type", "design_specification", "office_notes",

@@ -9,8 +9,8 @@ class Order(db.Model):
     order_date = db.Column(db.Date, default=date.today)
 
     customer_name = db.Column(db.String(100), nullable=False)
-    fabric_name = db.Column(db.String(100))
-    fabric_code = db.Column(db.String(50))
+    fabric_density = db.Column(db.Integer)
+    fabric_cut = db.Column(db.Integer)
     width = db.Column(db.Float)
     height = db.Column(db.Float)
     quantity = db.Column(db.Integer)
@@ -49,8 +49,8 @@ class Order(db.Model):
             "id": self.id,
             "form_number": self.form_number,
             "customer_name": self.customer_name,
-            "fabric_name": self.fabric_name,
-            "fabric_code": self.fabric_code,
+            "fabric_density": self.fabric_density,
+            "fabric_cut": self.fabric_cut,
             "width": self.width,
             "height": self.height,
             "quantity": self.quantity,

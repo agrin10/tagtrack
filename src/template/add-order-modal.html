@@ -38,25 +38,25 @@
 
                             <!-- Section: Fabric Information -->
                             <div class="card mb-4">
+                            </div>
+                            
+                            <!-- Section: Dimensions -->
+                            <div class="card mb-4">
                                 <div class="card-header bg-light">
                                     <h6 class="mb-0"><i class="fas fa-cut me-2"></i>Fabric Details</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="fabric_name" class="form-label">Fabric Name</label>
-                                            <input type="text" class="form-control" id="fabric_name" name="fabric_name">
+                                            <label for="fabric_density" class="form-label">Fabric Density</label>
+                                            <input type="number" class="form-control" id="fabric_density" name="fabric_density">
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="fabric_code" class="form-label">Fabric Code</label>
-                                            <input type="text" class="form-control" id="fabric_code" name="fabric_code">
+                                            <label for="fabric_cut" class="form-label">Fabric Cut</label>
+                                            <input type="number" class="form-control" id="fabric_cut" name="fabric_cut">
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Section: Dimensions -->
-                            <div class="card mb-4">
                                 <div class="card-header bg-light">
                                     <h6 class="mb-0"><i class="fas fa-ruler-combined me-2"></i>Dimensions</h6>
                                 </div>
@@ -96,6 +96,8 @@
                                             <label for="print_type" class="form-label">Print Type</label>
                                             <select class="form-select" id="print_type" name="print_type">
                                                 <option value="">Select...</option>
+                                                <option value="برجسته و براق ">برجسته و براق </option>
+                                                <option value="براق">براق</option>
                                                 <option value="قالب تکرار">قالب تکرار</option>
                                                 <option value="قالب جدید">قالب جدید</option>
                                             </select>
@@ -112,14 +114,18 @@
                                             <label for="cut_type" class="form-label">Cut Type</label>
                                             <select class="form-select" id="cut_type" name="cut_type">
                                                 <option value="">Select...</option>
-                                                <option value="برش کامل">برش کامل</option>
-                                                <option value="نیم تیغ">نیم تیغ</option>
+                                                <option value="برش لیزر">برش لیزر</option>
+                                                <option value="برش بغل">برش بغل</option>
+                                                <option value="برش دانه ای ">برش دانه ای</option>
+                                                <option value="تا از وسط">تا از وسط</option>
+                                                <option value="برش یک طرف زیاد  ">برش یک طرف زیاد</option>
                                             </select>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="label_type" class="form-label">Label Type</label>
                                             <select class="form-select" id="label_type" name="label_type">
                                                 <option value="">Select...</option>
+                                                <option value="خشک">نرم</option>
                                                 <option value="خشک">خشک</option>
                                                 <option value="متوسط">متوسط</option>
                                             </select>

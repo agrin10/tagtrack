@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
                     document.getElementById('detail-sketch-name').textContent = order.sketch_name || '-';
                     document.getElementById('detail-file-name').textContent = order.file_name || '-';
-                    document.getElementById('detail-fabric-name').textContent = order.fabric_name || '-';
-                    document.getElementById('detail-fabric-code').textContent = order.fabric_code || '-';
+                    document.getElementById('detail-fabric-density').textContent = order.fabric_density || '-';
+                    document.getElementById('detail-fabric-code').textContent = order.fabric_cut || '-';
                     document.getElementById('detail-width').textContent = order.width ? `${order.width} cm` : '-';
                     document.getElementById('detail-height').textContent = order.height ? `${order.height} cm` : '-';
                     document.getElementById('detail-quantity').textContent = order.quantity || '-';
@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         document.getElementById('edit_customer_name').value = order.customer_name || '';
                         document.getElementById('edit_sketch_name').value = order.sketch_name || '';
                         document.getElementById('edit_file_name').value = order.file_name || '';
-                        document.getElementById('edit_fabric_name').value = order.fabric_name || '';
-                        document.getElementById('edit_fabric_code').value = order.fabric_code || '';
+                        document.getElementById('edit_fabric_name').value = order.fabric_density || '';
+                        document.getElementById('edit_fabric_cut').value = order.fabric_cut || '';
                         document.getElementById('edit_width').value = order.width || '';
                         document.getElementById('edit_height').value = order.height || '';
                         document.getElementById('edit_quantity').value = order.quantity || '';
