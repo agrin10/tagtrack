@@ -1,6 +1,37 @@
 from src import db
 from datetime import datetime, date
 
+class OrderImage(db.Model):
+    __tablename__ = 'order_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(512), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)  # Size in bytes
+    mime_type = db.Column(db.String(100), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Relationships
+    order = db.relationship('Order', backref=db.backref('images', lazy=True, cascade='all, delete-orphan'))
+    uploader = db.relationship('User', backref='uploaded_images')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'filename': self.filename,
+            'original_filename': self.original_filename,
+            'file_path': self.file_path,
+            'file_size': self.file_size,
+            'mime_type': self.mime_type,
+            'uploaded_by': self.uploaded_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'uploader_username': self.uploader.username if self.uploader else None
+        }
+
 class Order(db.Model):
     __tablename__ = 'orders'
 
@@ -71,6 +102,7 @@ class Order(db.Model):
             "customer_note_to_office": self.customer_note_to_office,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "images": [image.to_dict() for image in self.images],
             "created_by_id": self.created_by,
             "created_by_username": self.created_by_user.username if self.created_by_user else None
         }

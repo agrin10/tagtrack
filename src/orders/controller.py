@@ -1,13 +1,21 @@
 from src import db
-from src.orders.models import Order
+from src.orders.models import Order, OrderImage
 from flask_login import current_user
 from datetime import datetime, date
 from typing import Tuple, Dict, Any, List
 import traceback
 from sqlalchemy import func
 import io
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+# Add these constants at the top of the file
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'orders')
 
 def _get_next_form_number_for_year() -> int:
     current_year = datetime.now().year
@@ -21,10 +29,11 @@ def _get_next_form_number_for_year() -> int:
 
     return (max_form_number or 0) + 1
 
-def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     try:
         # Debug print the incoming data
         print("Raw form data received:", form_data)
+        print("Files received:", files)
         
         # Convert all string values to str type and strip whitespace
         form_data = {k: str(v).strip() if isinstance(v, (str, int, float)) else v 
@@ -104,6 +113,15 @@ def add_order(form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
 
         # Refresh the order to get the database-generated values
         db.session.refresh(new_order)
+
+        # Handle image uploads if any
+        if files and 'images' in files:
+            image_files = files.getlist('images')
+            for file in image_files:
+                if file and file.filename:
+                    success, response = upload_order_image(new_order.id, file)
+                    if not success:
+                        print(f"Warning: Failed to upload image {file.filename}: {response.get('error')}")
 
         return True, {
             "message": "Order created successfully",
@@ -322,6 +340,7 @@ def duplicate_order(order_id):
     except Exception as e:
         print(f"Error in duplicate_order: {str(e)}")
         return False, {"error": "An error occurred while duplicating the order"}
+
 def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
     """
     Generate a Persian Excel report of orders with RTL layout and formatted columns.
@@ -454,3 +473,124 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
         print(f"❌ Error generating Excel report: {str(e)}")
         traceback.print_exc()
         return False, {"error": "خطا در تولید فایل اکسل."}
+
+def _allowed_file(filename: str) -> bool:
+    """Check if the file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _ensure_upload_folder():
+    """Ensure the upload folder exists"""
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Upload an image for an order.
+    Returns (success, response) where response contains either the image data or an error message.
+    """
+    try:
+        # Check if order exists
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+
+        # Validate file
+        if not file or not file.filename:
+            return False, {"error": "No file provided"}
+        
+        # Check if file has an extension
+        original_filename = secure_filename(file.filename)
+        if '.' not in original_filename:
+            return False, {"error": "File must have an extension"}
+        
+        if not _allowed_file(original_filename):
+            return False, {"error": f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"}
+        
+        if file.content_length and file.content_length > MAX_FILE_SIZE:
+            return False, {"error": f"File too large. Maximum size is {MAX_FILE_SIZE/1024/1024}MB"}
+
+        # Ensure upload folder exists
+        _ensure_upload_folder()
+
+        # Generate unique filename
+        file_ext = original_filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+        
+        # Save file
+        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        file.save(file_path)
+        
+        # Get file size
+        file_size = os.path.getsize(file_path)
+        
+        # Create image record
+        image = OrderImage(
+            order_id=order_id,
+            filename=unique_filename,
+            original_filename=original_filename,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=file.content_type,
+            uploaded_by=current_user.id
+        )
+        
+        db.session.add(image)
+        db.session.commit()
+        
+        return True, {
+            "message": "Image uploaded successfully",
+            "image": image.to_dict()
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error uploading image: {str(e)}")
+        print(traceback.format_exc())
+        return False, {"error": f"Failed to upload image: {str(e)}"}
+
+def delete_order_image(image_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Delete an order image.
+    Returns (success, response) where response contains either a success message or an error.
+    """
+    try:
+        image = OrderImage.query.get(image_id)
+        if not image:
+            return False, {"error": "Image not found"}
+        
+        # Delete file from filesystem
+        try:
+            if os.path.exists(image.file_path):
+                os.remove(image.file_path)
+        except Exception as e:
+            print(f"Error deleting file: {str(e)}")
+        
+        # Delete from database
+        db.session.delete(image)
+        db.session.commit()
+        
+        return True, {"message": "Image deleted successfully"}
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting image: {str(e)}")
+        return False, {"error": f"Failed to delete image: {str(e)}"}
+
+def get_order_images(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get all images for an order.
+    Returns (success, response) where response contains either the images list or an error.
+    """
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+        
+        images = [image.to_dict() for image in order.images]
+        return True, {
+            "message": "Images retrieved successfully",
+            "images": images
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving images: {str(e)}")
+        return False, {"error": f"Failed to retrieve images: {str(e)}"}

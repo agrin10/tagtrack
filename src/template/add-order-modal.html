@@ -8,7 +8,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="POST" action="{{ url_for('order.create_order') }}">
+            <form method="POST" action="{{ url_for('order.create_order') }}" id="createOrderForm" enctype="multipart/form-data">
                 <div class="modal-body p-0">
                     <!-- Progress Bar -->
                     <div class="progress rounded-0" style="height: 4px;">
@@ -40,6 +40,11 @@
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
                                 <i class="fas fa-sticky-note me-2"></i>Notes
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab">
+                                <i class="fas fa-images me-2"></i>Images
                             </button>
                         </li>
                     </ul>
@@ -283,6 +288,27 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Images Tab -->
+                        <div class="tab-pane fade" id="images" role="tabpanel">
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title mb-3">Upload Images</h6>
+                                            <div class="mb-3">
+                                                <label for="orderImages" class="form-label">Select Images</label>
+                                                <input type="file" class="form-control" id="orderImages" name="images" multiple accept="image/*">
+                                                <div class="form-text">Maximum file size: 10MB. Allowed formats: PNG, JPG, JPEG, GIF, WEBP</div>
+                                            </div>
+                                            <div id="imagePreviewContainer" class="row g-2 mt-3">
+                                                <!-- Image previews will be added here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -353,5 +379,180 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     showTab(0);
 });
+
+// Store selected images
+let selectedImages = [];
+
+// Handle image selection
+document.getElementById('orderImages').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    previewContainer.innerHTML = ''; // Clear existing previews
+    
+    files.forEach((file, index) => {
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+            return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            alert(`File ${file.name} is not an image.`);
+            return;
+        }
+        
+        selectedImages.push(file);
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const col = document.createElement('div');
+            col.className = 'col-md-3 col-sm-4 col-6';
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <small class="text-muted d-block text-truncate">${file.name}</small>
+                        <button type="button" class="btn btn-sm btn-danger mt-2 w-100" onclick="removeImage(${index})">
+                            <i class="fas fa-trash-alt"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+            previewContainer.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+    });
+});
+
+// Remove image from selection
+function removeImage(index) {
+    selectedImages.splice(index, 1);
+    document.getElementById('orderImages').value = ''; // Clear file input
+    // Recreate previews
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    previewContainer.innerHTML = '';
+    selectedImages.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const col = document.createElement('div');
+            col.className = 'col-md-3 col-sm-4 col-6';
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                    <div class="card-body p-2">
+                        <small class="text-muted d-block text-truncate">${file.name}</small>
+                        <button type="button" class="btn btn-sm btn-danger mt-2 w-100" onclick="removeImage(${idx})">
+                            <i class="fas fa-trash-alt"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+            previewContainer.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Handle form submission
+document.getElementById('createOrderForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    try {
+        // Create FormData object and append images
+        const formData = new FormData(this);
+        if (selectedImages.length > 0) {
+            selectedImages.forEach(file => {
+                formData.append('images', file);
+            });
+        }
+
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Order...';
+
+        console.log('Submitting form data:', Object.fromEntries(formData));
+        const response = await fetch('/orders/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('Response content type:', response.headers.get('content-type'));
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. Please try again.');
+        }
+
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create order');
+        }
+
+        // Create success alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <strong>Success!</strong> ${data.message}
+            <a href="/orders/${data.order.id}" class="alert-link">View Order</a>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.modal-body').insertBefore(alertDiv, document.querySelector('.modal-body').firstChild);
+
+        // Reset form and selected images
+        this.reset();
+        selectedImages = [];
+        document.getElementById('imagePreviewContainer').innerHTML = '';
+        
+        // Refresh order list
+        if (typeof refreshOrderList === 'function') {
+            refreshOrderList();
+        }
+
+        // Close modal after a short delay
+        setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+            if (modal) {
+                modal.hide();
+            }
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error:', error);
+        // Create error alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <strong>Error!</strong> ${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.modal-body').insertBefore(alertDiv, document.querySelector('.modal-body').firstChild);
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Create Order';
+    }
+});
+
+// Function to refresh the order list
+function refreshOrderList() {
+    // Get the current page and filters
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page') || 1;
+    const search = urlParams.get('search') || '';
+    const status = urlParams.get('status') || '';
+    
+    // Reload the page with the same parameters
+    window.location.href = `/orders/?page=${page}&search=${search}&status=${status}`;
+}
 </script>
 <!-- End of Create Order Modal --> 
