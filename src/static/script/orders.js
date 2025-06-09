@@ -316,34 +316,62 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.duplicate-order-btn').forEach(button => {
         button.addEventListener('click', function() {
             const orderId = this.getAttribute('data-order-id');
-            if (confirm('Are you sure you want to duplicate this order?')) {
-                fetch(`/orders/${orderId}/duplicate`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.error || 'Failed to duplicate order');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message || 'Order duplicated successfully!');
-                        window.location.reload(); // Reload to see the new order
-                    } else {
+            const duplicateBtn = this;
+            
+            // Disable the button and show loading state
+            duplicateBtn.disabled = true;
+            const originalIcon = duplicateBtn.innerHTML;
+            duplicateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            fetch(`/orders/${orderId}/duplicate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
                         throw new Error(data.error || 'Failed to duplicate order');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error duplicating order:', error);
-                    alert(`Error duplicating order: ${error.message || 'An unknown error occurred.'}`);
-                });
-            }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Create and show success flash message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        ${data.message || 'Order duplicated successfully!'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+                    
+                    // Reload the page after a short delay to show the flash message
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to duplicate order');
+                }
+            })
+            .catch(error => {
+                console.error('Error duplicating order:', error);
+                // Create and show error flash message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Error duplicating order:</strong> ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+            })
+            .finally(() => {
+                // Reset the button state
+                duplicateBtn.disabled = false;
+                duplicateBtn.innerHTML = originalIcon;
+            });
         });
     });
 
