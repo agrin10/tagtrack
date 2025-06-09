@@ -322,125 +322,135 @@ def duplicate_order(order_id):
     except Exception as e:
         print(f"Error in duplicate_order: {str(e)}")
         return False, {"error": "An error occurred while duplicating the order"}
-
 def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
     """
-    Generate an Excel report of orders, with optional search/status filters.
-    Returns a tuple of (success, response) where response contains either the Excel file buffer or an error message.
+    Generate a Persian Excel report of orders with RTL layout and formatted columns.
+    Returns (success, response) where response contains either the Excel file buffer or an error message.
     """
     try:
         query = Order.query
 
-        # Apply search filter
+        # Apply filters
         if search:
             query = query.filter(
                 db.or_(
-                    Order.customer_name.ilike(f'%{search}%'),
-                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')
+                    Order.customer_name.ilike(f"%{search}%"),
+                    db.cast(Order.form_number, db.String).ilike(f"%{search}%")
                 )
             )
-        
-        # Apply status filter
-        if status and status.lower() != 'all':
-            query = query.filter(Order.status == status)
 
-        # Order by created_at descending (newest first)
+        if status and status.lower() != 'all':
+            query = query.filter(db.func.lower(Order.status) == status.lower())
+
         orders = query.order_by(Order.created_at.desc()).all()
 
-        # Create a new workbook and select the active worksheet
         wb = Workbook()
         ws = wb.active
-        ws.title = "Orders Report"
+        ws.title = "گزارش سفارشات"
 
-        # Define headers and their corresponding order attributes
+        # Set worksheet direction to RTL
+        ws.sheet_view.rightToLeft = True
+
+        # Persian headers
         headers = [
-            "Form Number", "Customer Name", "Sketch Name", "File Name",
-            "Fabric Density", "Fabric Cut", "Width", "Height", "Quantity", 
-            "Total Length (m)", "Delivery Date", "Exit from Office Date",
-            "Exit from Factory Date", "Print Type", "Lamination Type", 
-            "Cut Type", "Label Type", "Design Specification", "Office Notes",
-            "Factory Notes", "Customer Note to Office", "Status", 
-            "Created At", "Updated At", "Created By"
-        ]
-        order_attributes = [
-            "form_number", "customer_name", "sketch_name", "file_name",
-            "fabric_density", "fabric_cut", "width", "height", "quantity",
-            "total_length_meters", "delivery_date", "exit_from_office_date",
-            "exit_from_factory_date", "fusing_type", "lamination_type",
-            "cut_type", "label_type", "design_specification", "office_notes",
-            "factory_notes", "customer_note_to_office", "status",
-            "created_at", "updated_at", "created_by_username"
+            "شماره فرم",
+            "نام مشتری",
+            "نام طرح",
+            "تعداد",
+            "متر کل",
+            "خروج از دفتر",
+            "خروج از کارخانه",
+            "تاریخ تحویل",
+            "آخرین بروزرسانی"
         ]
 
-        # Write headers
-        ws.append(headers)
+        column_widths = {
+            'A': 15,
+            'B': 25,
+            'C': 25,
+            'D': 10,
+            'E': 12,
+            'F': 18,
+            'G': 18,
+            'H': 18,
+            'I': 20
+        }
 
-        # Style headers
-        header_font = Font(bold=True, color="FFFFFF")
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+
+        header_font = Font(bold=True, color="FFFFFF", size=11, name="Calibri")
         header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-        header_border = Border(left=Side(style='thin'), 
-                               right=Side(style='thin'), 
-                               top=Side(style='thin'), 
-                               bottom=Side(style='thin'))
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        data_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        data_font = Font(name="B Kamran", size=11)
 
-        for col in range(1, len(headers) + 1):
+        # Add headers
+        for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col)
+            cell.value = header
             cell.font = header_font
             cell.fill = header_fill
-            cell.border = header_border
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            
-        # Write order data
-        for order in orders:
-            row_data = []
-            order_dict = order.to_dict() # Get the dictionary representation of the order
-            for attr in order_attributes:
-                value = order_dict.get(attr)
-                
-                # Format dates to YYYY-MM-DD
-                if isinstance(value, (datetime, date)):
-                    value = value.strftime('%Y-%m-%d')
-                elif isinstance(value, str) and 'T' in value and (
-                    attr == 'created_at' or attr == 'updated_at'):
-                    # Handle ISO format strings from to_dict()
-                    try:
-                        value = datetime.fromisoformat(value).strftime('%Y-%m-%d')
-                    except ValueError:
-                        pass # Keep original string if parsing fails
-                
-                row_data.append(value)
-            ws.append(row_data)
+            cell.alignment = header_alignment
 
-        # Auto-size columns
-        for col in ws.columns:
-            max_length = 0
-            column = col[0].column_letter # Get the column name
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2) * 1.2 # Add a small buffer
-            ws.column_dimensions[column].width = adjusted_width
+        # Add order data
+        for row_idx, order in enumerate(orders, 2):
+            values = [
+                order.form_number,
+                order.customer_name,
+                order.sketch_name,
+                order.quantity,
+                order.total_length_meters,
+                order.exit_from_office_date,
+                order.exit_from_factory_date,
+                order.delivery_date,
+                order.updated_at
+            ]
 
-        # Save workbook to a BytesIO object
-        excel_file_buffer = io.BytesIO()
-        wb.save(excel_file_buffer)
-        excel_file_buffer.seek(0) # Rewind the buffer to the beginning
-        
-        current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"orders_report_{current_date}.xlsx"
+            for col_idx, value in enumerate(values, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = data_font
+                cell.alignment = data_alignment
+
+                # Format dates
+                if isinstance(value, datetime):
+                    cell.number_format = "yyyy-mm-dd hh:mm:ss"
+                elif hasattr(value, 'strftime'):
+                    cell.number_format = "yyyy-mm-dd"
+
+                # Zebra row fill
+                if row_idx % 2 == 0:
+                    cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
+        # Borders
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        for row in ws.iter_rows(min_row=1, max_row=len(orders)+1, min_col=1, max_col=len(headers)):
+            for cell in row:
+                cell.border = thin_border
+
+        # Freeze header
+        ws.freeze_panes = 'A2'
+
+        # Save to memory
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"گزارش_سفارشات_{timestamp}.xlsx"
 
         return True, {
-            "message": "Excel report generated successfully",
-            "excel_file_buffer": excel_file_buffer,
-            "file_name": file_name
+            "excel_file_buffer": excel_file,
+            "file_name": filename
         }
 
     except Exception as e:
-        db.session.rollback()
-        error_traceback = traceback.format_exc()
-        print("Error generating Excel report:")
-        print(error_traceback)
-        return False, {"error": f"Failed to generate Excel report: {str(e)}\nTraceback: {error_traceback}"}
+        print(f"❌ Error generating Excel report: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": "خطا در تولید فایل اکسل."}
