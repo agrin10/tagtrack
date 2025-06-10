@@ -458,8 +458,13 @@ document.getElementById('createOrderForm').addEventListener('submit', async func
     e.preventDefault();
     
     try {
-        // Create FormData object and append images
+        // Create FormData object
         const formData = new FormData(this);
+        
+        // Remove any automatically added images from the form
+        formData.delete('images');
+        
+        // Add images only from our controlled selectedImages array
         if (selectedImages.length > 0) {
             selectedImages.forEach(file => {
                 formData.append('images', file);

@@ -4,11 +4,21 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.view-details-btn').forEach(button => {
         button.addEventListener('click', function () {
             const orderId = this.getAttribute('data-order-id');
-
+            
             fetch(`/orders/${orderId}`)
                 .then(response => response.json())
                 .then(data => {
                     const order = data.order;
+                    
+                    // Helper function to safely set text content
+                    function setTextContent(elementId, value) {
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            element.textContent = value || '-';
+                        } else {
+                            console.warn(`Element not found: ${elementId}`);
+                        }
+                    }
                     
                     // Update status badge and progress bar based on status
                     const statusElement = document.getElementById('detail-status');
@@ -44,35 +54,73 @@ document.addEventListener('DOMContentLoaded', function () {
                         progressBar.style.width = progressWidth;
                     }
                     
-                    // Update other modal fields
-                    document.getElementById('detail-form-number').textContent = order.form_number;
-                    document.getElementById('detail-customer-name').textContent = order.customer_name || '-';
-                    document.getElementById('detail-sketch-name').textContent = order.sketch_name || '-';
-                    document.getElementById('detail-file-name').textContent = order.file_name || '-';
-                    document.getElementById('detail-fabric-density').textContent = order.fabric_density || '-';
-                    document.getElementById('detail-fabric-code').textContent = order.fabric_cut || '-';
-                    document.getElementById('detail-width').textContent = order.width ? `${order.width} cm` : '-';
-                    document.getElementById('detail-height').textContent = order.height ? `${order.height} cm` : '-';
-                    document.getElementById('detail-quantity').textContent = order.quantity || '-';
-                    document.getElementById('detail-total-length-meters').textContent = order.total_length_meters ? `${order.total_length_meters} m` : '-';
-                    document.getElementById('detail-fusing-type').textContent = order.fusing_type || '-';
-                    document.getElementById('detail-lamination-type').textContent = order.lamination_type || '-';
-                    document.getElementById('detail-cut-type').textContent = order.cut_type || '-';
-                    document.getElementById('detail-label-type').textContent = order.label_type || '-';
-                    document.getElementById('detail-design-specification').textContent = order.design_specification || '-';
-                    document.getElementById('detail-office-notes').textContent = order.office_notes || '-';
-                    document.getElementById('detail-factory-notes').textContent = order.factory_notes || '-';
-                    document.getElementById('detail-customer-note-to-office').textContent = order.customer_note_to_office || '-';
-                    document.getElementById('detail-delivery-date').textContent = order.delivery_date || '-';
-                    document.getElementById('detail-exit-from-office-date').textContent = order.exit_from_office_date || '-';
-                    document.getElementById('detail-exit-from-factory-date').textContent = order.exit_from_factory_date || '-';
-                    document.getElementById('detail-created-at').textContent = order.created_at ? order.created_at.split('T')[0] : '-';
-                    document.getElementById('detail-created-by-username').textContent = order.created_by_username || '-';
+                    // Update all modal fields using the safe setter function
+                    setTextContent('detail-form-number', order.form_number);
+                    setTextContent('detail-customer-name', order.customer_name);
+                    setTextContent('detail-sketch-name', order.sketch_name);
+                    setTextContent('detail-file-name', order.file_name);
+                    setTextContent('detail-fabric-density', order.fabric_density);
+                    setTextContent('detail-fabric-code', order.fabric_cut);
+                    setTextContent('detail-width', order.width ? `${order.width} cm` : null);
+                    setTextContent('detail-height', order.height ? `${order.height} cm` : null);
+                    setTextContent('detail-quantity', order.quantity);
+                    setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
+                    setTextContent('detail-fusing-type', order.fusing_type);
+                    setTextContent('detail-lamination-type', order.lamination_type);
+                    setTextContent('detail-cut-type', order.cut_type);
+                    setTextContent('detail-label-type', order.label_type);
+                    setTextContent('detail-design-specification', order.design_specification);
+                    setTextContent('detail-office-notes', order.office_notes);
+                    setTextContent('detail-factory-notes', order.factory_notes);
+                    setTextContent('detail-customer-note-to-office', order.customer_note_to_office);
+                    setTextContent('detail-delivery-date', order.delivery_date);
+                    setTextContent('detail-exit-from-office-date', order.exit_from_office_date);
+                    setTextContent('detail-exit-from-factory-date', order.exit_from_factory_date);
+                    setTextContent('detail-created-at', order.created_at ? order.created_at.split('T')[0] : null);
+                    setTextContent('detail-created-by-username', order.created_by_username);
 
+                    // Handle images display
+                    const imagesContainer = document.getElementById('detail-images-container');
+                    const noImagesMessage = document.getElementById('detail-no-images-message');
+                    
+                    if (imagesContainer && noImagesMessage) {
+                        if (order.images && order.images.length > 0) {
+                            noImagesMessage.style.display = 'none';
+                            imagesContainer.innerHTML = order.images.map(image => `
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="card h-100">
+                                        <img src="/orders/images/${image.id}" 
+                                             class="card-img-top" 
+                                             alt="${image.original_filename}"
+                                             style="height: 200px; object-fit: cover; cursor: pointer;"
+                                             onclick="previewDetailImage('${image.id}', '${image.original_filename}')">
+                                        <div class="card-body p-2">
+                                            <small class="text-muted text-truncate d-block">${image.original_filename}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            noImagesMessage.style.display = 'block';
+                            imagesContainer.innerHTML = '';
+                        }
+                    }
+
+                    // Show the modal
                     detailModal.show();
                 })
                 .catch(error => {
                     console.error('Error fetching order details:', error);
+                    // Show error message in the modal
+                    const modalBody = document.querySelector('#orderDetailsModal .modal-body');
+                    if (modalBody) {
+                        modalBody.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Error loading order details: ${error.message}
+                            </div>
+                        `;
+                    }
                 });
         });
     });
@@ -198,7 +246,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('edit_form_number').value = order.form_number || '';
                     document.getElementById('edit_customer_name').value = order.customer_name || '';
                     document.getElementById('edit_sketch_name').value = order.sketch_name || '';
-                    document.getElementById('edit_file_name').value = order.file_name || '';
                     document.getElementById('edit_fabric_density').value = order.fabric_density || '';
                     document.getElementById('edit_fabric_cut').value = order.fabric_cut || '';
                     document.getElementById('edit_width').value = order.width || '';
@@ -230,6 +277,44 @@ document.addEventListener('DOMContentLoaded', function () {
                         document.getElementById('edit_created_at').value = formattedDateTime;
                     } else {
                         document.getElementById('edit_created_at').value = '';
+                    }
+
+                    // Set the order ID for image handling
+                    document.getElementById('editOrderForm').dataset.orderId = currentOrderId;
+                    
+                    // Load images for the order
+                    const container = document.getElementById('edit-order-images-container');
+                    const noImagesMessage = document.getElementById('edit-no-images-message');
+                    
+                    if (container && noImagesMessage) {
+                        if (order.images && order.images.length > 0) {
+                            noImagesMessage.style.display = 'none';
+                            container.innerHTML = order.images.map(image => `
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="card h-100">
+                                        <img src="/orders/images/${image.id}" 
+                                             class="card-img-top" 
+                                             alt="${image.original_filename}"
+                                             style="height: 200px; object-fit: cover; cursor: pointer;"
+                                             onclick="previewEditImage('${image.id}', '${image.original_filename}')">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted text-truncate">${image.original_filename}</small>
+                                                <button class="btn btn-sm btn-danger" onclick="deleteEditImage(${image.id})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            noImagesMessage.style.display = 'block';
+                            container.innerHTML = '';
+                            container.appendChild(noImagesMessage);
+                        }
+                    } else {
+                        console.warn('Image container elements not found in the modal');
                     }
                     
                     // Update form action
@@ -744,4 +829,199 @@ document.addEventListener('DOMContentLoaded', function () {
     updateActiveFiltersCount();
     filterRows(); // Initial filter pass
 });
+
+function showOrderDetails(orderId) {
+    console.log('Loading details for order:', orderId);
+    
+    // Get the modal element
+    const modal = document.getElementById('orderDetailsModal');
+    if (!modal) {
+        console.error('Order details modal not found');
+        return;
+    }
+
+    // Show loading state
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading order details...</p>
+            </div>
+        `;
+    }
+
+    // Show the modal first
+    const detailModal = new bootstrap.Modal(modal);
+    detailModal.show();
+
+    // Wait for the modal to be fully shown before loading data
+    modal.addEventListener('shown.bs.modal', function onModalShown() {
+        // Remove the event listener to prevent multiple calls
+        modal.removeEventListener('shown.bs.modal', onModalShown);
+
+        // Now fetch the order details
+        fetch(`/orders/${orderId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch order details');
+                }
+                return response.json();
+            })
+            .then(order => {
+                console.log('Order data:', order);
+
+                // Helper function to safely set text content
+                function setTextContent(elementId, value) {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.textContent = value || '-';
+                    } else {
+                        console.warn(`Element not found: ${elementId}`);
+                    }
+                }
+
+                // Update status badge and progress bar
+                const statusContainer = document.getElementById('detail-status-container');
+                if (statusContainer) {
+                    const statusBadge = document.getElementById('detail-status');
+                    const progressBar = document.getElementById('detail-status-progress');
+                    
+                    if (statusBadge && progressBar) {
+                        let statusClass = 'bg-secondary';
+                        let progress = 0;
+                        
+                        switch (order.status) {
+                            case 'Pending':
+                                statusClass = 'bg-warning';
+                                progress = 25;
+                                break;
+                            case 'In Progress':
+                                statusClass = 'bg-info';
+                                progress = 50;
+                                break;
+                            case 'In Factory':
+                                statusClass = 'bg-primary';
+                                progress = 75;
+                                break;
+                            case 'Completed':
+                                statusClass = 'bg-success';
+                                progress = 100;
+                                break;
+                        }
+                        
+                        statusBadge.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
+                        statusBadge.textContent = order.status;
+                        progressBar.className = `progress-bar ${statusClass}`;
+                        progressBar.style.width = `${progress}%`;
+                    }
+                }
+
+                // Update form number
+                setTextContent('detail-form-number', order.form_number);
+
+                // Update all other fields
+                setTextContent('detail-customer-name', order.customer_name);
+                setTextContent('detail-sketch-name', order.sketch_name);
+                setTextContent('detail-file-name', order.file_name);
+                setTextContent('detail-fabric-density', order.fabric_density);
+                setTextContent('detail-fabric-code', order.fabric_cut);
+                setTextContent('detail-width', order.width ? `${order.width} cm` : null);
+                setTextContent('detail-height', order.height ? `${order.height} cm` : null);
+                setTextContent('detail-quantity', order.quantity);
+                setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
+                setTextContent('detail-fusing-type', order.fusing_type);
+                setTextContent('detail-lamination-type', order.lamination_type);
+                setTextContent('detail-cut-type', order.cut_type);
+                setTextContent('detail-label-type', order.label_type);
+                setTextContent('detail-design-specification', order.design_specification);
+                setTextContent('detail-office-notes', order.office_notes);
+                setTextContent('detail-factory-notes', order.factory_notes);
+                setTextContent('detail-customer-note-to-office', order.customer_note_to_office);
+                setTextContent('detail-delivery-date', order.delivery_date);
+                setTextContent('detail-exit-from-office-date', order.exit_from_office_date);
+                setTextContent('detail-exit-from-factory-date', order.exit_from_factory_date);
+                setTextContent('detail-created-at', order.created_at ? order.created_at.split('T')[0] : null);
+                setTextContent('detail-created-by-username', order.created_by_username);
+
+                // Handle images display
+                const imagesContainer = document.getElementById('detail-images-container');
+                const noImagesMessage = document.getElementById('detail-no-images-message');
+                
+                if (imagesContainer && noImagesMessage) {
+                    if (order.images && order.images.length > 0) {
+                        noImagesMessage.style.display = 'none';
+                        imagesContainer.innerHTML = order.images.map(image => `
+                            <div class="col-md-4 col-sm-6">
+                                <div class="card h-100">
+                                    <img src="/orders/images/${image.id}" 
+                                         class="card-img-top" 
+                                         alt="${image.original_filename}"
+                                         style="height: 200px; object-fit: cover; cursor: pointer;"
+                                         onclick="previewDetailImage('${image.id}', '${image.original_filename}')">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted text-truncate d-block">${image.original_filename}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        noImagesMessage.style.display = 'block';
+                        imagesContainer.innerHTML = '';
+                    }
+                }
+
+                // Show the modal
+                detailModal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching order details:', error);
+                // Show error message in the modal
+                if (modalBody) {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Error loading order details: ${error.message}
+                        </div>
+                    `;
+                }
+            });
+    });
+}
+
+// Add image preview function for details modal
+function previewDetailImage(imageId, filename) {
+    // Create modal for image preview if it doesn't exist
+    let previewModal = document.getElementById('imagePreviewModal');
+    if (!previewModal) {
+        previewModal = document.createElement('div');
+        previewModal.id = 'imagePreviewModal';
+        previewModal.className = 'modal fade';
+        previewModal.innerHTML = `
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">${filename}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center p-0">
+                        <img src="/orders/images/${imageId}" class="img-fluid" alt="${filename}">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(previewModal);
+    } else {
+        // Update existing modal content
+        previewModal.querySelector('.modal-title').textContent = filename;
+        previewModal.querySelector('img').src = `/orders/images/${imageId}`;
+        previewModal.querySelector('img').alt = filename;
+    }
+
+    // Show the modal
+    const modal = new bootstrap.Modal(previewModal);
+    modal.show();
+}
   
