@@ -1027,50 +1027,135 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Get the image card element before deletion
+        const imageCard = document.querySelector(`[data-image-id="${imageId}"]`);
+        if (!imageCard) {
+            console.error('Image card not found:', imageId);
+            return;
+        }
+
+        // Show loading state on the delete button
+        const deleteBtn = imageCard.querySelector('.btn-danger');
+        if (deleteBtn) {
+            const originalContent = deleteBtn.innerHTML;
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        // Create a temporary alert container if it doesn't exist
+        let alertContainer = document.querySelector('#edit-images .alert-container');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.className = 'alert-container';
+            const uploadForm = document.querySelector('#editImageUploadForm');
+            if (uploadForm) {
+                uploadForm.parentNode.insertBefore(alertContainer, uploadForm);
+            }
+        }
+
+        console.log('Attempting to delete image:', imageId); // Debug log
+
         fetch(`/orders/images/${imageId}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(async response => {
+            console.log('Delete response status:', response.status); // Debug log
+            const data = await response.json();
+            console.log('Delete response data:', data); // Debug log
+            
+            if (!response.ok) {
+                const errorMessage = data.error || data.message || 'Failed to delete image';
+                console.error('Server error response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                });
+                throw new Error(errorMessage);
+            }
+            
+            // Consider both response formats as valid:
+            // 1. { success: true, message: '...' }
+            // 2. { message: '...' }
+            if (data.success === false) {
+                const errorMessage = data.error || data.message || 'Server reported failure to delete image';
+                console.error('Server reported failure:', {
+                    status: response.status,
+                    data: data
+                });
+                throw new Error(errorMessage);
+            }
+            
+            // If we have a message and no explicit failure, consider it a success
+            if (!data.message) {
+                console.warn('Unexpected response format - no message field:', data);
+            }
+            
+            return data;
+        })
         .then(data => {
-            if (data.success) {
-                // Remove the image card from the display
-                const imageCard = document.querySelector(`[data-image-id="${imageId}"]`);
-                if (imageCard) {
-                    imageCard.remove();
-                }
+            console.log('Image deletion successful:', data); // Debug log
+            
+            // Remove the image card from the display
+            if (imageCard) {
+                imageCard.remove();
+            }
 
-                // Show success message
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    Image deleted successfully!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>${data.message || 'Image deleted successfully!'}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertContainer.innerHTML = ''; // Clear any existing alerts
+            alertContainer.appendChild(alertDiv);
 
-                // Check if there are any images left
-                const container = document.getElementById('edit-order-images-container');
-                const noImagesMessage = document.getElementById('edit-no-images-message');
-                if (container && noImagesMessage && container.children.length === 0) {
-                    noImagesMessage.style.display = 'block';
-                }
-            } else {
-                throw new Error(data.error || 'Failed to delete image');
+            // Auto-dismiss the success message after 3 seconds
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }, 3000);
+
+            // Check if there are any images left
+            const container = document.getElementById('edit-order-images-container');
+            const noImagesMessage = document.getElementById('edit-no-images-message');
+            if (container && noImagesMessage && container.children.length === 0) {
+                noImagesMessage.style.display = 'block';
             }
         })
         .catch(error => {
-            console.error('Error deleting image:', error);
+            console.error('Error deleting image:', {
+                error: error,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            // Reset the delete button state
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            }
+
             // Show error message
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-danger alert-dismissible fade show';
             alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>
                 <strong>Error deleting image:</strong> ${error.message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
-            document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+            alertContainer.innerHTML = ''; // Clear any existing alerts
+            alertContainer.appendChild(alertDiv);
+
+            // Auto-dismiss the error message after 5 seconds
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }, 5000);
         });
     };
 
@@ -1167,165 +1252,165 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Update the showOrderDetails function to include image click handlers
-function showOrderDetails(orderId) {
-    console.log('Loading details for order:', orderId);
-    
-    // Get the modal element
-    const modal = document.getElementById('orderDetailsModal');
-    if (!modal) {
-        console.error('Order details modal not found');
-        return;
-    }
+    function showOrderDetails(orderId) {
+        console.log('Loading details for order:', orderId);
+        
+        // Get the modal element
+        const modal = document.getElementById('orderDetailsModal');
+        if (!modal) {
+            console.error('Order details modal not found');
+            return;
+        }
 
-    // Show loading state
-    const modalBody = modal.querySelector('.modal-body');
-    if (modalBody) {
-        modalBody.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+        // Show loading state
+        const modalBody = modal.querySelector('.modal-body');
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading order details...</p>
                 </div>
-                <p class="mt-2">Loading order details...</p>
-            </div>
-        `;
-    }
+            `;
+        }
 
-    // Show the modal first
-    const detailModal = new bootstrap.Modal(modal);
-    detailModal.show();
+        // Show the modal first
+        const detailModal = new bootstrap.Modal(modal);
+        detailModal.show();
 
-    // Wait for the modal to be fully shown before loading data
-    modal.addEventListener('shown.bs.modal', function onModalShown() {
-        // Remove the event listener to prevent multiple calls
-        modal.removeEventListener('shown.bs.modal', onModalShown);
+        // Wait for the modal to be fully shown before loading data
+        modal.addEventListener('shown.bs.modal', function onModalShown() {
+            // Remove the event listener to prevent multiple calls
+            modal.removeEventListener('shown.bs.modal', onModalShown);
 
-        // Now fetch the order details
-        fetch(`/orders/${orderId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch order details');
-                }
-                return response.json();
-            })
-                .then(data => {
-                    const order = data.order;
-                console.log('Order data:', order);
-
-                // Helper function to safely set text content
-                function setTextContent(elementId, value) {
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                        element.textContent = value || '-';
-                    } else {
-                        console.warn(`Element not found: ${elementId}`);
+            // Now fetch the order details
+            fetch(`/orders/${orderId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch order details');
                     }
-                }
+                    return response.json();
+                })
+                    .then(data => {
+                        const order = data.order;
+                    console.log('Order data:', order);
 
-                // Update status badge and progress bar
-                const statusContainer = document.getElementById('detail-status-container');
-                if (statusContainer) {
-                    const statusBadge = document.getElementById('detail-status');
-                    const progressBar = document.getElementById('detail-status-progress');
-                    
-                    if (statusBadge && progressBar) {
-                        let statusClass = 'bg-secondary';
-                        let progress = 0;
-                        
-                        switch (order.status) {
-                            case 'Pending':
-                                statusClass = 'bg-warning';
-                                progress = 25;
-                                break;
-                            case 'In Progress':
-                                statusClass = 'bg-info';
-                                progress = 50;
-                                break;
-                            case 'In Factory':
-                                statusClass = 'bg-primary';
-                                progress = 75;
-                                break;
-                            case 'Completed':
-                                statusClass = 'bg-success';
-                                progress = 100;
-                                break;
+                    // Helper function to safely set text content
+                    function setTextContent(elementId, value) {
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            element.textContent = value || '-';
+                        } else {
+                            console.warn(`Element not found: ${elementId}`);
                         }
-                        
-                        statusBadge.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
-                        statusBadge.textContent = order.status;
-                        progressBar.className = `progress-bar ${statusClass}`;
-                        progressBar.style.width = `${progress}%`;
                     }
-                }
 
-                // Update form number
-                setTextContent('detail-form-number', order.form_number);
+                    // Update status badge and progress bar
+                    const statusContainer = document.getElementById('detail-status-container');
+                    if (statusContainer) {
+                        const statusBadge = document.getElementById('detail-status');
+                        const progressBar = document.getElementById('detail-status-progress');
+                        
+                        if (statusBadge && progressBar) {
+                            let statusClass = 'bg-secondary';
+                            let progress = 0;
+                            
+                            switch (order.status) {
+                                case 'Pending':
+                                    statusClass = 'bg-warning';
+                                    progress = 25;
+                                    break;
+                                case 'In Progress':
+                                    statusClass = 'bg-info';
+                                    progress = 50;
+                                    break;
+                                case 'In Factory':
+                                    statusClass = 'bg-primary';
+                                    progress = 75;
+                                    break;
+                                case 'Completed':
+                                    statusClass = 'bg-success';
+                                    progress = 100;
+                                    break;
+                            }
+                            
+                            statusBadge.className = `badge fs-6 px-4 py-2 mb-2 ${statusClass}`;
+                            statusBadge.textContent = order.status;
+                            progressBar.className = `progress-bar ${statusClass}`;
+                            progressBar.style.width = `${progress}%`;
+                        }
+                    }
 
-                // Update all other fields
-                setTextContent('detail-customer-name', order.customer_name);
-                setTextContent('detail-sketch-name', order.sketch_name);
-                setTextContent('detail-file-name', order.file_name);
-                setTextContent('detail-fabric-density', order.fabric_density);
-                setTextContent('detail-fabric-code', order.fabric_cut);
-                setTextContent('detail-width', order.width ? `${order.width} cm` : null);
-                setTextContent('detail-height', order.height ? `${order.height} cm` : null);
-                setTextContent('detail-quantity', order.quantity);
-                setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
-                setTextContent('detail-fusing-type', order.fusing_type);
-                setTextContent('detail-lamination-type', order.lamination_type);
-                setTextContent('detail-cut-type', order.cut_type);
-                setTextContent('detail-label-type', order.label_type);
-                setTextContent('detail-design-specification', order.design_specification);
-                setTextContent('detail-office-notes', order.office_notes);
-                setTextContent('detail-factory-notes', order.factory_notes);
-                setTextContent('detail-customer-note-to-office', order.customer_note_to_office);
-                setTextContent('detail-delivery-date', order.delivery_date);
-                setTextContent('detail-exit-from-office-date', order.exit_from_office_date);
-                setTextContent('detail-exit-from-factory-date', order.exit_from_factory_date);
-                setTextContent('detail-created-at', order.created_at ? order.created_at.split('T')[0] : null);
-                setTextContent('detail-created-by-username', order.created_by_username);
+                    // Update form number
+                    setTextContent('detail-form-number', order.form_number);
 
-                // Handle images display
-                const imagesContainer = document.getElementById('detail-images-container');
-                const noImagesMessage = document.getElementById('detail-no-images-message');
-                
-                if (imagesContainer && noImagesMessage) {
-                    if (order.images && order.images.length > 0) {
-                        noImagesMessage.style.display = 'none';
-                        imagesContainer.innerHTML = order.images.map(image => `
-                                <div class="col-md-4 col-sm-6" data-image-id="${image.id}">
-                                <div class="card h-100">
-                                    <img src="/orders/images/${image.id}" 
-                                         class="card-img-top" 
-                                         alt="${image.original_filename}"
-                                         style="height: 200px; object-fit: cover; cursor: pointer;"
-                                         onclick="previewDetailImage('${image.id}', '${image.original_filename}')">
+                    // Update all other fields
+                    setTextContent('detail-customer-name', order.customer_name);
+                    setTextContent('detail-sketch-name', order.sketch_name);
+                    setTextContent('detail-file-name', order.file_name);
+                    setTextContent('detail-fabric-density', order.fabric_density);
+                    setTextContent('detail-fabric-code', order.fabric_cut);
+                    setTextContent('detail-width', order.width ? `${order.width} cm` : null);
+                    setTextContent('detail-height', order.height ? `${order.height} cm` : null);
+                    setTextContent('detail-quantity', order.quantity);
+                    setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
+                    setTextContent('detail-fusing-type', order.fusing_type);
+                    setTextContent('detail-lamination-type', order.lamination_type);
+                    setTextContent('detail-cut-type', order.cut_type);
+                    setTextContent('detail-label-type', order.label_type);
+                    setTextContent('detail-design-specification', order.design_specification);
+                    setTextContent('detail-office-notes', order.office_notes);
+                    setTextContent('detail-factory-notes', order.factory_notes);
+                    setTextContent('detail-customer-note-to-office', order.customer_note_to_office);
+                    setTextContent('detail-delivery-date', order.delivery_date);
+                    setTextContent('detail-exit-from-office-date', order.exit_from_office_date);
+                    setTextContent('detail-exit-from-factory-date', order.exit_from_factory_date);
+                    setTextContent('detail-created-at', order.created_at ? order.created_at.split('T')[0] : null);
+                    setTextContent('detail-created-by-username', order.created_by_username);
+
+                    // Handle images display
+                    const imagesContainer = document.getElementById('detail-images-container');
+                    const noImagesMessage = document.getElementById('detail-no-images-message');
+                    
+                    if (imagesContainer && noImagesMessage) {
+                        if (order.images && order.images.length > 0) {
+                            noImagesMessage.style.display = 'none';
+                            imagesContainer.innerHTML = order.images.map(image => `
+                                    <div class="col-md-4 col-sm-6" data-image-id="${image.id}">
+                                    <div class="card h-100">
+                                        <img src="/orders/images/${image.id}" 
+                                             class="card-img-top" 
+                                             alt="${image.original_filename}"
+                                             style="height: 200px; object-fit: cover; cursor: pointer;"
+                                             onclick="previewDetailImage('${image.id}', '${image.original_filename}')">
                                     <div class="card-body p-2">
                                         <small class="text-muted text-truncate d-block">${image.original_filename}</small>
                                     </div>
                                 </div>
                             </div>
                         `).join('');
-                    } else {
-                        noImagesMessage.style.display = 'block';
-                        imagesContainer.innerHTML = '';
+                        } else {
+                            noImagesMessage.style.display = 'block';
+                            imagesContainer.innerHTML = '';
+                        }
                     }
-                }
 
-                // Show the modal
-                detailModal.show();
-            })
-            .catch(error => {
-                console.error('Error fetching order details:', error);
-                // Show error message in the modal
-                if (modalBody) {
-                    modalBody.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            Error loading order details: ${error.message}
-                        </div>
-                    `;
-                }
-            });
-    });
-}
+                    // Show the modal
+                    detailModal.show();
+                })
+                .catch(error => {
+                    console.error('Error fetching order details:', error);
+                    // Show error message in the modal
+                    if (modalBody) {
+                        modalBody.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Error loading order details: ${error.message}
+                            </div>
+                        `;
+                    }
+                });
+        });
+    }
 });
