@@ -41,6 +41,11 @@
                                 <i class="fas fa-sticky-note me-2"></i>Notes
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-images-tab" data-bs-toggle="tab" data-bs-target="#edit-images" type="button" role="tab">
+                                <i class="fas fa-images me-2"></i>Images
+                            </button>
+                        </li>
                     </ul>
 
                     <!-- Tab Content -->
@@ -286,6 +291,43 @@
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
                                         <label for="edit_customer_note_to_office">Customer Note to Office</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Images Tab -->
+                        <div class="tab-pane fade" id="edit-images" role="tabpanel">
+                            <div class="row g-4">
+                                <!-- Upload Section -->
+                                <div class="col-12 mb-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title mb-3">Upload New Images</h6>
+                                            <form id="editImageUploadForm" class="dropzone" action="/orders/upload-image">
+                                                <div class="dz-message needsclick">
+                                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                                    <h5>Drop files here or click to upload</h5>
+                                                    <span class="text-muted">(Maximum file size: 5MB)</span>
+                                                </div>
+                                                <input type="hidden" name="order_id" id="editImageOrderId">
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Images Display Section -->
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title mb-3">Order Images</h6>
+                                            <div id="edit-no-images-message" class="alert alert-info" style="display: none;">
+                                                <i class="fas fa-info-circle me-2"></i>No images uploaded for this order.
+                                            </div>
+                                            <div id="edit-order-images-container" class="row g-3">
+                                                <!-- Images will be dynamically inserted here -->
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

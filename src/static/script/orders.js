@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (order.images && order.images.length > 0) {
                             noImagesMessage.style.display = 'none';
                             imagesContainer.innerHTML = order.images.map(image => `
-                                <div class="col-md-4 col-sm-6">
+                                <div class="col-md-4 col-sm-6" data-image-id="${image.id}">
                                     <div class="card h-100">
                                         <img src="/orders/images/${image.id}" 
                                              class="card-img-top" 
@@ -289,8 +289,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (container && noImagesMessage) {
                         if (order.images && order.images.length > 0) {
                             noImagesMessage.style.display = 'none';
-                            container.innerHTML = order.images.map(image => `
-                                <div class="col-md-4 col-sm-6">
+                            const imageHtml = order.images.map(image => `
+                                <div class="col-md-4 col-sm-6" data-image-id="${image.id}">
                                     <div class="card h-100">
                                         <img src="/orders/images/${image.id}" 
                                              class="card-img-top" 
@@ -308,13 +308,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </div>
                                 </div>
                             `).join('');
+                            
+                            container.innerHTML = imageHtml;
                         } else {
                             noImagesMessage.style.display = 'block';
                             container.innerHTML = '';
-                            container.appendChild(noImagesMessage);
                         }
-                    } else {
-                        console.warn('Image container elements not found in the modal');
                     }
                     
                     // Update form action
@@ -322,6 +321,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     // Show the modal
                     editModal.show();
+
+                    // After loading images, initialize click handlers
+                    setTimeout(updateImageCardClickHandlers, 100);
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -828,8 +830,343 @@ document.addEventListener('DOMContentLoaded', function () {
     updateFilterButton('all');
     updateActiveFiltersCount();
     filterRows(); // Initial filter pass
-});
 
+    // Initialize Dropzone for image uploads
+    if (typeof Dropzone !== 'undefined') {
+        Dropzone.autoDiscover = false;
+        
+        const editImageUploadForm = document.getElementById('editImageUploadForm');
+        if (editImageUploadForm) {
+            const dropzone = new Dropzone("#editImageUploadForm", {
+                url: "/orders/upload-image",
+                maxFilesize: 5, // MB
+                acceptedFiles: "image/*",
+                addRemoveLinks: true,
+                dictDefaultMessage: "Drop files here or click to upload",
+                dictRemoveFile: "Remove",
+                dictCancelUpload: "Cancel",
+                dictFileTooBig: "File is too big ({{filesize}}MB). Max filesize: {{maxFilesize}}MB.",
+                init: function() {
+                    this.on("sending", function(file, xhr, formData) {
+                        // Add the order ID to the form data
+                        const orderId = document.getElementById('editImageOrderId').value;
+                        formData.append("order_id", orderId);
+                    });
+                    
+                    this.on("success", function(file, response) {
+                        // Refresh the images display
+                        if (response.success) {
+                            const container = document.getElementById('edit-order-images-container');
+                            const noImagesMessage = document.getElementById('edit-no-images-message');
+                            
+                            if (container && noImagesMessage) {
+                                noImagesMessage.style.display = 'none';
+                                
+                                // Create new image card
+                                const imageCard = document.createElement('div');
+                                imageCard.className = 'col-md-4 col-sm-6';
+                                imageCard.setAttribute('data-image-id', response.image.id);
+                                imageCard.innerHTML = `
+                                    <div class="card h-100">
+                                        <img src="/orders/images/${response.image.id}" 
+                                             class="card-img-top" 
+                                             alt="${response.image.original_filename}"
+                                             style="height: 200px; object-fit: cover; cursor: pointer;"
+                                             onclick="previewEditImage('${response.image.id}', '${response.image.original_filename}')">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted text-truncate">${response.image.original_filename}</small>
+                                                <button class="btn btn-sm btn-danger" onclick="deleteEditImage(${response.image.id})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                container.appendChild(imageCard);
+                            }
+                        } else {
+                            // Show error message
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                            alertDiv.innerHTML = `
+                                <strong>Error uploading image:</strong> ${response.error || 'Unknown error occurred'}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            `;
+                            document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+                        }
+
+                        // Initialize click handlers for the new image
+                        setTimeout(updateImageCardClickHandlers, 100);
+                    });
+                    
+                    this.on("error", function(file, errorMessage) {
+                        // Show error message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            <strong>Error uploading image:</strong> ${errorMessage}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+                        document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+                    });
+                }
+            });
+        }
+    }
+
+    // Add image preview function for edit modal
+    window.previewEditImage = function(imageId, filename) {
+        // Create modal for image preview if it doesn't exist
+        let previewModal = document.getElementById('editImagePreviewModal');
+        if (!previewModal) {
+            previewModal = document.createElement('div');
+            previewModal.id = 'editImagePreviewModal';
+            previewModal.className = 'modal fade';
+            previewModal.setAttribute('tabindex', '-1');
+            previewModal.setAttribute('aria-hidden', 'true');
+            previewModal.setAttribute('data-bs-backdrop', 'false'); // Remove dark overlay
+            previewModal.innerHTML = `
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content shadow-lg">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title">
+                                <i class="fas fa-image me-2"></i>${filename}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center p-0 position-relative">
+                            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" role="status" id="previewImageSpinner">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <img src="/orders/images/${imageId}" 
+                                 class="img-fluid" 
+                                 alt="${filename}"
+                                 style="max-height: 80vh; width: auto;"
+                                 onload="document.getElementById('previewImageSpinner').style.display='none'"
+                                 onerror="this.onerror=null; this.src='/static/img/error-image.png'; document.getElementById('previewImageSpinner').style.display='none';">
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Close
+                            </button>
+                            <a href="/orders/images/${imageId}" 
+                               class="btn btn-primary" 
+                               download="${filename}"
+                               target="_blank">
+                                <i class="fas fa-download me-2"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(previewModal);
+
+            // Add keyboard navigation
+            previewModal.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = bootstrap.Modal.getInstance(previewModal);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+            });
+        } else {
+            // Update existing modal content
+            previewModal.querySelector('.modal-title').innerHTML = `<i class="fas fa-image me-2"></i>${filename}`;
+            const img = previewModal.querySelector('img');
+            const spinner = document.getElementById('previewImageSpinner');
+            
+            // Show spinner while loading
+            if (spinner) spinner.style.display = 'block';
+            
+            // Update image source
+            img.src = `/orders/images/${imageId}`;
+            img.alt = filename;
+            
+            // Update download link
+            const downloadBtn = previewModal.querySelector('a[download]');
+            if (downloadBtn) {
+                downloadBtn.href = `/orders/images/${imageId}`;
+                downloadBtn.download = filename;
+            }
+        }
+
+        // Show the modal with no backdrop
+        const modal = new bootstrap.Modal(previewModal, {
+            backdrop: false,
+            keyboard: true
+        });
+        modal.show();
+
+        // Handle modal hidden event
+        previewModal.addEventListener('hidden.bs.modal', function () {
+            // Reset the image source to clear memory
+            const img = previewModal.querySelector('img');
+            if (img) img.src = '';
+        }, { once: true });
+    };
+
+    // Update the image card click handler in the edit form
+    function updateImageCardClickHandlers() {
+        const imageCards = document.querySelectorAll('#edit-order-images-container .card img');
+        imageCards.forEach(img => {
+            img.style.cursor = 'pointer';
+            img.addEventListener('click', function() {
+                const imageId = this.closest('[data-image-id]').getAttribute('data-image-id');
+                const filename = this.alt;
+                previewEditImage(imageId, filename);
+            });
+        });
+    }
+
+    // Add function to delete images
+    window.deleteEditImage = function(imageId) {
+        if (!confirm('Are you sure you want to delete this image?')) {
+            return;
+        }
+
+        fetch(`/orders/images/${imageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the image card from the display
+                const imageCard = document.querySelector(`[data-image-id="${imageId}"]`);
+                if (imageCard) {
+                    imageCard.remove();
+                }
+
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    Image deleted successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+
+                // Check if there are any images left
+                const container = document.getElementById('edit-order-images-container');
+                const noImagesMessage = document.getElementById('edit-no-images-message');
+                if (container && noImagesMessage && container.children.length === 0) {
+                    noImagesMessage.style.display = 'block';
+                }
+            } else {
+                throw new Error(data.error || 'Failed to delete image');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting image:', error);
+            // Show error message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <strong>Error deleting image:</strong> ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('#edit-images .card-body').insertBefore(alertDiv, document.querySelector('#editImageUploadForm'));
+        });
+    };
+
+    // Add image preview function for details modal
+    window.previewDetailImage = function(imageId, filename) {
+        // Create modal for image preview if it doesn't exist
+        let previewModal = document.getElementById('detailImagePreviewModal');
+        if (!previewModal) {
+            previewModal = document.createElement('div');
+            previewModal.id = 'detailImagePreviewModal';
+            previewModal.className = 'modal fade';
+            previewModal.setAttribute('tabindex', '-1');
+            previewModal.setAttribute('aria-hidden', 'true');
+            previewModal.setAttribute('data-bs-backdrop', 'false');
+            previewModal.innerHTML = `
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content shadow-lg">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title">
+                                <i class="fas fa-image me-2"></i>${filename}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center p-0 position-relative">
+                            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" role="status" id="detailPreviewImageSpinner">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <img src="/orders/images/${imageId}" 
+                                 class="img-fluid" 
+                                 alt="${filename}"
+                                 style="max-height: 80vh; width: auto;"
+                                 onload="document.getElementById('detailPreviewImageSpinner').style.display='none'"
+                                 onerror="this.onerror=null; this.src='/static/img/error-image.png'; document.getElementById('detailPreviewImageSpinner').style.display='none';">
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Close
+                            </button>
+                            <a href="/orders/images/${imageId}" 
+                               class="btn btn-primary" 
+                               download="${filename}"
+                               target="_blank">
+                                <i class="fas fa-download me-2"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(previewModal);
+
+            // Add keyboard navigation
+            previewModal.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = bootstrap.Modal.getInstance(previewModal);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+            });
+        } else {
+            // Update existing modal content
+            previewModal.querySelector('.modal-title').innerHTML = `<i class="fas fa-image me-2"></i>${filename}`;
+            const img = previewModal.querySelector('img');
+            const spinner = document.getElementById('detailPreviewImageSpinner');
+            
+            // Show spinner while loading
+            if (spinner) spinner.style.display = 'block';
+            
+            // Update image source
+            img.src = `/orders/images/${imageId}`;
+            img.alt = filename;
+            
+            // Update download link
+            const downloadBtn = previewModal.querySelector('a[download]');
+            if (downloadBtn) {
+                downloadBtn.href = `/orders/images/${imageId}`;
+                downloadBtn.download = filename;
+            }
+        }
+
+        // Show the modal with no backdrop
+        const modal = new bootstrap.Modal(previewModal, {
+            backdrop: false,
+            keyboard: true
+        });
+        modal.show();
+
+        // Handle modal hidden event
+        previewModal.addEventListener('hidden.bs.modal', function () {
+            // Reset the image source to clear memory
+            const img = previewModal.querySelector('img');
+            if (img) img.src = '';
+        }, { once: true });
+    };
+
+    // Update the showOrderDetails function to include image click handlers
 function showOrderDetails(orderId) {
     console.log('Loading details for order:', orderId);
     
@@ -870,7 +1207,8 @@ function showOrderDetails(orderId) {
                 }
                 return response.json();
             })
-            .then(order => {
+                .then(data => {
+                    const order = data.order;
                 console.log('Order data:', order);
 
                 // Helper function to safely set text content
@@ -954,7 +1292,7 @@ function showOrderDetails(orderId) {
                     if (order.images && order.images.length > 0) {
                         noImagesMessage.style.display = 'none';
                         imagesContainer.innerHTML = order.images.map(image => `
-                            <div class="col-md-4 col-sm-6">
+                                <div class="col-md-4 col-sm-6" data-image-id="${image.id}">
                                 <div class="card h-100">
                                     <img src="/orders/images/${image.id}" 
                                          class="card-img-top" 
@@ -990,38 +1328,4 @@ function showOrderDetails(orderId) {
             });
     });
 }
-
-// Add image preview function for details modal
-function previewDetailImage(imageId, filename) {
-    // Create modal for image preview if it doesn't exist
-    let previewModal = document.getElementById('imagePreviewModal');
-    if (!previewModal) {
-        previewModal = document.createElement('div');
-        previewModal.id = 'imagePreviewModal';
-        previewModal.className = 'modal fade';
-        previewModal.innerHTML = `
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">${filename}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body text-center p-0">
-                        <img src="/orders/images/${imageId}" class="img-fluid" alt="${filename}">
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(previewModal);
-    } else {
-        // Update existing modal content
-        previewModal.querySelector('.modal-title').textContent = filename;
-        previewModal.querySelector('img').src = `/orders/images/${imageId}`;
-        previewModal.querySelector('img').alt = filename;
-    }
-
-    // Show the modal
-    const modal = new bootstrap.Modal(previewModal);
-    modal.show();
-}
-  
+});
