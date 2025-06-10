@@ -158,8 +158,8 @@ def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: st
         if status and status.lower() != 'all':
             query = query.filter(db.func.lower(Order.status) == status.lower())
 
-        # Order by created_at descending (newest first)
-        query = query.order_by(Order.created_at.desc())
+        # Order by form_number descending (highest to lowest)
+        query = query.order_by(Order.form_number.desc())
         
         # Paginate the results
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
