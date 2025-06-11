@@ -23,31 +23,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Handle dynamic addition of job metric rows in modal
-    window.addMetricRowToModal = function(metric = {}) {
-        const row = document.createElement('div');
-        row.className = 'row g-2 mb-3 job-metric-modal-row';
-        row.innerHTML = `
+    window.addMetricRowToModal = function(metric = null) {
+        const container = document.getElementById('modal-job-metrics-container');
+        const index = container.children.length;
+        const newMetricRow = document.createElement('div');
+        newMetricRow.className = 'row g-2 mb-2 align-items-end';
+        newMetricRow.innerHTML = `
             <div class="col-md-3">
-                <label class="form-label">تعداد بسته</label>
-                <input type="number" name="package_count[]" class="form-control" value="${metric.package_count || ''}" required>
+                <label class="form-label small text-muted">Package Count</label>
+                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">مقدار بسته (متر)</label>
-                <input type="number" step="0.01" name="package_value[]" class="form-control" value="${metric.package_value || ''}" required>
+                <label class="form-label small text-muted">Package Value</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">تعداد رول</label>
-                <input type="number" name="roll_count[]" class="form-control" value="${metric.roll_count || ''}" required>
+                <label class="form-label small text-muted">Roll Count</label>
+                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <div>
-                    <label class="form-label">متراژ</label>
-                    <input type="number" step="0.01" name="meterage[]" class="form-control" value="${metric.meterage || ''}" required>
-                </div>
-                <button type="button" class="btn btn-danger btn-sm ms-2" onclick="this.closest('.job-metric-modal-row').remove()">×</button>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Meterage</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove()"><i class="fas fa-times"></i></button>
             </div>
         `;
-        jobMetricsContainer.appendChild(row);
+        container.appendChild(newMetricRow);
     };
 
     async function loadOrderDetails(orderId) {
@@ -281,4 +283,62 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addMetricRowToModal = addMetricRowToModal;
     window.formatDateForInput = formatDateForInput;
     window.formatTimeForInput = formatTimeForInput;
+
+    function addProductionRow() {
+        const tableBody = document.getElementById('production-table-body');
+        const newRow = tableBody.insertRow();
+        const rowIndex = tableBody.rows.length;
+        newRow.setAttribute('data-row-index', rowIndex);
+
+        newRow.innerHTML = `
+            <td class="py-2 px-3">
+                <select class="form-select form-select-sm" name="machine_data[${rowIndex}][shift_type]">
+                    <option value="day">روز</option>
+                    <option value="night">شب</option>
+                </select>
+            </td>
+            <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
+            <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
+            <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
+            <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
+            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+        `;
+    }
+
+    // Function to populate machine data when modal is opened
+    function populateMachineData(order) {
+        const tableBody = document.getElementById('production-table-body');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        const machineData = order.machine_data || [];
+
+        if (machineData && machineData.length > 0) {
+            // Sort by shift type if needed, e.g., day first then night
+            machineData.sort((a, b) => a.shift_type.localeCompare(b.shift_type));
+
+            machineData.forEach((data, index) => {
+                const newRow = tableBody.insertRow();
+                newRow.setAttribute('data-row-index', index);
+                newRow.innerHTML = `
+                    <td class="py-2 px-3">
+                        <select class="form-select form-select-sm" name="machine_data[${index}][shift_type]">
+                            <option value="day" ${data.shift_type === 'day' ? 'selected' : ''}>روز</option>
+                            <option value="night" ${data.shift_type === 'night' ? 'selected' : ''}>شب</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
+                    <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
+                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+                `;
+            });
+        } else {
+            // Add an empty row if no data exists, for the first shift
+            addProductionRow();
+        }
+
+        // Populate production duration
+        document.getElementById('production-duration-input').value = order.production_duration || '';
+    }
 }); 
