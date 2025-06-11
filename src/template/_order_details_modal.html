@@ -86,6 +86,81 @@
                     <!-- Job metrics will be loaded here dynamically -->
                 </div>
                 <button type="button" class="btn btn-outline-secondary mt-3" onclick="addMetricRowToModal()">+ Add Metric Row</button>
+
+                <hr>
+
+                <h6>Production Steps</h6>
+                <div id="production-steps-container">
+                    <!-- Production step fields will be loaded here dynamically -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">منگنه</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="production_steps[mongane][worker_name]" placeholder="کارگر">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" name="production_steps[mongane][date]">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" name="production_steps[mongane][member_count]" placeholder="تعداد">
+                        </div>
+                        <div class="col-md-1">
+                            <span class="form-control-plaintext text-muted">امضاء</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">آهار</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="production_steps[ahar][worker_name]" placeholder="کارگر">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" name="production_steps[ahar][date]">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" name="production_steps[ahar][member_count]" placeholder="تعداد">
+                        </div>
+                        <div class="col-md-1">
+                            <span class="form-control-plaintext text-muted">امضاء</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">پرس</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="production_steps[press][worker_name]" placeholder="کارگر">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" name="production_steps[press][date]">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" name="production_steps[press][member_count]" placeholder="تعداد">
+                        </div>
+                        <div class="col-md-1">
+                            <span class="form-control-plaintext text-muted">امضاء</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">برش</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="production_steps[bresh][worker_name]" placeholder="کارگر">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" name="production_steps[bresh][date]">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control" name="production_steps[bresh][member_count]" placeholder="تعداد">
+                        </div>
+                        <div class="col-md-1">
+                            <span class="form-control-plaintext text-muted">امضاء</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

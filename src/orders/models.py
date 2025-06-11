@@ -75,6 +75,8 @@ class Order(db.Model):
 
     machine_logs = db.relationship('Machine', backref='order', lazy=True, cascade="all, delete-orphan")
 
+    production_step_logs = db.relationship('ProductionStepLog', backref='order', lazy=True, cascade="all, delete-orphan")
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -115,6 +117,7 @@ class Order(db.Model):
             "images": [image.to_dict() for image in self.images],
             "created_by_id": self.created_by,
             "created_by_username": self.created_by_user.username if self.created_by_user else None,
-            "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else []
+            "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
+            "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {}
         }
 

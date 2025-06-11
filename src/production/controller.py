@@ -3,7 +3,7 @@ import traceback
 from datetime import datetime, date, timezone
 
 from src import db
-from src.production.models import JobMetric, Machine, ShiftType
+from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum
 from src.orders.models import Order
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
@@ -23,6 +23,10 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         # Add machine data to the order dict
         success_machine, machine_data = get_machine_data_for_order(order_id)
         order_dict['machine_data'] = machine_data.get('machines', [])
+
+        # Add production step logs to the order dict
+        success_steps, step_data = get_production_step_logs_for_order(order_id)
+        order_dict['production_steps'] = step_data.get('production_steps', {})
 
         return True, {"message": "Order details retrieved successfully", "order": order_dict}
     except Exception as e:
@@ -45,6 +49,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         job_metrics_data = form_data.get('job_metrics', [])
         machine_data = form_data.get('machine_data', [])
         production_duration = form_data.get('production_duration')
+        production_steps_data = form_data.get('production_steps', {})
 
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
@@ -65,6 +70,9 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
 
         # Save machine data
         save_machine_data_for_order(order_id, machine_data, user_id)
+
+        # Save production step logs
+        save_production_step_logs_for_order(order_id, production_steps_data, user_id)
 
         order.updated_at = datetime.now(timezone.utc)
         db.session.commit()
@@ -230,3 +238,82 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
         print(f"Error saving machine data: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to save machine data: {str(e)}"}
+
+def get_production_step_logs_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get all production step logs for a specific order.
+    """
+    try:
+        logs = ProductionStepLog.query.filter_by(order_id=order_id).all()
+        if not logs:
+            return True, {"message": "No production step logs found for this order", "production_steps": {}}
+        
+        step_data = {}
+        for log in logs:
+            step_data[log.step_name.value] = log.to_dict()
+    
+        return True, {
+            "message": "Production step logs retrieved successfully",
+            "production_steps": step_data
+        }
+    except Exception as e:
+        print(f"Error retrieving production step logs: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": f"Failed to retrieve production step logs: {str(e)}"}
+
+def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any], user_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Save or update production step logs for an order. This will delete existing logs and add new ones.
+    """
+    try:
+        # Verify order exists
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+    
+        # Delete existing logs for this order
+        ProductionStepLog.query.filter_by(order_id=order_id).delete()
+        db.session.flush() # Ensure deletions are processed before adding new ones
+    
+        added_logs = []
+        for step_name_str, data in step_data.items():
+            # Validate data before casting
+            try:
+                step_name = ProductionStepEnum(step_name_str) # Convert string to Enum member
+                worker_name = data.get('worker_name')
+                date_str = data.get('date')
+                member_count = data.get('member_count')
+    
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+    
+            except ValueError as e:
+                return False, {"error": f"Invalid data format for production step entry: {str(e)}"}
+            except KeyError as e:
+                return False, {"error": f"Missing data for production step entry: {str(e)}"}
+    
+            log = ProductionStepLog(
+                order_id=order_id,
+                step_name=step_name,
+                worker_name=worker_name,
+                date=date_obj,
+                member_count=member_count,
+                created_by=user_id
+            )
+            db.session.add(log)
+            added_logs.append(log.to_dict())
+    
+        db.session.commit()
+        
+        return True, {
+            "message": "Production step logs saved successfully",
+            "production_steps": added_logs
+        }
+    
+    except ValueError as e:
+        db.session.rollback()
+        return False, {"error": f"Invalid data format: {str(e)}"}
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving production step logs: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": f"Failed to save production step logs: {str(e)}"}

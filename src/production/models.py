@@ -5,6 +5,11 @@ from enum import Enum
 class ShiftType(Enum):
     day = 'day'
     night = 'night'
+class ProductionStepEnum(Enum):
+    MONGANE = "mongane"
+    AHAR = "ahar"
+    PRESS = "press"
+    BRESH = "bresh"
 
 class JobMetric(db.Model):
     __tablename__ = 'job_metrics'
@@ -62,3 +67,27 @@ class Machine(db.Model):
             'created_by': self.created_by
         }
 
+class ProductionStepLog(db.Model):
+    __tablename__ = 'production_step_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+
+    step_name = db.Column(db.Enum(ProductionStepEnum, name="production_step_enum", native_enum=False), nullable=False)
+
+    worker_name = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    member_count = db.Column(db.Integer, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "order_id": self.order_id,
+            "step_name": self.step_name.value,  # Access enum value for JSON
+            "worker_name": self.worker_name,
+            "date": self.date.isoformat(),
+            "member_count": self.member_count
+        }

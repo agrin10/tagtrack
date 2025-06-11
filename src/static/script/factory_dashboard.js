@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-factory-notes').value = order.factory_notes || '';
 
         // Job Metrics
-        jobMetricsContainer.innerHTML = ''; // Clear previous metrics
+        jobMetricsContainer.innerHTML = '';
         if (order.job_metrics && order.job_metrics.length > 0) {
             order.job_metrics.forEach(metric => addMetricRowToModal(metric));
         } else {
@@ -90,6 +90,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Machine Data
         populateMachineData(order);
+
+        // Production Steps
+        const productionStepsContainer = document.getElementById('production-steps-container');
+        // Clear existing values in production step fields
+        const stepKeys = ['mongane', 'ahar', 'press', 'bresh'];
+        stepKeys.forEach(stepKey => {
+            const workerNameInput = document.querySelector(`input[name="production_steps[${stepKey}][worker_name]"]`);
+            const dateInput = document.querySelector(`input[name="production_steps[${stepKey}][date]"]`);
+            const memberCountInput = document.querySelector(`input[name="production_steps[${stepKey}][member_count]"]`);
+
+            if (workerNameInput) workerNameInput.value = '';
+            if (dateInput) dateInput.value = '';
+            if (memberCountInput) memberCountInput.value = '';
+        });
+
+        if (order.production_steps) {
+            Object.keys(order.production_steps).forEach(stepKey => {
+                const stepData = order.production_steps[stepKey];
+                if (stepData) {
+                    const workerNameInput = document.querySelector(`input[name="production_steps[${stepKey}][worker_name]"]`);
+                    const dateInput = document.querySelector(`input[name="production_steps[${stepKey}][date]"]`);
+                    const memberCountInput = document.querySelector(`input[name="production_steps[${stepKey}][member_count]"]`);
+
+                    if (workerNameInput) workerNameInput.value = stepData.worker_name || '';
+                    if (dateInput) dateInput.value = stepData.date || '';
+                    if (memberCountInput) memberCountInput.value = stepData.member_count || '';
+                }
+            });
+        }
     }
 
     async function updateProductionStatus(orderId, formData) {
@@ -112,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Collect production duration
             payload.production_duration = document.getElementById('production-duration-input').value;
+
+            // Collect production steps data from the modal
+            payload.production_steps = collectProductionStepsFromModal();
 
             const response = await fetch(`/api/orders/${orderId}/update-production-status`, {
                 method: 'POST',
@@ -175,6 +207,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return machineData;
     }
 
+    function collectProductionStepsFromModal() {
+        const productionSteps = {};
+        const steps = ['mongane', 'ahar', 'press', 'bresh'];
+
+        steps.forEach(stepKey => {
+            const workerNameInput = document.querySelector(`input[name="production_steps[${stepKey}][worker_name]"]`);
+            const dateInput = document.querySelector(`input[name="production_steps[${stepKey}][date]"]`);
+            const memberCountInput = document.querySelector(`input[name="production_steps[${stepKey}][member_count]"]`);
+
+            const worker_name = workerNameInput ? workerNameInput.value : null;
+            const date = dateInput ? dateInput.value : null;
+            const member_count = memberCountInput ? (memberCountInput.value ? parseInt(memberCountInput.value) : null) : null;
+
+            // Only add the step if at least one field is filled
+            if (worker_name || date || member_count) {
+                productionSteps[stepKey] = {
+                    worker_name: worker_name,
+                    date: date,
+                    member_count: member_count
+                };
+            }
+        });
+        return productionSteps;
+    }
+
     function formatDate(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
@@ -217,4 +274,11 @@ document.addEventListener('DOMContentLoaded', function() {
             bootstrap.Alert.getInstance(wrapper.querySelector('.alert'))?.close();
         }, 5000);
     }
+
+    // Make these functions globally accessible if they are called from inline HTML
+    window.addProductionRow = addProductionRow;
+    window.populateMachineData = populateMachineData;
+    window.addMetricRowToModal = addMetricRowToModal;
+    window.formatDateForInput = formatDateForInput;
+    window.formatTimeForInput = formatTimeForInput;
 }); 

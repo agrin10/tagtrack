@@ -32,7 +32,7 @@ def create_app(config_obj='config.Config'):
 
     from src.auth.models import User, Role
     from src.orders.models import Order
-    # from src.production.models import WorkStatistics
+    from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
 
     with app.app_context():
         db.create_all()
