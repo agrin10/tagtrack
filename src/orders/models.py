@@ -57,6 +57,8 @@ class Order(db.Model):
     cut_type = db.Column(db.String(50))           # e.g. برش کامل, نیم تیغ
     label_type = db.Column(db.String(50))         # e.g. خشک, متوسط
     status = db.Column(db.String(20))
+    current_stage = db.Column(db.String(50), default='New')
+    progress_percentage = db.Column(db.Integer, default=0)
 
     # New columns for tracking dates and additional information
     exit_from_office_date = db.Column(db.Date, nullable=True)
@@ -64,9 +66,13 @@ class Order(db.Model):
     sketch_name = db.Column(db.String(255))
     file_name = db.Column(db.String(255))
     customer_note_to_office = db.Column(db.Text)
+    production_duration = db.Column(db.String(256), nullable=True)
 
     created_by_user = db.relationship('User', backref='orders_created')
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    job_metrics = db.relationship('JobMetric', backref='order', cascade='all, delete-orphan', lazy=True)
+
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -95,14 +101,19 @@ class Order(db.Model):
             "cut_type": self.cut_type,
             "label_type": self.label_type,
             "status": self.status,
+            "current_stage": self.current_stage,
+            "progress_percentage": self.progress_percentage,
             "exit_from_office_date": self.exit_from_office_date.isoformat() if self.exit_from_office_date else None,
             "exit_from_factory_date": self.exit_from_factory_date.isoformat() if self.exit_from_factory_date else None,
             "sketch_name": self.sketch_name,
             "file_name": self.file_name,
             "customer_note_to_office": self.customer_note_to_office,
+            "production_duration": self.production_duration,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "images": [image.to_dict() for image in self.images],
             "created_by_id": self.created_by,
-            "created_by_username": self.created_by_user.username if self.created_by_user else None
+            "created_by_username": self.created_by_user.username if self.created_by_user else None,
+            "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else []
         }
+

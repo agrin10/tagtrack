@@ -42,7 +42,7 @@
 
                         {% if current_user.role.name in ['Admin', 'FactorySupervisor'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-industry"></i> Factory Processing</a>
+                            <a class="nav-link" href="{{url_for('production.factory_processing')}}"><i class="fas fa-industry"></i> Factory Processing</a>
                         </li>
                         {% endif %}
 

@@ -1,0 +1,86 @@
+{% extends 'base.html'%}
+{% block content %}
+    <div class="container-fluid">
+        <h2 class="mb-3">Factory Processing</h2>
+        <p class="text-muted mb-4">Monitor and update order production status</p>
+
+        <div id="alertPlaceholder"></div>
+
+        <!-- Search and Filter for Orders -->
+        <div class="row mb-3">
+            <div class="col-md-6 offset-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="orderSearch" placeholder="جستجو بر اساس شماره فرم، مشتری یا نام طرح" value="{{ search if search else '' }}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="searchOrders()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders List (Summary Cards) -->
+        <div id="orders-list-container">
+            {% if orders %}
+                {% for order in orders %}
+                <div class="card mb-3 order-card" data-order-id="{{ order.id }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0">{{ order.form_number }}</h5>
+                            <span class="badge bg-{{ 'success' if order.status == 'Completed' else 'warning' if order.status == 'In Progress' else 'secondary' }}">{{ order.status or 'جدید' }}</span>
+                        </div>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.quantity }} units</h6>
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" data-progress="{{ order.progress_percentage or 0 }}" aria-valuenow="{{ order.progress_percentage or 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <p class="card-text"><small class="text-muted">Started: {{ order.order_date if order.order_date else '-' }} | Est. Completion: {{ order.delivery_date if order.delivery_date else '-' }}</small></p>
+                        <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">View Details</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info text-center" role="alert">
+                    هیچ سفارشی یافت نشد.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                            <a class="page-link" href="{{ url_for('production.factory_processing', page=page_num, search=search, status=status) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    {% include '_order_details_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='script/factory_dashboard.js') }}"></script>
+<script>
+function searchOrders() {
+    const searchQuery = document.getElementById('orderSearch').value;
+    window.location.href = "{{ url_for('production.factory_processing') }}?search=" + encodeURIComponent(searchQuery);
+}
+
+// Apply progress bar width after DOM is loaded
+document.querySelectorAll('.progress-bar').forEach(bar => {
+    const progress = bar.dataset.progress;
+    if (progress) {
+        bar.style.width = `${progress}%`;
+    }
+});
+
+</script>
+{% endblock scripts%}
