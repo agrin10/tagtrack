@@ -73,6 +73,7 @@ class Order(db.Model):
     
     job_metrics = db.relationship('JobMetric', backref='order', cascade='all, delete-orphan', lazy=True)
 
+    machine_logs = db.relationship('Machine', backref='order', lazy=True, cascade="all, delete-orphan")
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

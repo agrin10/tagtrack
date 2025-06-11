@@ -147,3 +147,86 @@ def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]]
         traceback.print_exc()
         return False, {"error": f"Failed to save job metrics: {str(e)}"}
 
+def get_machine_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get all machine data for a specific order.
+    """
+    try:
+        machines = Machine.query.filter_by(order_id=order_id).all()
+        if not machines:
+            return True, {"message": "No machine data found for this order", "machines": []}
+        
+        return True, {
+            "message": "Machine data retrieved successfully",
+            "machines": [machine.to_dict() for machine in machines]
+        }
+    except Exception as e:
+        print(f"Error retrieving machine data: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": f"Failed to retrieve machine data: {str(e)}"}
+
+def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]], user_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Save or update machine data for an order. This will delete existing machine entries and add new ones.
+    """
+    try:
+        # Verify order exists
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found"}
+
+        # Delete existing machine entries for this order
+        Machine.query.filter_by(order_id=order_id).delete()
+        db.session.flush() # Ensure deletions are processed before adding new ones
+
+        added_machines = []
+        for data in machine_data:
+            # Validate and cast data
+            try:
+                start_time_str = data.get('start_time')
+                end_time_str = data.get('end_time')
+
+                # Combine with today's date for datetime objects
+                today = date.today()
+                start_time = datetime.strptime(f"{today} {start_time_str}", "%Y-%m-%d %H:%M") if start_time_str else None
+                end_time = datetime.strptime(f"{today} {end_time_str}", "%Y-%m-%d %H:%M") if end_time_str else None
+
+                remaining_quantity = int(data.get('remaining_quantity', 0)) if data.get('remaining_quantity') else 0
+                shift_type_str = data.get('shift_type')
+                # Convert to uppercase to match the Enum definition
+                shift_type = ShiftType(shift_type_str.lower()) if shift_type_str else None
+                if shift_type not in [s for s in ShiftType]: # Validate against ShiftType enum
+                    return False, {"error": f"Invalid shift type: {shift_type_str}"}
+
+            except ValueError as e:
+                return False, {"error": f"Invalid data format for machine entry: {str(e)}"}
+            except KeyError as e:
+                return False, {"error": f"Missing data for machine entry: {str(e)}"}
+
+            machine = Machine(
+                order_id=order_id,
+                worker_name=data.get('worker_name'),
+                start_time=start_time,
+                end_time=end_time,
+                remaining_quantity=remaining_quantity,
+                shift_type=shift_type, # Now passing an Enum member
+                created_by=user_id
+            )
+            db.session.add(machine)
+            added_machines.append(machine.to_dict())
+
+        db.session.commit()
+        
+        return True, {
+            "message": "Machine data saved successfully",
+            "machines": added_machines
+        }
+
+    except ValueError as e:
+        db.session.rollback()
+        return False, {"error": f"Invalid data format: {str(e)}"}
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving machine data: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": f"Failed to save machine data: {str(e)}"}
