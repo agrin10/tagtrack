@@ -1,0 +1,46 @@
+<form method="POST" action="{{ url_for('production.save_job_metrics') }}">
+    <input type="hidden" name="order_id" id="selectedOrderId" value="">
+    <h5 class="mb-3">ثبت اطلاعات تولید</h5>
+
+    <div id="metrics-container">
+        <div class="row g-2 mb-3 job-metric-row">
+            <div class="col-md-3">
+                <label class="form-label">تعداد بسته</label>
+                <input type="number" name="package_count[]" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">مقدار بسته (متر)</label>
+                <input type="number" step="0.01" name="package_value[]" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تعداد رول</label>
+                <input type="number" name="roll_count[]" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">متراژ</label>
+                <input type="number" step="0.01" name="meterage[]" class="form-control" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="addMetricRow()">+ ردیف جدید</button>
+        <button type="submit" class="btn btn-primary" id="saveButton" disabled>ذخیره</button>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the selected order ID from localStorage
+    const selectedOrderId = localStorage.getItem('selectedOrderId');
+    const orderIdInput = document.getElementById('selectedOrderId');
+    const saveButton = document.getElementById('saveButton');
+    
+    if (selectedOrderId) {
+        orderIdInput.value = selectedOrderId;
+        saveButton.disabled = false;
+    } else {
+        saveButton.disabled = true;
+    }
+});
+</script>

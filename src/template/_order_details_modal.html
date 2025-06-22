@@ -1,0 +1,297 @@
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white p-3">
+                <h5 class="modal-title fw-bold fs-4" id="orderDetailModalLabel">
+                    <i class="fas fa-truck-loading me-3"></i> <span id="modal-form-number"></span> - <span id="modal-customer-details"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ul class="nav nav-tabs nav-fill mb-4" id="orderDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="status-tab" data-bs-toggle="tab" data-bs-target="#status-pane" type="button" role="tab" aria-controls="status-pane" aria-selected="true">Status & Updates</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="machine-data-tab" data-bs-toggle="tab" data-bs-target="#machine-data-pane" type="button" role="tab" aria-controls="machine-data-pane" aria-selected="false">Machine Data</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="job-metrics-tab" data-bs-toggle="tab" data-bs-target="#job-metrics-pane" type="button" role="tab" aria-controls="job-metrics-pane" aria-selected="false">Job Metrics</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="production-steps-tab" data-bs-toggle="tab" data-bs-target="#production-steps-pane" type="button" role="tab" aria-controls="production-steps-pane" aria-selected="false">Production Steps</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="orderDetailTabsContent">
+                    <div class="tab-pane fade show active" id="status-pane" role="tabpanel" aria-labelledby="status-tab">
+                        <div class="row mb-4 bg-light p-3 rounded shadow-sm">
+                            <div class="col-md-6">
+                                <h6 class="text-primary fw-bold">Progress Overview</h6>
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" id="modal-progress-bar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <p class="mb-1 text-muted small">Started: <span class="fw-bold text-dark" id="modal-started-date"></span></p>
+                                <p class="mb-0 text-muted small">Est. Completion: <span class="fw-bold text-dark" id="modal-est-completion-date"></span></p>
+                            </div>
+                            <div class="col-md-6 text-end d-flex align-items-center justify-content-end">
+                                <span class="badge fs-6 px-4 py-2" id="modal-status-badge"></span>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <form id="updateProductionStatusForm">
+                            <input type="hidden" id="modal-order-id" name="order_id">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="modal-update-stage" class="form-label text-muted">Update Stage</label>
+                                    <select class="form-select form-select-lg" id="modal-update-stage" name="current_stage">
+                                        <option value="Design">Design</option>
+                                        <option value="Printing">Printing</option>
+                                        <option value="Cutting">Cutting</option>
+                                        <option value="Finishing">Finishing</option>
+                                        <option value="Quality Control">Quality Control</option>
+                                        <option value="Packaging">Packaging</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="modal-progress-percentage" class="form-label text-muted">Progress %</label>
+                                    <input type="number" class="form-control form-control-lg" id="modal-progress-percentage" name="progress_percentage" min="0" max="100">
+                                </div>
+                                <div class="col-12">
+                                    <label for="modal-factory-notes" class="form-label text-muted">Factory Notes</label>
+                                    <textarea class="form-control" id="modal-factory-notes" name="factory_notes" rows="3" placeholder="Add any relevant factory notes here..."></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="machine-data-pane" role="tabpanel" aria-labelledby="machine-data-tab">
+                        <hr class="my-4">
+                        <h6 class="text-primary fw-bold mb-3">Machine Production Log</h6>
+                        <div class="container-fluid">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-2 px-3">نوع شیفت</th>
+                                        <th class="py-2 px-3">نام کارگر</th>
+                                        <th class="py-2 px-3">ساعت شروع</th>
+                                        <th class="py-2 px-3">ساعت اتمام</th>
+                                        <th class="py-2 px-3">تعداد مانده</th>
+                                        <th class="py-2 px-3">عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="production-table-body">
+                                    <!-- Production rows will be loaded here dynamically -->
+                                </tbody>
+                            </table>
+                            <div class="row mt-3 mb-4">
+                                <div class="col-md-6 offset-md-6">
+                                    <label for="production-duration-input" class="form-label text-muted">مدت زمان تولید:</label>
+                                    <input type="text" class="form-control" id="production-duration-input" name="production_duration" placeholder="مدت زمان تولید">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary mt-3" onclick="addProductionRow()"><i class="fas fa-plus-circle me-2"></i> Add Production Row</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="job-metrics-pane" role="tabpanel" aria-labelledby="job-metrics-tab">
+                        <hr class="my-4">
+                        <h6 class="text-primary fw-bold mb-3">Job Metrics Details</h6>
+                        <div id="modal-job-metrics-container" class="container-fluid p-0">
+                            <!-- Job metrics will be loaded here dynamically -->
+                            <div class="row g-2 mb-2 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Package Count</label>
+                                    <input type="number" class="form-control form-control-sm" name="job_metrics[0][package_count]">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Package Value</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[0][package_value]">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted">Roll Count</label>
+                                    <input type="number" class="form-control form-control-sm" name="job_metrics[0][roll_count]">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Meterage</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[0][meterage]">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove()"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary mt-3" onclick="addMetricRowToModal()"><i class="fas fa-plus-circle me-2"></i> Add Metric Row</button>
+                    </div>
+
+                    <div class="tab-pane fade" id="production-steps-pane" role="tabpanel" aria-labelledby="production-steps-tab">
+                        <hr class="my-4">
+                        <h6 class="text-primary fw-bold mb-3">Daily Production Steps</h6>
+                        <div class="container-fluid">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-2 px-3">مرحله</th>
+                                        <th class="py-2 px-3">نام کارگر</th>
+                                        <th class="py-2 px-3">تاریخ</th>
+                                        <th class="py-2 px-3">تعداد</th>
+                                        <th class="py-2 px-3">امضاء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="production-steps-table-body">
+                                    <tr>
+                                        <td class="py-2 px-3">منگنه</td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[mongane][worker_name]" placeholder="کارگر"></td>
+                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[mongane][date]"></td>
+                                        <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[mongane][member_count]" placeholder="تعداد"></td>
+                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3">آهار</td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[ahar][worker_name]" placeholder="کارگر"></td>
+                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[ahar][date]"></td>
+                                        <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[ahar][member_count]" placeholder="تعداد"></td>
+                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3">پرس</td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[press][worker_name]" placeholder="کارگر"></td>
+                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[press][date]"></td>
+                                        <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[press][member_count]" placeholder="تعداد"></td>
+                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3">برش</td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[bresh][worker_name]" placeholder="کارگر"></td>
+                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[bresh][date]"></td>
+                                        <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[bresh][member_count]" placeholder="تعداد"></td>
+                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer p-3 bg-light d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary me-2" form="updateProductionStatusForm"><i class="fas fa-save me-2"></i> Update Status</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i> Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addProductionRow() {
+        const tableBody = document.getElementById('production-table-body');
+        const newRow = tableBody.insertRow();
+        const rowIndex = tableBody.rows.length;
+        newRow.setAttribute('data-row-index', rowIndex);
+
+        newRow.innerHTML = `
+            <td class="py-2 px-3">
+                <select class="form-select" name="machine_data[${rowIndex}][shift_type]">
+                    <option value="day">روز</option>
+                    <option value="night">شب</option>
+                </select>
+            </td>
+            <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
+            <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
+            <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
+            <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
+            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+        `;
+    }
+
+    // Function to populate machine data when modal is opened
+    function populateMachineData(order) {
+        const tableBody = document.getElementById('production-table-body');
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        const machineData = order.machine_data || [];
+
+        if (machineData && machineData.length > 0) {
+            // Sort by shift type if needed, e.g., day first then night
+            machineData.sort((a, b) => a.shift_type.localeCompare(b.shift_type));
+
+            machineData.forEach((data, index) => {
+                const newRow = tableBody.insertRow();
+                newRow.setAttribute('data-row-index', index);
+                newRow.innerHTML = `
+                    <td class="py-2 px-3">
+                        <select class="form-select" name="machine_data[${index}][shift_type]">
+                            <option value="day" ${data.shift_type === 'day' ? 'selected' : ''}>روز</option>
+                            <option value="night" ${data.shift_type === 'night' ? 'selected' : ''}>شب</option>
+                        </select>
+                    </td>
+                    <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
+                    <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
+                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+                `;
+            });
+        } else {
+            // Add an empty row if no data exists, for the first shift
+            addProductionRow();
+        }
+
+        // Populate production duration
+        document.getElementById('production-duration-input').value = order.production_duration || '';
+    }
+
+    // Modify addMetricRowToModal to include a delete button for job metrics
+    function addMetricRowToModal(metric = null) {
+        const container = document.getElementById('modal-job-metrics-container');
+        const index = container.children.length;
+        const newMetricRow = document.createElement('div');
+        newMetricRow.className = 'row g-2 mb-2 align-items-end';
+        newMetricRow.innerHTML = `
+            <div class="col-md-3">
+                <label class="form-label">Package Count</label>
+                <input type="number" class="form-control" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Package Value</label>
+                <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Roll Count</label>
+                <input type="number" class="form-control" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Meterage</label>
+                <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()">X</button>
+            </div>
+        `;
+        container.appendChild(newMetricRow);
+    }
+
+    // Helper function to format date for input fields (if needed)
+    function formatDateForInput(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+
+    // Helper function to format time for input fields
+    function formatTimeForInput(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+    }
+
+    // Make these functions globally accessible if they are called from inline HTML
+    window.addProductionRow = addProductionRow;
+    window.populateMachineData = populateMachineData;
+    window.addMetricRowToModal = addMetricRowToModal;
+    window.formatDateForInput = formatDateForInput;
+    window.formatTimeForInput = formatTimeForInput;
+</script> 

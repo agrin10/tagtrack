@@ -27,9 +27,12 @@ def create_app(config_obj='config.Config'):
     from src.dashboard.routes import dashboard_bp
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
+    from src.production.routes import production_bp
+    app.register_blueprint(production_bp , url_perfix='/factory')
 
     from src.auth.models import User, Role
     from src.orders.models import Order
+    from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
 
     with app.app_context():
         db.create_all()
