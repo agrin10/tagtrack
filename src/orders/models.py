@@ -76,6 +76,8 @@ class Order(db.Model):
     machine_logs = db.relationship('Machine', backref='order', lazy=True, cascade="all, delete-orphan")
 
     production_step_logs = db.relationship('ProductionStepLog', backref='order', lazy=True, cascade="all, delete-orphan")
+    payments = db.relationship('Payment', back_populates='order', lazy=True)
+
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
