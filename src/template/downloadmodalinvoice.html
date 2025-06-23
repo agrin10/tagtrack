@@ -1,0 +1,30 @@
+<!-- Download Choice Modal -->
+<div class="modal fade" id="downloadChoiceModal" tabindex="-1" aria-labelledby="downloadChoiceLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" action="{{ url_for('invoice.get_download_invoice') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="downloadChoiceLabel">نوع فایل خروجی را انتخاب کنید</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body text-center">
+          <input type="hidden" name="invoice_id" id="downloadInvoiceId">
+          <div class="btn-group" role="group">
+            <button type="submit" name="file_type" value="pdf" class="btn btn-outline-primary">PDF</button>
+            <button type="submit" name="file_type" value="excel" class="btn btn-outline-success">Excel</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const downloadModal = document.getElementById('downloadChoiceModal');
+  downloadModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const invoiceId = button.getAttribute('data-invoice-id');
+    const input = downloadModal.querySelector('#downloadInvoiceId');
+    input.value = invoiceId;
+  });
+</script>

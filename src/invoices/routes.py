@@ -1,5 +1,5 @@
 from src.invoices import invoice_bp
-from src.invoices.controller import invoice_list , generate_invoice_file
+from src.invoices.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice
 from flask import request , jsonify , redirect , url_for , render_template , flash
 from flask_login import login_required
 from src.utils.decorators import role_required
@@ -76,3 +76,42 @@ def post_generate_invoice_file():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Invalid input: {e}"}), 400
+
+@invoice_bp.route('/download', methods=['POST'])
+def get_download_invoice():
+    invoice_id = request.form.get('invoice_id')
+    file_type = request.form.get('file_type')
+
+    # Fetch invoice data here...
+    invoice = view_invoice(invoice_id)
+    if not invoice:
+        flash("فاکتور یافت نشد", "danger")
+        return redirect(url_for('invoice.invoice_list'))
+    if invoice and file_type in ['pdf', 'excel']:
+        success, response = download_invoice(invoice_id, file_type)
+        if success:
+            return response, 200
+        else:
+            flash("خطا در دانلود فاکتور", "danger")
+            return redirect(url_for('invoice.invoice_list'))
+    else:
+        flash("نوع فایل معتبر نیست", "danger")
+        return redirect(url_for('invoice.invoice_list'))
+
+@invoice_bp.route('/<invoice_id>')
+@login_required
+def invoice_view(invoice_id):
+    """
+    Get a specific invoice by its ID.
+    """
+    success, response = view_invoice(invoice_id)
+    
+    if success:
+        return jsonify({"success": True, "invoice": response}), 200
+    else:
+        return jsonify({"success": False, "error": response}), 404
+
+
+@invoice_bp.route('/send/<int:invoice_id>', methods=['POST'])
+def post_send_invoice(invoice_id):
+    return send_invoice(invoice_id)

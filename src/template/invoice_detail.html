@@ -1,0 +1,100 @@
+<!-- Invoice Details Modal -->
+<div class="modal fade" id="invoiceDetailsModal" tabindex="-1" aria-labelledby="invoiceDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="invoiceDetailsModalLabel">Invoice Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Spinner while loading -->
+        <div class="text-center my-4" id="invoiceDetailsLoading">
+          <div class="spinner-border" role="status"></div>
+        </div>
+
+        <!-- Loaded invoice content will go here -->
+        <div id="invoiceDetailsContent" class="d-none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const invoiceModal = document.getElementById('invoiceDetailsModal');
+    invoiceModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const invoiceId = button.getAttribute('data-invoice-id');
+
+        const loadingDiv = document.getElementById('invoiceDetailsLoading');
+        const detailsDiv = document.getElementById('invoiceDetailsContent');
+
+        loadingDiv.classList.remove('d-none');
+        detailsDiv.classList.add('d-none');
+        detailsDiv.innerHTML = ''; // Clear previous content
+
+        fetch(`/invoice/${invoiceId}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.classList.add('d-none');
+                detailsDiv.classList.remove('d-none');
+
+            if (data.success && data.invoice && data.invoice.invoice) {
+                const invoice = data.invoice.invoice;
+            detailsDiv.innerHTML = `
+            <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle text-end">
+                <tbody>
+                <tr class="table-primary text-center text-uppercase fw-bold">
+                    <th colspan="2">خلاصه فاکتور</th>
+                </tr>
+                <tr><th class="bg-light">شماره فاکتور</th><td>${invoice.invoice_number}</td></tr>
+                <tr><th class="bg-light">وضعیت</th><td><span class="badge bg-${invoice.status === 'Paid' ? 'success' : 'warning'}">${invoice.status === 'Paid' ? 'پرداخت شده' : 'در انتظار پرداخت'}</span></td></tr>
+                <tr><th class="bg-light">تاریخ صدور</th><td>${new Date(invoice.issue_date).toLocaleString('fa-IR')}</td></tr>
+                <tr><th class="bg-light">تاریخ پرداخت</th><td>${invoice.payment_date ? new Date(invoice.payment_date).toLocaleString('fa-IR') : '—'}</td></tr>
+                <tr><th class="bg-light">توضیحات</th><td>${invoice.notes || '—'}</td></tr>
+
+                <tr class="table-success text-center text-uppercase fw-bold">
+                    <th colspan="2">اطلاعات مشتری و سفارش</th>
+                </tr>
+                <tr><th class="bg-light">کارت اعتباری</th><td>${invoice.credit_card}</td></tr>
+                <tr><th class="bg-light">شناسه سفارش</th><td>${invoice.order_id}</td></tr>
+
+                <tr class="table-warning text-center text-uppercase fw-bold">
+                    <th colspan="2">جزئیات قیمت‌گذاری</th>
+                </tr>
+                <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">$${invoice.unit_price.toFixed(2)}</span></td></tr>
+                <tr><th class="bg-light">تعداد</th><td>${invoice.quantity}</td></tr>
+                <tr><th class="bg-light">هزینه برش</th><td>$${invoice.cutting_cost.toFixed(2)}</td></tr>
+                <tr><th class="bg-light">کارمزد</th><td>$${invoice.Fee}</td></tr>
+                <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">$${invoice.total_price.toFixed(2)}</strong></td></tr>
+
+                <tr class="table-info text-center text-uppercase fw-bold">
+                    <th colspan="2">مشخصات برش</th>
+                </tr>
+                <tr><th class="bg-light">تعداد برش‌ها</th><td>${invoice.number_of_cuts}</td></tr>
+                <tr><th class="bg-light">تعداد چگالی‌ها</th><td>${invoice.number_of_density}</td></tr>
+                <tr><th class="bg-light">تعداد اوج‌ها</th><td>${invoice.peak_quantity}</td></tr>
+                <tr><th class="bg-light">عرض اوج</th><td>${invoice.peak_width}</td></tr>
+
+                <tr class="table-secondary text-center text-uppercase fw-bold">
+                    <th colspan="2">اطلاعات سیستم</th>
+                </tr>
+                <tr><th class="bg-light">ایجادکننده</th><td>${invoice.created_by || '—'}</td></tr>
+                <tr><th class="bg-light">تاریخ ایجاد</th><td>${new Date(invoice.created_at).toLocaleString('fa-IR')}</td></tr>
+                </tbody>
+            </table>
+            </div>
+            `;
+
+            } else {
+                detailsDiv.innerHTML = `<div class="alert alert-danger">Could not load invoice details.</div>`;
+            }
+            })
+            .catch(error => {
+                loadingDiv.classList.add('d-none');
+                detailsDiv.classList.remove('d-none');
+                detailsDiv.innerHTML = `<div class="alert alert-danger">Error loading invoice details: ${error}</div>`;
+            });
+    });
+});
+</script>
