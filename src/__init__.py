@@ -30,6 +30,9 @@ def create_app(config_obj='config.Config'):
     from src.production.routes import production_bp
     app.register_blueprint(production_bp , url_perfix='/factory')
 
+    from src.invoices.routes import invoice_bp
+    app.register_blueprint(invoice_bp, url_prefix='/invoice')
+
     from src.auth.models import User, Role
     from src.orders.models import Order
     from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
