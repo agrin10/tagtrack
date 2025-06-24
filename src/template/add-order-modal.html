@@ -1,12 +1,12 @@
 <!-- Create Order Modal -->
-<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true">
+<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderModalLabel" aria-hidden="true" dir="rtl">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="createOrderModalLabel">
-                    <i class="fas fa-plus-circle me-2"></i>Create New Order
+                    <i class="fas fa-plus-circle me-2"></i>ایجاد سفارش جدید
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="بستن"></button>
             </div>
             <form method="POST" action="{{ url_for('order.create_order') }}" id="createOrderForm" enctype="multipart/form-data">
                 <div class="modal-body p-0">
@@ -19,32 +19,32 @@
                     <ul class="nav nav-tabs nav-fill bg-light px-3 pt-3" id="orderFormTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
-                                <i class="fas fa-info-circle me-2"></i>Basic Info
+                                <i class="fas fa-info-circle me-2"></i>اطلاعات پایه
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="dimensions-tab" data-bs-toggle="tab" data-bs-target="#dimensions" type="button" role="tab">
-                                <i class="fas fa-ruler-combined me-2"></i>Dimensions & Fabric
+                                <i class="fas fa-ruler-combined me-2"></i>ابعاد و پارچه
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="print-tab" data-bs-toggle="tab" data-bs-target="#print" type="button" role="tab">
-                                <i class="fas fa-print me-2"></i>Print & Finishing
+                                <i class="fas fa-print me-2"></i>چاپ و تکمیل
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="dates-tab" data-bs-toggle="tab" data-bs-target="#dates" type="button" role="tab">
-                                <i class="fas fa-calendar-alt me-2"></i>Dates & Status
+                                <i class="fas fa-calendar-alt me-2"></i>تاریخ‌ها و وضعیت
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
-                                <i class="fas fa-sticky-note me-2"></i>Notes
+                                <i class="fas fa-sticky-note me-2"></i>یادداشت‌ها
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab">
-                                <i class="fas fa-images me-2"></i>Images
+                                <i class="fas fa-images me-2"></i>تصاویر
                             </button>
                         </li>
                     </ul>
@@ -57,13 +57,13 @@
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="sketch_name" name="sketch_name" required>
-                                        <label for="sketch_name">Sketch Name <span class="text-danger">*</span></label>
+                                        <label for="sketch_name">نام طرح <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="customer_name" name="customer_name" required>
-                                        <label for="customer_name">Customer Name <span class="text-danger">*</span></label>
+                                        <label for="customer_name">نام مشتری <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                             </div>
@@ -74,18 +74,18 @@
                             <div class="row g-4">
                                 <!-- Fabric Details -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Fabric Details</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">جزئیات پارچه</h6>
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="fabric_density" name="fabric_density">
-                                                <label for="fabric_density">Fabric Density</label>
+                                                <label for="fabric_density">اهار پارچه</label>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="fabric_cut" name="fabric_cut">
-                                                <label for="fabric_cut">Fabric Cut</label>
+                                                <label for="fabric_cut">برش پارچه</label>
                                             </div>
                                         </div>
                                     </div>
@@ -93,30 +93,30 @@
 
                                 <!-- Dimensions -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Dimensions</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">ابعاد</h6>
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="width" name="width">
-                                                <label for="width">Width (cm)</label>
+                                                <label for="width">عرض (سانتی‌متر)</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="height" name="height">
-                                                <label for="height">Height (cm)</label>
+                                                <label for="height">ارتفاع (سانتی‌متر)</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="quantity" name="quantity">
-                                                <label for="quantity">Quantity</label>
+                                                <label for="quantity">تعداد</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="total_length_meters" name="total_length_meters">
-                                                <label for="total_length_meters">Total Length (m)</label>
+                                                <label for="total_length_meters">طول کل (متر)</label>
                                             </div>
                                         </div>
                                     </div>
@@ -124,24 +124,24 @@
 
                                 <!-- Values Table -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Values</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">مقادیر</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm text-center align-middle">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
+                                                    <th>۱</th><th>۲</th><th>۳</th><th>۴</th><th>۵</th><th>۶</th><th>۷</th><th>۸</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -150,7 +150,7 @@
 
                                 <!-- Files Table -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Files</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">فایل‌ها</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm align-middle">
                                             <thead class="table-light">
@@ -178,33 +178,34 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="fusing_type" name="fusing_type">
-                                            <option value="">Select...</option>
-                                            <option value="چسب دوطرفه"> چسب دوطرفه</option>
+                                            <option value="">انتخاب کنید...</option>
+                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
                                             <option value="چسب حرارتی ">چسب حرارتی</option>
                                             <option value="لائی">لائی</option>
                                         </select>
-                                        <label for="fusing_type">Print Type</label>
+                                        <label for="fusing_type">نوع چاپ</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="lamination_type" name="lamination_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="براق">براق</option>
-                                            <option value="براق">قالب جدید</option>
-                                            <option value="براق">قالب تکراری</option>
-                                            <option value="مات"> برجسته و براق </option>
+                                            <option value="قالب جدید">قالب جدید</option>
+                                            <option value="قالب تکراری">قالب تکراری</option>
+                                            <option value="برجسته و براق">برجسته و براق</option>
+                                            <option value="مات">مات</option>
                                         </select>
-                                        <label for="lamination_type">نوع پرس </label>
+                                        <label for="lamination_type">نوع پرس</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="cut_type" name="cut_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="برش لیزر">برش لیزر</option>
                                             <option value="برش بغل">برش بغل</option>
-                                            <option value="برش دانه ای">برش دانه ای</option>
+                                            <option value="برش دانه ای">برش دانه‌ای</option>
                                             <option value="برش یک طرف زیاد">برش یک طرف زیاد</option>
                                             <option value="تا از وسط">تا از وسط</option>
                                         </select>
@@ -214,12 +215,12 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="label_type" name="label_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="خشک">خشک</option>
                                             <option value="نرم">نرم</option>
                                             <option value="متوسط">متوسط</option>
                                         </select>
-                                        <label for="label_type">نوع اهار</label>
+                                        <label for="label_type">نوع آهار</label>
                                     </div>
                                 </div>
                             </div>
@@ -231,29 +232,29 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="delivery_date" name="delivery_date">
-                                        <label for="delivery_date">Delivery Date</label>
+                                        <label for="delivery_date">تاریخ تحویل</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="exit_from_office_date" name="exit_from_office_date">
-                                        <label for="exit_from_office_date">Exit from Office Date</label>
+                                        <label for="exit_from_office_date">تاریخ خروج از دفتر</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="exit_from_factory_date" name="exit_from_factory_date">
-                                        <label for="exit_from_factory_date">Exit from Factory Date</label>
+                                        <label for="exit_from_factory_date">تاریخ خروج از کارخانه</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="status" name="status">
-                                            <option value="Pending">Pending</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Completed">Completed</option>
+                                            <option value="Pending">در انتظار</option>
+                                            <option value="In Progress">در حال انجام</option>
+                                            <option value="Completed">تکمیل شده</option>
                                         </select>
-                                        <label for="status">Status</label>
+                                        <label for="status">وضعیت</label>
                                     </div>
                                 </div>
                             </div>
@@ -265,25 +266,25 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="design_specification" name="design_specification" style="height: 100px"></textarea>
-                                        <label for="design_specification">Design Specification</label>
+                                        <label for="design_specification">مشخصات طراحی</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="office_notes" name="office_notes" style="height: 100px"></textarea>
-                                        <label for="office_notes">Office Notes</label>
+                                        <label for="office_notes">یادداشت‌های دفتر</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="factory_notes" name="factory_notes" style="height: 100px"></textarea>
-                                        <label for="factory_notes">Factory Notes</label>
+                                        <label for="factory_notes">یادداشت‌های کارخانه</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
-                                        <label for="customer_note_to_office">Customer Note to Office</label>
+                                        <label for="customer_note_to_office">یادداشت مشتری به دفتر</label>
                                     </div>
                                 </div>
                             </div>
@@ -295,11 +296,11 @@
                                 <div class="col-12 mb-3">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h6 class="card-title mb-3">Upload Images</h6>
+                                            <h6 class="card-title mb-3">بارگذاری تصاویر</h6>
                                             <div class="mb-3">
-                                                <label for="orderImages" class="form-label">Select Images</label>
+                                                <label for="orderImages" class="form-label">انتخاب تصاویر</label>
                                                 <input type="file" class="form-control" id="orderImages" name="images" multiple accept="image/*">
-                                                <div class="form-text">Maximum file size: 10MB. Allowed formats: PNG, JPG, JPEG, GIF, WEBP</div>
+                                                <div class="form-text">حداکثر حجم فایل: ۱۰ مگابایت. فرمت‌های مجاز: PNG, JPG, JPEG, GIF, WEBP</div>
                                             </div>
                                             <div id="imagePreviewContainer" class="row g-2 mt-3">
                                                 <!-- Image previews will be added here -->
@@ -314,250 +315,26 @@
                 <div class="modal-footer bg-light">
                     <div class="d-flex justify-content-between w-100">
                         <div>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-2"></i>Cancel
-                            </button>
-                        </div>
-                        <div>
                             <button type="button" class="btn btn-outline-primary me-2" id="prevTab">
-                                <i class="fas fa-arrow-left me-2"></i>Previous
+                                <i class="fas fa-arrow-left me-2"></i>قبلی
                             </button>
                             <button type="button" class="btn btn-outline-primary me-2" id="nextTab">
-                                Next<i class="fas fa-arrow-right ms-2"></i>
+                                بعدی<i class="fas fa-arrow-right ms-2"></i>
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Create Order
+                                <i class="fas fa-save me-2"></i>ایجاد سفارش
                             </button>
                         </div>
+                                                <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>انصراف
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tabs = document.querySelectorAll('#orderFormTabs button');
-    const progressBar = document.getElementById('formProgress');
-    const prevBtn = document.getElementById('prevTab');
-    const nextBtn = document.getElementById('nextTab');
-    let currentTab = 0;
-
-    function updateProgress() {
-        const progress = ((currentTab + 1) / tabs.length) * 100;
-        progressBar.style.width = `${progress}%`;
-    }
-
-    function showTab(index) {
-        tabs.forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
-        
-        tabs[index].classList.add('active');
-        document.querySelector(tabs[index].dataset.bsTarget).classList.add('show', 'active');
-        
-        currentTab = index;
-        updateProgress();
-        
-        // Update button states
-        prevBtn.disabled = currentTab === 0;
-        nextBtn.disabled = currentTab === tabs.length - 1;
-    }
-
-    prevBtn.addEventListener('click', () => {
-        if (currentTab > 0) {
-            showTab(currentTab - 1);
-        }
-    });
-
-    nextBtn.addEventListener('click', () => {
-        if (currentTab < tabs.length - 1) {
-            showTab(currentTab + 1);
-        }
-    });
-
-    // Initialize
-    showTab(0);
-});
-
-// Store selected images
-let selectedImages = [];
-
-// Handle image selection
-document.getElementById('orderImages').addEventListener('change', function(e) {
-    const files = Array.from(e.target.files);
-    const previewContainer = document.getElementById('imagePreviewContainer');
-    previewContainer.innerHTML = ''; // Clear existing previews
-    
-    files.forEach((file, index) => {
-        if (file.size > 10 * 1024 * 1024) { // 10MB
-            alert(`File ${file.name} is too large. Maximum size is 10MB.`);
-            return;
-        }
-        
-        if (!file.type.startsWith('image/')) {
-            alert(`File ${file.name} is not an image.`);
-            return;
-        }
-        
-        selectedImages.push(file);
-        
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const col = document.createElement('div');
-            col.className = 'col-md-3 col-sm-4 col-6';
-            col.innerHTML = `
-                <div class="card h-100">
-                    <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                    <div class="card-body p-2">
-                        <small class="text-muted d-block text-truncate">${file.name}</small>
-                        <button type="button" class="btn btn-sm btn-danger mt-2 w-100" onclick="removeImage(${index})">
-                            <i class="fas fa-trash-alt"></i> Remove
-                        </button>
-                    </div>
-                </div>
-            `;
-            previewContainer.appendChild(col);
-        };
-        reader.readAsDataURL(file);
-    });
-});
-
-// Remove image from selection
-function removeImage(index) {
-    selectedImages.splice(index, 1);
-    document.getElementById('orderImages').value = ''; // Clear file input
-    // Recreate previews
-    const previewContainer = document.getElementById('imagePreviewContainer');
-    previewContainer.innerHTML = '';
-    selectedImages.forEach((file, idx) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const col = document.createElement('div');
-            col.className = 'col-md-3 col-sm-4 col-6';
-            col.innerHTML = `
-                <div class="card h-100">
-                    <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                    <div class="card-body p-2">
-                        <small class="text-muted d-block text-truncate">${file.name}</small>
-                        <button type="button" class="btn btn-sm btn-danger mt-2 w-100" onclick="removeImage(${idx})">
-                            <i class="fas fa-trash-alt"></i> Remove
-                        </button>
-                    </div>
-                </div>
-            `;
-            previewContainer.appendChild(col);
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-// Handle form submission
-document.getElementById('createOrderForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    try {
-        // Create FormData object
-        const formData = new FormData(this);
-        
-        // Remove any automatically added images from the form
-        formData.delete('images');
-        
-        // Add images only from our controlled selectedImages array
-        if (selectedImages.length > 0) {
-            selectedImages.forEach(file => {
-                formData.append('images', file);
-            });
-        }
-
-        // Show loading state
-        const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Order...';
-
-        console.log('Submitting form data:', Object.fromEntries(formData));
-        const response = await fetch('/orders/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-        console.log('Response content type:', response.headers.get('content-type'));
-
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Server returned non-JSON response. Please try again.');
-        }
-
-        const data = await response.json();
-        console.log('Response data:', data);
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to create order');
-        }
-
-        // Create success alert
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <strong>Success!</strong> ${data.message}
-            <a href="/orders/${data.order.id}" class="alert-link">View Order</a>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        document.querySelector('.modal-body').insertBefore(alertDiv, document.querySelector('.modal-body').firstChild);
-
-        // Reset form and selected images
-        this.reset();
-        selectedImages = [];
-        document.getElementById('imagePreviewContainer').innerHTML = '';
-        
-        // Refresh order list
-        if (typeof refreshOrderList === 'function') {
-            refreshOrderList();
-        }
-
-        // Close modal after a short delay
-        setTimeout(() => {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
-            if (modal) {
-                modal.hide();
-            }
-        }, 2000);
-
-    } catch (error) {
-        console.error('Error:', error);
-        // Create error alert
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            <strong>Error!</strong> ${error.message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        document.querySelector('.modal-body').insertBefore(alertDiv, document.querySelector('.modal-body').firstChild);
-    } finally {
-        // Reset button state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Create Order';
-    }
-});
-
-// Function to refresh the order list
-function refreshOrderList() {
-    // Get the current page and filters
-    const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.get('page') || 1;
-    const search = urlParams.get('search') || '';
-    const status = urlParams.get('status') || '';
-    
-    // Reload the page with the same parameters
-    window.location.href = `/orders/?page=${page}&search=${search}&status=${status}`;
-}
-</script>
-<!-- End of Create Order Modal --> 
+<!-- End of Create Order Modal -->
