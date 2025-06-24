@@ -209,7 +209,7 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
         db.session.commit()
         
         return True, {
-            "message": "Order deleted successfully"
+            "message": "سفارش با موفقیت حذف شد",
         }
         
     except Exception as e:
