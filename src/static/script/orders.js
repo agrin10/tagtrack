@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success alert-dismissible fade show';
                 alertDiv.innerHTML = `
-                    ${data.message || 'Order deleted successfully!'}
+                    ${data.message || 'سفارش با موفقیت پاک شد !'}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show';
                     alertDiv.innerHTML = `
-                        ${data.message || 'Order duplicated successfully!'}
+                        ${data.message || 'سفارش با موفقیت کپی شد!'}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     `;
                     document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
