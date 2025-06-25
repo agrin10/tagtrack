@@ -120,6 +120,7 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
         )
 
         db.session.add(new_invoice)
+        order.invoiced = True  # Mark order as invoiced
         db.session.commit()
         return True, "Invoice added successfully"
 

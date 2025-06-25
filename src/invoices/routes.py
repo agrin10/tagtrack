@@ -19,7 +19,7 @@ def get_invoice_list():
 
     sucess , orders = get_orders()
     orders = orders['orders'] if sucess else []
-    orders = [order for order in orders if order.get('status') == 'Completed']   
+    orders = [order for order in orders if order.get('status') == 'Completed' and not order.get('invoiced')]    
     success, response = invoice_list(page, per_page, search, status)
 
     if success:
