@@ -122,7 +122,7 @@
                         <div class="mb-3 row align-items-center">
                             <label for="modalCreditCard" class="col-sm-4 col-form-label">کارت اعتباری</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="modalCreditCard" name="credit_card" required>
+                                <input type="text" class="form-control" id="modalCreditCard" placeholder="XXXX.XXXX.XXXX.XXXX" name="credit_card" required maxlength="19">
                             </div>
                         </div>
 
@@ -233,5 +233,15 @@
                 invoiceModal.querySelector('#modalNotes').value = '';
             });
         });
+        document.getElementById('modalCreditCard').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, ''); // remove non-digits
+        value = value.substring(0, 16); // limit to 16 digits
+
+        // Format like XXXX.XXXX.XXXX.XXXX
+        const formatted = value.match(/.{1,4}/g)?.join('.') || '';
+        e.target.value = formatted;
+        });
+
+        
     </script>
 {% endblock %}
