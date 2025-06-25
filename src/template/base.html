@@ -13,7 +13,7 @@
 <body>
     <div class="d-flex">
         <!-- sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div>
                 <div class="logo">
                      tagtrack
@@ -72,10 +72,12 @@
                 {% endif %}
             </div>
         </div>
-
+        <!-- Sidebar overlay for mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <!-- main content-->
         <div class="main-content flex-grow-1">
             <div class="header">
+                <button class="sidebar-toggle-btn d-md-none" id="sidebarToggleBtn" aria-label="باز کردن منو"><i class="fas fa-bars"></i></button>
                 <div class="welcome-text">
                     <h2>
                         خوش آمدید

@@ -166,3 +166,34 @@ input[type="number"] {
     font-weight: bold;
     font-size: 1.1em;
 }
+
+/* Mobile sidebar styles */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: -250px; /* Hide sidebar by default */
+    width: 250px;
+    height: 100%;
+    background: #fff;
+    z-index: 1050;
+    transition: right 0.3s;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .sidebar.active {
+    right: 0; /* Show sidebar */
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1040;
+  }
+  .sidebar-overlay.active {
+    display: block;
+  }
+  .main-content {
+    margin-right: 0 !important; /* Remove margin when sidebar is hidden */
+  }
+}
