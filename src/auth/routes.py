@@ -19,7 +19,7 @@ def login():
         if success:
             if request.is_json:
                 return jsonify(response)
-            flash('Login successful!', 'success')
+            flash('با موفقیت وارد حساب کاریری شدید', 'success')
             return redirect(url_for('index'))
         else:
             if request.is_json:
@@ -56,5 +56,5 @@ def register():
 @login_required
 def logout():
     logout_user()
-    flash('Logged out successfully!', 'success')
+    flash('با موفقیت از حساب کاربری خارج شدید!', 'success')
     return redirect(url_for('auth.login'))

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - TagTrack</title>
+    <title>ثبت‌نام - تگ‌ترک</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style/bootstrap.min.css') }}">
     <!-- Custom CSS -->
@@ -78,8 +78,8 @@
 <body>
     <div class="register-container">
         <div class="register-header">
-            <h1>Create Account</h1>
-            <p>Join TagTrack today</p>
+            <h1>ایجاد حساب کاربری</h1>
+            <p>همین حالا به تگ‌ترک بپیوندید</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -87,7 +87,7 @@
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="بستن"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -95,32 +95,32 @@
 
         <form method="POST" action="{{ url_for('auth.register') }}">
             <div class="form-floating">
-                <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
-                <label for="username">Username</label>
+                <input type="text" class="form-control" id="username" name="username" placeholder="نام کاربری" required>
+                <label for="username">نام کاربری</label>
             </div>
             
             <div class="form-floating">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                <label for="password">Password</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="رمز عبور" required>
+                <label for="password">رمز عبور</label>
             </div>
 
             <div class="form-floating">
                 <select class="form-select" id="role" name="role" required>
-                    <option value="">Select a role</option>
-                    <option value="Admin">Administrator</option>
-                    <option value="OrderManager">Order Manager</option>
-                    <option value="Designer">Designer</option>
-                    <option value="FactorySupervisor">Factory Supervisor</option>
-                    <option value="InvoiceClerk">Invoice Clerk</option>
+                    <option value="">انتخاب نقش</option>
+                    <option value="Admin">مدیر</option>
+                    <option value="OrderManager">مدیر سفارشات</option>
+                    <option value="Designer">طراح</option>
+                    <option value="FactorySupervisor">سرپرست کارخانه</option>
+                    <option value="InvoiceClerk">مسئول فاکتور</option>
                 </select>
-                <label for="role">Role</label>
+                <label for="role">نقش</label>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-register">Create Account</button>
+            <button type="submit" class="btn btn-primary btn-register">ایجاد حساب کاربری</button>
         </form>
 
         <div class="login-link">
-            <p class="mb-0">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in here</a></p>
+            <p class="mb-0">قبلاً حساب کاربری دارید؟ <a href="{{ url_for('auth.login') }}">وارد شوید</a></p>
         </div>
     </div>
 
@@ -128,4 +128,4 @@
     <script src="{{url_for('static' ,filename='script/handle.min.js')}}"></script>
     <script src="{{url_for('static' ,filename='script/moment.min.js')}}"></script>
 </body>
-</html> 
+</html>
