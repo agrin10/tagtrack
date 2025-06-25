@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends 'base.html'%}
 
 {% block title %}لیست سفارش‌ها{% endblock %}
 
@@ -32,7 +32,7 @@
                 </button>
 
                 <!-- Search Input -->
-                <div class="input-group" style="width: 250px;">
+                <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                     <input type="text" class="form-control" id="searchInput" placeholder="جستجوی سفارش...">
                 </div>
@@ -129,29 +129,29 @@
         </div>
 
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="table-responsive" style="overflow-x: auto;">
                 <table class="table table-hover align-middle text-center" id="ordersTable">
                     <thead>
                         <tr>
-                            <th style="width: 10%">فرم</th>
-                            <th style="width: 10%">تاریخ ثبت</th>
-                            <th style="width: 20%">نقشه</th>
-                            <th style="width: 10%">مشتری</th>
-                            <th style="width: 8%">تعداد</th>
-                            <th style="width: 12%">خروج از دفتر</th>
-                            <th style="width: 12%">خروج از کارخانه</th>
-                            <th style="width: 10%">وضعیت</th>
-                            <th style="width: 10%">تاریخ تحویل</th>
-                            <th style="width: 8%">عملیات</th>
+                            <th>فرم</th>
+                            <th>تاریخ ثبت</th>
+                            <th>نقشه</th=>
+                            <th>مشتری</th>
+                            <th>تعداد</th>
+                            <th>خروج از دفتر</th>
+                            <th>خروج از کارخانه</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ تحویل</th>
+                            <th>عملیات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for order in orders %}
                             <tr class="align-middle">
-                            <td>
+                            <td data-label="فرم">
                                 <span class="btn btn-outline-primary">{{ order.form_number }}</span>
                             </td>
-                            <td>
+                            <td data-label="تاریخ ثبت">
                                 <small class="text-muted" title="{{ order.updated_at or '' }}">
                                     {% if order.created_at %}
                                         {{ order.created_at.split('T')[0] if 'T' in order.created_at else order.created_at }}
@@ -160,20 +160,27 @@
                                     {% endif %}
                                 </small>
                             </td>
-                            <td>
-                                {% if order.sketch_name == None%}
+                            <td data-label="نام طراح">
+                                {% if order.sketch_name == '' %}
+                                    <span class="text-muted">بدون نام</span>
+                                {% elif order.sketch_name == 'None' %}
+                                    <span class="text-muted">بدون نام</span>
+                                {% elif order.sketch_name == 'null' %}
+                                    <span class="text-muted">بدون نام</span>
+            
+                                {% elif order.sketch_name == None%}
                                     <span>-</span>
                                 {% else %}
                                     <span>{{ order.sketch_name }}</span>
                                 {% endif %}
                             </td>
-                            <td>{{ order.customer_name }}</td>
-                            <td>{{ order.quantity or '-' }}</td>
-                            <td>{{ order.exit_from_factory_date or '-' }}</td>
-                            <td>{{ order.exit_from_office_date or '-' }}</td>
-                            <td>
+                            <td data-label="نام مشتری">{{ order.customer_name }}</td>
+                            <td data-label="تعداد">{{ order.quantity or '-' }}</td>
+                            <td data-label="خروج از کارخانه">{{ order.exit_from_factory_date or '-' }}</td>
+                            <td data-label="خروج از دفتر">{{ order.exit_from_office_date or '-' }}</td>
+                            <td data-label="وضعیت">
                                 {% if order.status == 'Completed' %}
-                                    <div class="d-flex flex-column align-items-center">
+                                    <div class="d-flex flex-column align-items-start">
                                         <span class="badge bg-success mb-1 px-3 py-2">
                                             <i class="fas fa-check-circle me-1"></i>تکمیل شده
                                         </span>
@@ -182,7 +189,7 @@
                                         </div>
                                     </div>
                                 {% elif order.status == 'In Progress' %}
-                                    <div class="d-flex flex-column align-items-center">
+                                    <div class="d-flex flex-column align-items-start">
                                         <span class="badge bg-warning mb-1 px-3 py-2">
                                             <i class="fas fa-spinner fa-spin me-1"></i>در حال انجام
                                         </span>
@@ -191,7 +198,7 @@
                                         </div>
                                     </div>
                                 {% else %}
-                                    <div class="d-flex flex-column align-items-center">
+                                    <div class="d-flex flex-column align-items-start">
                                         <span class="badge bg-secondary mb-1 px-3 py-2">
                                             <i class="fas fa-clock me-1"></i>در انتظار
                                         </span>
@@ -201,8 +208,8 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td>{{ order.delivery_date or '-' }}</td>
-                            <td>
+                            <td data-label="تاریخ تحویل">{{ order.delivery_date or '-' }}</td>
+                            <td data-label="عملیات">
                                 <div class="btn-group btn-group-sm gap-2 justify-content-center">
                                     <button type="button" class="btn btn-info view-details-btn" title="مشاهده جزئیات" data-bs-toggle="modal" data-bs-target="#orderDetailsModal" data-order-id="{{ order.id }}">
                                         <i class="fas fa-eye"></i>
