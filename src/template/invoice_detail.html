@@ -3,13 +3,14 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="invoiceDetailsModalLabel">Invoice Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="invoiceDetailsModalLabel">جزئیات فاکتور</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
       </div>
       <div class="modal-body">
         <!-- Spinner while loading -->
         <div class="text-center my-4" id="invoiceDetailsLoading">
           <div class="spinner-border" role="status"></div>
+          <div class="mt-2">در حال بارگذاری...</div>
         </div>
 
         <!-- Loaded invoice content will go here -->
@@ -62,11 +63,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 <tr class="table-warning text-center text-uppercase fw-bold">
                     <th colspan="2">جزئیات قیمت‌گذاری</th>
                 </tr>
-                <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">$${invoice.unit_price.toFixed(2)}</span></td></tr>
+                <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">${invoice.unit_price.toFixed(2)} تومان</span></td></tr>
                 <tr><th class="bg-light">تعداد</th><td>${invoice.quantity}</td></tr>
-                <tr><th class="bg-light">هزینه برش</th><td>$${invoice.cutting_cost.toFixed(2)}</td></tr>
-                <tr><th class="bg-light">کارمزد</th><td>$${invoice.Fee}</td></tr>
-                <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">$${invoice.total_price.toFixed(2)}</strong></td></tr>
+                <tr><th class="bg-light">هزینه برش</th><td>${invoice.cutting_cost.toFixed(2)} تومان</td></tr>
+                <tr><th class="bg-light">کارمزد</th><td>${invoice.Fee} تومان</td></tr>
+                <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">${invoice.total_price.toFixed(2)} تومان</strong></td></tr>
 
                 <tr class="table-info text-center text-uppercase fw-bold">
                     <th colspan="2">مشخصات برش</th>
@@ -87,13 +88,13 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
 
             } else {
-                detailsDiv.innerHTML = `<div class="alert alert-danger">Could not load invoice details.</div>`;
+                detailsDiv.innerHTML = `<div class="alert alert-danger">امکان بارگذاری جزئیات فاکتور وجود ندارد.</div>`;
             }
             })
             .catch(error => {
                 loadingDiv.classList.add('d-none');
                 detailsDiv.classList.remove('d-none');
-                detailsDiv.innerHTML = `<div class="alert alert-danger">Error loading invoice details: ${error}</div>`;
+                detailsDiv.innerHTML = `<div class="alert alert-danger">خطا در بارگذاری جزئیات فاکتور: ${error}</div>`;
             });
     });
 });

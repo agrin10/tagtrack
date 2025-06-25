@@ -147,7 +147,7 @@ def delete_order(id):
         if success:
             return jsonify({
                 "success": True,
-                "message": "Order deleted successfully",
+                "message": "سفارش با موفقیت حذف شد",
                 "order_id": id
             })
         return jsonify({
@@ -204,7 +204,7 @@ def duplicate_order_route(id):
         if success:
             return jsonify({
                 "success": True,
-                "message": "Order duplicated successfully",
+                "message": "سفارش با موفقیت کپی شد!",
                 "order": response.get('order')
             })
         return jsonify({

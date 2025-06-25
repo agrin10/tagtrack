@@ -1,12 +1,12 @@
 {% extends 'base.html'%}
 {% block content %}
     <div class="container-fluid">
-        <h2 class="mb-3">Factory Processing</h2>
-        <p class="text-muted mb-4">Monitor and update order production status</p>
+        <h2 class="mb-3">فرآیند کارخانه</h2>
+        <p class="text-muted mb-4">وضعیت تولید سفارش‌ها را مشاهده و به‌روزرسانی کنید</p>
 
         <div id="alertPlaceholder"></div>
 
-        <!-- Search and Filter for Orders -->
+        <!-- جستجو و فیلتر سفارش‌ها -->
         <div class="row mb-3">
             <div class="col-md-6 offset-md-6">
                 <div class="input-group">
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <!-- Orders List (Summary Cards) -->
+        <!-- لیست سفارش‌ها (کارت‌های خلاصه) -->
         <div id="orders-list-container">
             {% if orders %}
                 {% for order in orders %}
@@ -26,14 +26,37 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h5 class="card-title mb-0">{{ order.form_number }}</h5>
-                            <span class="badge bg-{{ 'success' if order.status == 'Completed' else 'warning' if order.status == 'In Progress' else 'secondary' }}">{{ order.status or 'جدید' }}</span>
-                        </div>
-                        <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.quantity }} units</h6>
+                            <span class="badge bg-{{
+                                'success' if order.status in ['Completed', 'تکمیل شده', 'Finished', 'پایان یافته']
+                                else 'danger' if order.status in ['Cancelled', 'لغو شده']
+                                else 'warning' if order.status in ['In Progress', 'در حال انجام']
+                                else 'info' if order.status in ['Design', 'طراحی']
+                                else 'primary' if order.status in ['Printing', 'چاپ']
+                                else 'secondary' if order.status in ['New', 'جدید', 'Pending', 'در انتظار']
+                                else 'dark'
+                            }}">
+                                {{
+                                    'تکمیل شده' if order.status in ['Completed', 'Finished', 'تکمیل شده', 'پایان یافته']
+                                    else 'لغو شده' if order.status in ['Cancelled', 'لغو شده']
+                                    else 'در حال انجام' if order.status in ['In Progress', 'در حال انجام']
+                                    else 'در انتظار' if order.status in ['Pending', 'در انتظار']
+                                    else 'طراحی' if order.status in ['Design', 'طراحی']
+                                    else 'چاپ' if order.status in ['Printing', 'چاپ']
+                                    else 'برش' if order.status in ['Cutting', 'برش']
+                                    else 'تمام شده' if order.status in ['Finishing', 'تمام شده ']
+                                    else 'کنترل کیفیت' if order.status in ['Quality Control', 'کنترل کیفیت']
+                                    else 'بسته‌بندی' if order.status in ['Packaging', 'بسته‌بندی']
+                                    else 'ارسال شده' if order.status in ['Shipped', 'ارسال شده']
+                                    else 'جدید' if not order.status or order.status in ['New', 'جدید']
+                                    else order.status
+                                }}
+                            </span>                        </div>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.quantity }} عدد</h6>
                         <div class="progress mb-2" style="height: 8px;">
                             <div class="progress-bar bg-primary" role="progressbar" data-progress="{{ order.progress_percentage or 0 }}" aria-valuenow="{{ order.progress_percentage or 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <p class="card-text"><small class="text-muted">Started: {{ order.order_date if order.order_date else '-' }} | Est. Completion: {{ order.delivery_date if order.delivery_date else '-' }}</small></p>
-                        <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">View Details</button>
+                        <p class="card-text"><small class="text-muted">شروع: {{ order.order_date if order.order_date else '-' }} | زمان تحویل: {{ order.delivery_date if order.delivery_date else '-' }}</small></p>
+                        <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">جزئیات</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -44,7 +67,7 @@
             {% endif %}
         </div>
 
-        <!-- Pagination -->
+        <!-- صفحه‌بندی -->
         {% if pagination and pagination.pages > 1 %}
         <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center mb-0">
@@ -74,13 +97,12 @@ function searchOrders() {
     window.location.href = "{{ url_for('production.factory_processing') }}?search=" + encodeURIComponent(searchQuery);
 }
 
-// Apply progress bar width after DOM is loaded
+// اعمال درصد پیشرفت پس از بارگذاری DOM
 document.querySelectorAll('.progress-bar').forEach(bar => {
     const progress = bar.dataset.progress;
     if (progress) {
         bar.style.width = `${progress}%`;
     }
 });
-
 </script>
 {% endblock scripts%}

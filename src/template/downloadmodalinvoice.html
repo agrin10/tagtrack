@@ -1,4 +1,4 @@
-<!-- Download Choice Modal -->
+<!-- مودال انتخاب نوع دانلود -->
 <div class="modal fade" id="downloadChoiceModal" tabindex="-1" aria-labelledby="downloadChoiceLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form method="POST" action="{{ url_for('invoice.get_download_invoice') }}">
@@ -10,8 +10,8 @@
         <div class="modal-body text-center">
           <input type="hidden" name="invoice_id" id="downloadInvoiceId">
           <div class="btn-group" role="group">
-            <button type="submit" name="file_type" value="pdf" class="btn btn-outline-primary">PDF</button>
-            <button type="submit" name="file_type" value="excel" class="btn btn-outline-success">Excel</button>
+            <button type="submit" name="file_type" value="pdf" class="btn btn-outline-primary">پی‌دی‌اف</button>
+            <button type="submit" name="file_type" value="excel" class="btn btn-outline-success">اکسل</button>
           </div>
         </div>
       </div>

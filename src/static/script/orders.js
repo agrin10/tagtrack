@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success alert-dismissible fade show';
                 alertDiv.innerHTML = `
-                    ${data.message || 'Order deleted successfully!'}
+                    ${data.message || 'سفارش با موفقیت پاک شد !'}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show';
                     alertDiv.innerHTML = `
-                        ${data.message || 'Order duplicated successfully!'}
+                        ${data.message || 'سفارش با موفقیت کپی شد!'}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     `;
                     document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
@@ -681,23 +681,23 @@ document.addEventListener('DOMContentLoaded', function () {
         switch(status.toLowerCase()) {
             case 'completed':
                 badgeClass = 'bg-success';
-                badgeText = 'Completed';
-                statusDisplayText = 'Completed';
+                badgeText = 'تکمیل شده';
+                statusDisplayText = 'تکمیل شده';
                 break;
             case 'in progress':
                 badgeClass = 'bg-warning';
-                badgeText = 'In Progress';
-                statusDisplayText = 'In Progress';
+                badgeText = 'در حال انجام';
+                statusDisplayText = 'در حال انجام';
                 break;
             case 'pending':
                 badgeClass = 'bg-secondary';
-                badgeText = 'Pending';
-                statusDisplayText = 'Pending';
+                badgeText = 'در انتظار';
+                statusDisplayText = 'در انتظار';
                 break;
             default:
                 badgeClass = 'bg-secondary';
-                badgeText = 'All';
-                statusDisplayText = 'All Status';
+                badgeText = 'همه';
+                statusDisplayText = 'همه وضعیت‌ها';
         }
         
         statusBadge.className = `badge rounded-pill ${badgeClass}`;
@@ -714,6 +714,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     }
+    function mapStatusToPersian(statusKey) {
+    const mapping = {
+        'completed': 'تکمیل شده',
+        'in progress': 'در حال انجام',
+        'pending': 'در انتظار',
+        'all': 'all'
+    };
+        return mapping[statusKey.toLowerCase()] || statusKey;
+    }
+
   
     // Enhanced filter function
     function filterRows() {
@@ -734,7 +744,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Status check - make it case-insensitive
             const badge = row.querySelector('td:nth-child(8) .badge');
             const status = badge ? badge.textContent.trim().toLowerCase() : '';
-            const statusMatch = currentStatus.toLowerCase() === 'all' || status === currentStatus.toLowerCase();
+            const mappedStatus = mapStatusToPersian(currentStatus);
+            const statusMatch = mappedStatus === 'all' || status === mappedStatus;
   
             // Customer name check
             const customerCell = row.querySelector('td:nth-child(4)');

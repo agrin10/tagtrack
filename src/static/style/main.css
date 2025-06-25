@@ -12,7 +12,7 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     position: fixed;
     top: 0;
-    left: 0;
+    right: 0;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -35,7 +35,7 @@ body {
 
 .sidebar .nav-link {
     color: #495057;
-    padding: 12px 15px;
+    padding: 15px 12px;
     margin-bottom: 5px;
     border-radius: 8px;
     transition: all 0.3s ease;
@@ -50,7 +50,7 @@ body {
 }
 
 .sidebar .nav-link i {
-    margin-right: 10px;
+    margin-left: 10px;
     font-size: 1.1rem;
 }
 
@@ -86,7 +86,7 @@ body {
 }
 
 .main-content {
-    margin-left: 250px; /* Adjust based on sidebar width */
+    margin-right: 250px; /* Adjust based on sidebar width */
     padding: 20px;
 }
 
@@ -165,4 +165,35 @@ input[type="number"] {
     margin-top: 20px;
     font-weight: bold;
     font-size: 1.1em;
+}
+
+/* Mobile sidebar styles */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: -250px; /* Hide sidebar by default */
+    width: 250px;
+    height: 100%;
+    background: #fff;
+    z-index: 1050;
+    transition: right 0.3s;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .sidebar.active {
+    right: 0; /* Show sidebar */
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1040;
+  }
+  .sidebar-overlay.active {
+    display: block;
+  }
+  .main-content {
+    margin-right: 0 !important; /* Remove margin when sidebar is hidden */
+  }
 }

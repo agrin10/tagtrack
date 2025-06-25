@@ -30,19 +30,19 @@ document.addEventListener('DOMContentLoaded', function() {
         newMetricRow.className = 'row g-2 mb-2 align-items-end';
         newMetricRow.innerHTML = `
             <div class="col-md-3">
-                <label class="form-label small text-muted">Package Count</label>
+                <label class="form-label small text-muted">تعداد بسته</label>
                 <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted">Package Value</label>
+                <label class="form-label small text-muted">ارزش بسته</label>
                 <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted">Roll Count</label>
+                <label class="form-label small text-muted">تعداد رول</label>
                 <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted">Meterage</label>
+                <label class="form-label small text-muted">متراژ</label>
                 <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
             </div>
             <div class="col-md-1">
@@ -62,18 +62,18 @@ document.addEventListener('DOMContentLoaded', function() {
             populateModal(data.order);
         } catch (error) {
             console.error('Error loading order details:', error);
-            showAlert('Error loading order details', 'danger');
+            showAlert('خطا در بارگذاری جزئیات سفارش', 'danger');
         }
     }
 
     function populateModal(order) {
         document.getElementById('modal-form-number').textContent = order.form_number;
-        document.getElementById('modal-customer-details').textContent = `${order.customer_name} • ${order.quantity || 0} units`;
+        document.getElementById('modal-customer-details').textContent = `${order.customer_name} • ${order.quantity || 0} عدد`;
         document.getElementById('modal-progress-bar').style.width = `${order.progress_percentage || 0}%`;
         document.getElementById('modal-progress-bar').setAttribute('aria-valuenow', order.progress_percentage || 0);
         document.getElementById('modal-started-date').textContent = formatDate(order.order_date);
         document.getElementById('modal-est-completion-date').textContent = formatDate(order.delivery_date);
-        document.getElementById('modal-status-badge').textContent = order.status || 'New';
+        document.getElementById('modal-status-badge').textContent = order.status ? getStatusText(order.status) : 'جدید';
         document.getElementById('modal-status-badge').className = `badge bg-${getStatusBadgeClass(order.status || 'New')}`;
 
         // Production Status Form
@@ -160,12 +160,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
-            showAlert(data.message || 'Production status updated successfully', 'success');
+            showAlert(data.message || 'وضعیت تولید با موفقیت به‌روزرسانی شد', 'success');
             // Optionally, refresh the page or update the card to reflect changes
             location.reload(); 
         } catch (error) {
             console.error('Error updating production status:', error);
-            showAlert('Error updating production status', 'danger');
+            showAlert('خطا در به‌روزرسانی وضعیت تولید', 'danger');
         }
     }
 
@@ -237,25 +237,84 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatDate(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        // Persian date formatting (fallback to en if not supported)
+        return date.toLocaleDateString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' });
     }
 
-    function getStatusBadgeClass(status) {
-        switch (status) {
-            case 'Completed': return 'success';
-            case 'In Progress': return 'warning';
-            case 'Cancelled': return 'danger';
-            case 'Design':
-            case 'Printing':
-            case 'Cutting':
-            case 'Finishing':
-            case 'Quality Control':
-            case 'Packaging':
-            case 'Shipped':
-            default: return 'secondary';
-        }
-    }
+function getStatusBadgeClass(status) {
+    if (!status) return 'secondary';
+    
+    const statusClassMap = {
+        // English statuses
+        'Completed': 'success',
+        'Finished': 'success',
+        'Cancelled': 'danger',
+        'In Progress': 'warning',
+        'Design': 'info',
+        'Printing': 'primary',
+        'Cutting': 'primary',
+        'Finishing': 'primary',
+        'Quality Control': 'info',
+        'Packaging': 'info',
+        'Shipped': 'success',
+        'New': 'secondary',
+        'Pending': 'secondary',
 
+        
+        // Persian statuses
+        'تکمیل شده': 'success',
+        'پایان یافته': 'success',
+        'لغو شده': 'danger',
+        'در حال انجام': 'warning',
+        'طراحی': 'info',
+        'چاپ': 'primary',
+        'برش': 'primary',
+        'کنترل کیفیت': 'info',
+        'بسته‌بندی': 'info',
+        'ارسال شده': 'success',
+        'جدید': 'secondary',
+        'در انتظار': 'secondary'
+    };
+    
+    return statusClassMap[status] || 'secondary';
+}
+function getStatusText(status) {
+    if (!status) return 'جدید';
+    
+    const statusMap = {
+        // English to Persian mapping
+        'New': 'جدید',
+        'Completed': 'تکمیل شده',
+        'Finished': 'پایان یافته',
+        'Cancelled': 'لغو شده',
+        'In Progress': 'در حال انجام',
+        'Design': 'طراحی',
+        'Printing': 'چاپ',
+        'Cutting': 'برش',
+        'Finishing': 'تکمیل',
+        'Quality Control': 'کنترل کیفیت',
+        'Packaging': 'بسته‌بندی',
+        'Shipped': 'ارسال شده',
+        'Pending': 'در انتظار',
+        
+        // Persian to Persian (if already in Persian)
+        'جدید': 'جدید',
+        'تکمیل شده': 'تکمیل شده',
+        'پایان یافته': 'پایان یافته',
+        'لغو شده': 'لغو شده',
+        'در حال انجام': 'در حال انجام',
+        'طراحی': 'طراحی',
+        'چاپ': 'چاپ',
+        'برش': 'برش',
+        'تمام شده': 'تمام شده',
+        'کنترل کیفیت': 'کنترل کیفیت',
+        'بسته‌بندی': 'بسته‌بندی',
+        'ارسال شده': 'ارسال شده',
+        ' در انتظار': ' در انتظار'
+    };
+    
+    return statusMap[status] || status;
+}
     function showAlert(message, type = 'info') {
         const alertPlaceholder = document.getElementById('alertPlaceholder');
         if (!alertPlaceholder) {
@@ -267,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapper.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
                 ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="بستن"></button>
             </div>
         `;
         alertPlaceholder.append(wrapper);
@@ -301,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
             <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
             <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
-            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
         `;
     }
 
@@ -330,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
                     <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
                     <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
-                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
+                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
                 `;
             });
         } else {
@@ -341,4 +400,4 @@ document.addEventListener('DOMContentLoaded', function() {
         // Populate production duration
         document.getElementById('production-duration-input').value = order.production_duration || '';
     }
-}); 
+});

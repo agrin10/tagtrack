@@ -3,9 +3,9 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editOrderModalLabel">
-                    <i class="fas fa-edit me-2"></i>Edit Order <span id="edit-form-number" class="badge bg-light text-primary ms-2"></span>
+                    <i class="fas fa-edit me-2"></i>ویرایش سفارش <span id="edit-form-number" class="badge bg-light text-primary ms-2"></span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="بستن"></button>
             </div>
             <form id="editOrderForm" method="POST">
                 <div class="modal-body p-0">
@@ -18,32 +18,32 @@
                     <ul class="nav nav-tabs nav-fill bg-light px-3 pt-3" id="editOrderFormTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="edit-basic-tab" data-bs-toggle="tab" data-bs-target="#edit-basic" type="button" role="tab">
-                                <i class="fas fa-info-circle me-2"></i>Basic Info
+                                <i class="fas fa-info-circle me-2"></i>اطلاعات پایه
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-dimensions-tab" data-bs-toggle="tab" data-bs-target="#edit-dimensions" type="button" role="tab">
-                                <i class="fas fa-ruler-combined me-2"></i>Dimensions & Fabric
+                                <i class="fas fa-ruler-combined me-2"></i>ابعاد و پارچه
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-print-tab" data-bs-toggle="tab" data-bs-target="#edit-print" type="button" role="tab">
-                                <i class="fas fa-print me-2"></i>Print & Finishing
+                                <i class="fas fa-print me-2"></i>چاپ و تکمیل
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-dates-tab" data-bs-toggle="tab" data-bs-target="#edit-dates" type="button" role="tab">
-                                <i class="fas fa-calendar-alt me-2"></i>Dates & Status
+                                <i class="fas fa-calendar-alt me-2"></i>تاریخ‌ها و وضعیت
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-notes-tab" data-bs-toggle="tab" data-bs-target="#edit-notes" type="button" role="tab">
-                                <i class="fas fa-sticky-note me-2"></i>Notes
+                                <i class="fas fa-sticky-note me-2"></i>یادداشت‌ها
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-images-tab" data-bs-toggle="tab" data-bs-target="#edit-images" type="button" role="tab">
-                                <i class="fas fa-images me-2"></i>Images
+                                <i class="fas fa-images me-2"></i>تصاویر
                             </button>
                         </li>
                     </ul>
@@ -56,19 +56,19 @@
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <input type="number" class="form-control" id="edit_form_number" name="form_number" required>
-                                        <label for="edit_form_number">Form Number <span class="text-danger">*</span></label>
+                                        <label for="edit_form_number">شماره فرم <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="edit_customer_name" name="customer_name" required>
-                                        <label for="edit_customer_name">Customer Name <span class="text-danger">*</span></label>
+                                        <label for="edit_customer_name">نام مشتری <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="edit_sketch_name" name="sketch_name" >
-                                        <label for="edit_sketch_name">Sketch Name <span class="text-danger">*</span></label>
+                                        <label for="edit_sketch_name">نام طرح <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -81,18 +81,18 @@
                             <div class="row g-4">
                                 <!-- Fabric Details -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Fabric Details</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">جزئیات پارچه</h6>
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="edit_fabric_density" name="fabric_density">
-                                                <label for="edit_fabric_density">Fabric Density</label>
+                                                <label for="edit_fabric_density">تراکم پارچه</label>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
-                                                <label for="edit_fabric_cut">Fabric Cut</label>
+                                                <label for="edit_fabric_cut">برش پارچه</label>
                                             </div>
                                         </div>
                                     </div>
@@ -100,30 +100,30 @@
 
                                 <!-- Dimensions -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Dimensions</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">ابعاد</h6>
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="edit_width" name="width">
-                                                <label for="edit_width">Width (cm)</label>
+                                                <label for="edit_width">عرض (سانتی‌متر)</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="edit_height" name="height">
-                                                <label for="edit_height">Height (cm)</label>
+                                                <label for="edit_height">ارتفاع (سانتی‌متر)</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control" id="edit_quantity" name="quantity">
-                                                <label for="edit_quantity">Quantity</label>
+                                                <label for="edit_quantity">تعداد</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
-                                                <label for="edit_total_length_meters">Total Length (m)</label>
+                                                <label for="edit_total_length_meters">طول کل (متر)</label>
                                             </div>
                                         </div>
                                     </div>
@@ -131,24 +131,24 @@
 
                                 <!-- Values Table -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Values</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">مقادیر</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm text-center align-middle">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
+                                                    <th>۱</th><th>۲</th><th>۳</th><th>۴</th><th>۵</th><th>۶</th><th>۷</th><th>۸</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="Value"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -157,7 +157,7 @@
 
                                 <!-- Files Table -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">Files</h6>
+                                    <h6 class="border-bottom pb-2 mb-3">فایل‌ها</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm align-middle">
                                             <thead class="table-light">
@@ -185,42 +185,42 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_fusing_type" name="fusing_type">
-                                            <option value="">Select...</option>
-                                            <option value="چسب دوطرفه"> چسب دوطرفه</option>
+                                            <option value="">انتخاب کنید...</option>
+                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
                                             <option value="چسب حرارتی ">چسب حرارتی</option>
                                             <option value="لائی">لائی</option>
                                         </select>
-                                        <label for="edit_fusing_type">نوع چسب </label>
+                                        <label for="edit_fusing_type">نوع چسب</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_lamination_type" name="lamination_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="براق">براق</option>
                                             <option value="مات">مات</option>
                                         </select>
-                                        <label for="edit_lamination_type">Lamination Type</label>
+                                        <label for="edit_lamination_type">نوع لمینیت</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_cut_type" name="cut_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="برش کامل">برش کامل</option>
                                             <option value="نیم تیغ">نیم تیغ</option>
                                         </select>
-                                        <label for="edit_cut_type">Cut Type</label>
+                                        <label for="edit_cut_type">نوع برش</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_label_type" name="label_type">
-                                            <option value="">Select...</option>
+                                            <option value="">انتخاب کنید...</option>
                                             <option value="خشک">خشک</option>
                                             <option value="متوسط">متوسط</option>
                                         </select>
-                                        <label for="edit_label_type">Label Type</label>
+                                        <label for="edit_label_type">نوع لیبل</label>
                                     </div>
                                 </div>
                             </div>
@@ -232,35 +232,35 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="datetime-local" class="form-control" id="edit_created_at" name="created_at" readonly>
-                                        <label for="edit_created_at">Created At</label>
+                                        <label for="edit_created_at">تاریخ ثبت</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="edit_delivery_date" name="delivery_date">
-                                        <label for="edit_delivery_date">Delivery Date</label>
+                                        <label for="edit_delivery_date">تاریخ تحویل</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="edit_exit_from_office_date" name="exit_from_office_date">
-                                        <label for="edit_exit_from_office_date">Exit from Office Date</label>
+                                        <label for="edit_exit_from_office_date">تاریخ خروج از دفتر</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="date" class="form-control" id="edit_exit_from_factory_date" name="exit_from_factory_date">
-                                        <label for="edit_exit_from_factory_date">Exit from Factory Date</label>
+                                        <label for="edit_exit_from_factory_date">تاریخ خروج از کارخانه</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_status" name="status">
-                                            <option value="Pending">Pending</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Completed">Completed</option>
+                                            <option value="Pending">در انتظار</option>
+                                            <option value="In Progress">در حال انجام</option>
+                                            <option value="Completed">تکمیل شده</option>
                                         </select>
-                                        <label for="edit_status">Status</label>
+                                        <label for="edit_status">وضعیت</label>
                                     </div>
                                 </div>
                             </div>
@@ -272,25 +272,25 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_design_specification" name="design_specification" style="height: 100px"></textarea>
-                                        <label for="edit_design_specification">Design Specification</label>
+                                        <label for="edit_design_specification">مشخصات طراحی</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_office_notes" name="office_notes" style="height: 100px"></textarea>
-                                        <label for="edit_office_notes">Office Notes</label>
+                                        <label for="edit_office_notes">یادداشت‌های دفتر</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_factory_notes" name="factory_notes" style="height: 100px"></textarea>
-                                        <label for="edit_factory_notes">Factory Notes</label>
+                                        <label for="edit_factory_notes">یادداشت‌های کارخانه</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
-                                        <label for="edit_customer_note_to_office">Customer Note to Office</label>
+                                        <label for="edit_customer_note_to_office">یادداشت مشتری به دفتر</label>
                                     </div>
                                 </div>
                             </div>
@@ -303,11 +303,11 @@
                                 <div class="col-12 mb-4">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h6 class="card-title mb-3">Upload New Images</h6>
+                                            <h6 class="card-title mb-3">بارگذاری تصاویر جدید</h6>
                                             <div class="mb-3">
-                                                <label for="editOrderImages" class="form-label">Select Images</label>
+                                                <label for="editOrderImages" class="form-label">انتخاب تصاویر</label>
                                                 <input type="file" class="form-control" id="editOrderImages" name="images" multiple accept="image/*">
-                                                <div class="form-text">Maximum file size: 10MB. Allowed formats: PNG, JPG, JPEG, GIF, WEBP</div>
+                                                <div class="form-text">حداکثر حجم فایل: ۱۰ مگابایت. فرمت‌های مجاز: PNG, JPG, JPEG, GIF, WEBP</div>
                                             </div>
                                             <div id="editImagePreviewContainer" class="row g-2 mt-3">
                                                 <!-- Image previews will be added here -->
@@ -320,9 +320,9 @@
                                 <div class="col-12">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h6 class="card-title mb-3">Order Images</h6>
+                                            <h6 class="card-title mb-3">تصاویر سفارش</h6>
                                             <div id="edit-no-images-message" class="alert alert-info" style="display: none;">
-                                                <i class="fas fa-info-circle me-2"></i>No images uploaded for this order.
+                                                <i class="fas fa-info-circle me-2"></i>هیچ تصویری برای این سفارش بارگذاری نشده است.
                                             </div>
                                             <div id="edit-order-images-container" class="row g-3">
                                                 <!-- Images will be dynamically inserted here -->
@@ -338,18 +338,18 @@
                     <div class="d-flex justify-content-between w-100">
                         <div>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-2"></i>Cancel
+                                <i class="fas fa-times me-2"></i>انصراف
                             </button>
                         </div>
                         <div>
                             <button type="button" class="btn btn-outline-primary me-2" id="editPrevTab">
-                                <i class="fas fa-arrow-left me-2"></i>Previous
+                                <i class="fas fa-arrow-right me-2"></i>قبلی
                             </button>
                             <button type="button" class="btn btn-outline-primary me-2" id="editNextTab">
-                                Next<i class="fas fa-arrow-right ms-2"></i>
+                                بعدی<i class="fas fa-arrow-left ms-2"></i>
                             </button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Save Changes
+                                <i class="fas fa-save me-2"></i>ذخیره تغییرات
                             </button>
                         </div>
                     </div>
