@@ -41,6 +41,7 @@ class Payment(db.Model):
             "id": self.id,
             "order_id": self.order_id,
             "form_number": self.order.form_number if self.order else None,
+            "customer_name": self.order.customer_name if self.order else None,
             "invoice_number": self.invoice_number,
             "credit_card": self.credit_card,
             "unit_price": self.unit_price,

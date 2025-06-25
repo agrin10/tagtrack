@@ -40,11 +40,11 @@
                         <tbody>
                             {% for invoice in invoices %}
                             <tr>
-                                <td>{{ invoice.order_id }}</td>
-                                <td>{{ invoice.customer_name }}</td>
-                                <td>{{ "%.2f"|format(invoice.total_price) }} تومان</td>
-                                <td>{{ invoice.invoice_number }}</td>
-                                <td>
+                                <td data-label="سفارش">{{ invoice.order_id }}</td>
+                                <td data-label="نام مشتری">{{ invoice.customer_name }}</td>
+                                <td data-label="مبلغ">{{ invoice.total_price|iran_money }} تومان</td>
+                                <td data-label="شماره فاکتور">{{ invoice.invoice_number }}</td>
+                                <td data-label="وضعیت">
                                     <span class="badge 
                                         {% if invoice.status == 'Generated' %} bg-primary
                                         {% elif invoice.status == 'Sent' %} bg-warning text-dark

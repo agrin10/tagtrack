@@ -322,5 +322,17 @@ input[type="number"] {
     width: 100%;
     margin: 0 !important;
   }
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .d-flex.justify-content-between.align-items-center.mb-4 > * {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
 
+}
+.d-flex.justify-content-between.align-items-center.mb-4 {
+  gap: 12px;
 }

@@ -9,6 +9,15 @@ app = create_app()
 def index():
     return redirect(url_for('dashboard.dashboard'))
 
+@app.template_filter('iran_money')
+def iran_money(value):
+    try:
+        value = float(value)
+        value = int(value) if value.is_integer() else value
+        return "{:,}".format(value).replace(",", "٬")
+    except Exception:
+        return value
+    
 @app.route('/test-db')
 def test_db():
     try:

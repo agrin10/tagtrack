@@ -20,6 +20,13 @@
   </div>
 </div>
 <script>
+  function iranMoney(value) {
+    if (value == null || value === '') return '—';
+    value = parseFloat(value);
+    if (isNaN(value)) return value;
+    value = value % 1 === 0 ? parseInt(value) : value; // Remove .00 if integer
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "٬");
+}
 document.addEventListener('DOMContentLoaded', function () {
     const invoiceModal = document.getElementById('invoiceDetailsModal');
     invoiceModal.addEventListener('show.bs.modal', function (event) {
@@ -63,11 +70,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 <tr class="table-warning text-center text-uppercase fw-bold">
                     <th colspan="2">جزئیات قیمت‌گذاری</th>
                 </tr>
-                <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">${invoice.unit_price.toFixed(2)} تومان</span></td></tr>
+                <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">${iranMoney(invoice.unit_price)} تومان</span></td></tr>
                 <tr><th class="bg-light">تعداد</th><td>${invoice.quantity}</td></tr>
-                <tr><th class="bg-light">هزینه برش</th><td>${invoice.cutting_cost.toFixed(2)} تومان</td></tr>
-                <tr><th class="bg-light">کارمزد</th><td>${invoice.Fee} تومان</td></tr>
-                <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">${invoice.total_price.toFixed(2)} تومان</strong></td></tr>
+                <tr><th class="bg-light">هزینه برش</th><td>${iranMoney(invoice.cutting_cost)} تومان</td></tr>
+                <tr><th class="bg-light">کارمزد</th><td>${iranMoney(invoice.Fee)} تومان</td></tr>
+                <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">${iranMoney(invoice.total_price)}  تومان</strong></td></tr>
 
                 <tr class="table-info text-center text-uppercase fw-bold">
                     <th colspan="2">مشخصات برش</th>
