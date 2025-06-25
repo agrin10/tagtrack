@@ -203,12 +203,13 @@
     {% include 'downloadmodalinvoice.html' %}
 {% endblock %}
 {% block scripts %}
+    <!-- Add invoice.js for search functionality -->
+    <script src="{{ url_for('static', filename='script/invoice.js') }}"></script>
     <script>
         var invoiceTabs = new bootstrap.Tab(document.getElementById('invoice-list-tab'))
         invoiceTabs.show()
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Invoice Modal Event Listener
             var invoiceModal = document.getElementById('invoiceModal');
             invoiceModal.addEventListener('show.bs.modal', function (event) {
                 var button = event.relatedTarget;
@@ -231,43 +232,6 @@
                 invoiceModal.querySelector('#modalTax').value = '0.0';
                 invoiceModal.querySelector('#modalNotes').value = '';
             });
-
-            // Search Functionality
-            const searchInput = document.getElementById('searchInput');
-            const clearSearchBtn = document.getElementById('clearSearchBtn');
-            const table = document.getElementById('invoiceTable');
-            
-            function filterTable() {
-                const searchText = searchInput.value.toLowerCase();
-                const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-
-                for (let row of rows) {
-                    const cells = row.getElementsByTagName('td');
-                    let shouldShow = false;
-
-                    for (let cell of cells) {
-                        const text = cell.textContent.toLowerCase();
-                        if (text.includes(searchText)) {
-                            shouldShow = true;
-                            break;
-                        }
-                    }
-
-                    row.style.display = shouldShow ? '' : 'none';
-                }
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('input', filterTable);
-            }
-
-            if (clearSearchBtn) {
-                clearSearchBtn.addEventListener('click', function() {
-                    searchInput.value = '';
-                    filterTable();
-                });
-            }
         });
     </script>
-
 {% endblock %}
