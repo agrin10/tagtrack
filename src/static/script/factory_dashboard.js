@@ -400,4 +400,5 @@ function getStatusText(status) {
         // Populate production duration
         document.getElementById('production-duration-input').value = order.production_duration || '';
     }
+    setupTableSearch('#searchInput', '#ordersTable tbody tr');
 });

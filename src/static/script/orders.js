@@ -813,13 +813,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
   
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            console.log('Search input changed:', searchInput.value);
-            currentSearch = searchInput.value;
-            filterRows();
-        });
-    }
+    setupTableSearch('#searchInput', '#ordersTable tbody tr');
     
     if (customerFilter) {
         customerFilter.addEventListener('input', () => {

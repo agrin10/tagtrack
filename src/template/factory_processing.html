@@ -10,10 +10,8 @@
         <div class="row mb-3">
             <div class="col-md-6 offset-md-6">
                 <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
                     <input type="text" class="form-control" id="orderSearch" placeholder="جستجو بر اساس شماره فرم، مشتری یا نام طرح" value="{{ search if search else '' }}">
-                    <button class="btn btn-outline-secondary" type="button" onclick="searchOrders()">
-                        <i class="fas fa-search"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -92,11 +90,7 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='script/factory_dashboard.js') }}"></script>
 <script>
-function searchOrders() {
-    const searchQuery = document.getElementById('orderSearch').value;
-    window.location.href = "{{ url_for('production.factory_processing') }}?search=" + encodeURIComponent(searchQuery);
-}
-
+setupTableSearch('#orderSearch', '.order-card');
 // اعمال درصد پیشرفت پس از بارگذاری DOM
 document.querySelectorAll('.progress-bar').forEach(bar => {
     const progress = bar.dataset.progress;
