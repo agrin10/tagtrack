@@ -1,8 +1,23 @@
-from src import create_app, db
+from src import create_app, db , jwt
 from sqlalchemy import text
 from flask import render_template, redirect, url_for
 
 app = create_app()
+
+@jwt.expired_token_loader
+def expired_token_callback():
+    # flash(message='Unauthorized access', category='error')
+    return redirect(url_for('auth.login'))
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    # flash(message='Unauthorized access', category='error')
+    return redirect(url_for('auth.login'))
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    # flash(message='Invalid token', category='error') 
+    return redirect(url_for('auth.login'))
 
 
 @app.route('/')
@@ -17,17 +32,7 @@ def iran_money(value):
         return "{:,}".format(value).replace(",", "٬")
     except Exception:
         return value
-    
-@app.route('/test-db')
-def test_db():
-    try:
-        # Try to execute a simple query using text()
-        db.session.execute(text('SELECT 1'))
-        db.session.commit()
-        return 'Database connection successful!'
-    except Exception as e:
-        db.session.rollback()
-        return f'Database connection failed: {str(e)}'
+
 
 if '__main__'== __name__:
     app.run(host='0.0.0.0' , port=8080 , debug=True)

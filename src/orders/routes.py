@@ -8,12 +8,13 @@ from flask import redirect, render_template, request, jsonify, flash, url_for, s
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
 from src.orders.models import db, Order
-import io
+from flask_jwt_extended import jwt_required
 import traceback
 import os
 
 @order_bp.route('/')
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def order_list():
     # Get pagination parameters from URL
@@ -44,6 +45,7 @@ def order_list():
 
 @order_bp.route('/', methods=['GET', 'POST'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def create_order():
     if request.method == 'POST':
@@ -124,6 +126,9 @@ def create_order():
     return render_template('order-list.html')
     
 @order_bp.route('/<id>')
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager") 
 def get_order_id(id):
     """
     Get a specific order by its ID.
@@ -137,6 +142,7 @@ def get_order_id(id):
     
 @order_bp.route('/<id>', methods=['DELETE'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def delete_order(id):
     """
@@ -162,6 +168,7 @@ def delete_order(id):
         }), 500
 @order_bp.route('/<id>', methods=['PUT', 'PATCH'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def update_order(id):
     """
@@ -194,6 +201,7 @@ def update_order(id):
 
 @order_bp.route('/<id>/duplicate', methods=['POST'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def duplicate_order_route(id):
     """
@@ -220,6 +228,7 @@ def duplicate_order_route(id):
 
 @order_bp.route('/export/excel')
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def export_orders_excel():
     """
@@ -246,6 +255,7 @@ def export_orders_excel():
 
 @order_bp.route('/<int:order_id>/images', methods=['POST'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def upload_image(order_id):
     """
@@ -270,6 +280,8 @@ def upload_image(order_id):
 
 @order_bp.route('/<int:order_id>/images', methods=['GET'])
 @login_required
+@jwt_required()
+@role_required('Admin', "OrderManager")
 def get_images(order_id):
     """
     Get all images for an order.
@@ -286,6 +298,7 @@ def get_images(order_id):
 
 @order_bp.route('/images/<int:image_id>', methods=['DELETE'])
 @login_required
+@jwt_required()
 @role_required('Admin', "OrderManager")
 def delete_image(image_id):
     """
@@ -303,6 +316,8 @@ def delete_image(image_id):
 
 @order_bp.route('/images/<int:image_id>', methods=['GET'])
 @login_required
+@jwt_required()
+@role_required('Admin', "OrderManager")
 def serve_image(image_id):
     """
     Serve an order image.

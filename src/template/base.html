@@ -40,7 +40,7 @@
 
                         {% if current_user.role.name in ['Admin', 'InvoiceClerk'] %}
                         <li class="nav-item">
-                            <a class="nav-link {% if current_endpoint == 'invoice.get_invoice_list' %}active{% endif %}" href="{{ url_for('invoice.get_invoice_list') }}"></i> فاکتورها</a>
+                            <a class="nav-link {% if current_endpoint == 'invoice.get_invoice_list' %}active{% endif %}" href="{{ url_for('invoice.get_invoice_list') }}"><i class="fas fa-file-invoice"></i></i> فاکتورها</a>
                         </li>
                         {% endif %}
 

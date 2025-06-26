@@ -7,6 +7,7 @@
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style/bootstrap.min.css') }}">
+  <!-- <link rel="stylesheet" href="{{url_for('static' , filename='style/main.css')}}" /> -->
   <link rel="stylesheet" href="{{url_for('static' , filename='style/authentication.css')}}" />
 </head>
 <body>
@@ -54,5 +55,22 @@
   <!-- Bootstrap Bundle with Popper -->
   <script src="{{url_for('static' ,filename='script/handle.min.js')}}"></script>
   <script src="{{url_for('static' ,filename='script/moment.min.js')}}"></script>
+
+  <script>
+      function autoHideFlashMessages() {
+        const flashMessages = document.querySelectorAll('.alert');
+        flashMessages.forEach((flash) => {
+            setTimeout(() => {
+                flash.classList.remove('show'); // Bootstrap fade out
+                setTimeout(() => flash.remove(), 400); // Remove after fade
+            }, 5000);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        autoHideFlashMessages();
+    });
+
+  </script>
 </body>
 </html>
