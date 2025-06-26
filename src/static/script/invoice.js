@@ -6,14 +6,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setupTableSearch('#searchInput', '#invoiceTable tbody tr');
 
     // Clear search button event handler
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', () => {
-            if (searchInput) {
-                searchInput.value = '';
-                currentSearch = '';
-                filterTable();
-                searchInput.focus();
-            }
-        });
-    }
 }); 
