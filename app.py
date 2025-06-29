@@ -5,7 +5,7 @@ from flask import render_template, redirect, url_for
 app = create_app()
 
 @jwt.expired_token_loader
-def expired_token_callback():
+def expired_token_callback(jwt_header, jwt_payload):
     # flash(message='Unauthorized access', category='error')
     return redirect(url_for('auth.login'))
 
