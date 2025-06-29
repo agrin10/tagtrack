@@ -20,7 +20,7 @@
                         <input type="text" class="form-control" id="searchInput" placeholder="جستجوی فاکتورها..." aria-label="جستجوی فاکتورها">
                         </button>
                     </div>
-                    <button class="btn btn-primary">خروجی گرفتن همه</button>
+                <a class="btn btn-primary" href="{{ url_for('invoice.export_invoices') }}">خروجی گرفتن همه</a>
                 </div>
 
                 <div class="table-responsive">

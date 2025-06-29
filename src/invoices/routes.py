@@ -1,6 +1,6 @@
 from src.invoices import invoice_bp
-from src.invoices.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice
-from flask import request , jsonify , redirect , url_for , render_template , flash
+from src.invoices.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all
+from flask import request , jsonify , redirect , url_for , render_template , flash 
 from flask_login import login_required
 from src.utils.decorators import role_required
 from src.orders.controller import get_orders
@@ -115,3 +115,23 @@ def invoice_view(invoice_id):
 @invoice_bp.route('/send/<int:invoice_id>', methods=['POST'])
 def post_send_invoice(invoice_id):
     return send_invoice(invoice_id)
+
+@invoice_bp.route('/export', methods=['GET'])
+@login_required
+@role_required('Admin', "OrderManager")
+def export_invoices():
+    """
+    Export all invoices to a file.
+    """
+    result = export_all()
+    
+    if isinstance(result, tuple):
+        response, status = result
+        if status == 200:
+            return response
+        else:
+            flash("خطا در صدور فاکتور", "danger")
+            return redirect(url_for('invoice.get_invoice_list'))
+    else:
+        # fallback if export_all returns only the response (not a tuple)
+        return result

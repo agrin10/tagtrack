@@ -323,3 +323,74 @@ def create_payment_for_order(order, payment_info):
 
     db.session.add(payment)
     db.session.commit()
+
+
+def export_all():
+    """
+    Export all invoices to an Excel file.
+    """
+    try:
+        FIELD_TRANSLATIONS = {
+            "invoice_number": "شماره فاکتور",
+            "issue_date": "تاریخ صدور",
+            "form_number": "شماره فرم",
+            "credit_card": "شماره کارت",
+            "unit_price": "قیمت واحد",
+            "quantity": "تعداد تولیدی",
+            "peak_quantity": "تعداد پیک",
+            "cutting_cost": "هزینه برش",
+            "total_price": "قیمت کل",
+            "status": "وضعیت",
+            "notes": "یادداشت",
+        }
+
+        invoices = Payment.query.order_by(Payment.created_at.desc()).all()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "فاکتورها"
+        default_fill = PatternFill(fill_type=None)  # for rows that don't use odd_fill
+
+        # Styling objects
+        rtl_alignment = Alignment(horizontal='right', readingOrder=2)
+        header_fill = PatternFill(start_color="0d6efd", end_color="0d6efd", fill_type="solid")
+        odd_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        font_bold = Font(name='Tahoma', bold=True)
+        font_normal = Font(name='Tahoma')
+
+        # Write headers
+        headers = [FIELD_TRANSLATIONS[key] for key in FIELD_TRANSLATIONS]
+        ws.append(headers)
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col)
+            cell.alignment = rtl_alignment
+            cell.font = font_bold
+            cell.fill = header_fill
+
+        # Write invoice rows
+        for idx, invoice in enumerate(invoices, start=2):
+            inv_dict = invoice.to_dict()
+            values = [inv_dict.get(key, "---") for key in FIELD_TRANSLATIONS]
+            ws.append(values)
+            for col, value in enumerate(values, start=1):
+                cell = ws.cell(row=idx, column=col)
+                cell.alignment = rtl_alignment
+                cell.font = font_normal
+                cell.fill = odd_fill if idx % 2 == 0 else default_fill
+        # Adjust column widths
+        for col in ws.columns:
+            max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
+            col_letter = col[0].column_letter
+            ws.column_dimensions[col_letter].width = max(12, max_length + 3)
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name="all_invoices.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ) , 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to export invoices: {e}"}), 500
