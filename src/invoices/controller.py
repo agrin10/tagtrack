@@ -59,17 +59,9 @@ def invoice_list(page: int = 1, per_page: int = 10, search: str = None, status: 
             "message": "Orders retrieved successfully",
             "payments": invoices_list,
             "total": pagination.total,
-            "pagination": {
-                "page": pagination.page,
-                "per_page": pagination.per_page,
-                "pages": pagination.pages,
-                "total": pagination.total,
-                "has_next": pagination.has_next,
-                "has_prev": pagination.has_prev,
-                "next_num": pagination.next_num,
-                "prev_num": pagination.prev_num
-            }
+            "pagination": pagination
         }
+        
 
     except Exception as e:
         print(f"Error retrieving orders: {str(e)}")
