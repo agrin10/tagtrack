@@ -16,10 +16,12 @@
         <!-- sidebar -->
         <div class="sidebar" id="sidebar">
             <div>
+                <a href="{{url_for('index')}}" style="text-decoration: none;">
                 <div class="logo">
-                     tagtrack
+                     tagtrack   
                     <span>مدیریت سفارشات</span>
                 </div>
+                </a>
                 <ul class="nav flex-column">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
