@@ -10,7 +10,7 @@ from src.production.controller import get_job_metrics_for_order, save_job_metric
 @production_bp.route('/factory-processing')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" ,'Designer' , "FactorySupervisor")
 def factory_processing():
     """
     Render the factory processing dashboard.
@@ -46,7 +46,7 @@ def factory_processing():
 @production_bp.route('/api/orders/<int:order_id>/details', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager", "FactoryManager")
+@role_required('Admin', "OrderManager","Designer", "FactorySupervisor")
 def get_order_details_api(order_id):
     """
     API endpoint to get detailed information for a single order for the modal.
@@ -59,7 +59,7 @@ def get_order_details_api(order_id):
 @production_bp.route('/api/orders/<int:order_id>/update-production-status', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "FactoryManager")
+@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor")
 def update_production_status_api(order_id):
     """
     API endpoint to update an order's production status (stage, progress, notes).
@@ -78,7 +78,7 @@ def update_production_status_api(order_id):
 @production_bp.route('/save-job-metrics', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "FactoryManager")
+@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor")
 def save_job_metrics():
     """
     Save job metrics for an order.

@@ -4,10 +4,11 @@ from flask import request , jsonify , redirect , url_for , render_template , fla
 from flask_login import login_required
 from src.utils.decorators import role_required
 from src.orders.controller import get_orders
-
+from flask_jwt_extended import jwt_required
 @invoice_bp.route('/')
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def get_invoice_list():
     """
     Endpoint to retrieve a list of invoices with pagination and optional search/status filters.
@@ -39,7 +40,8 @@ def get_invoice_list():
 
 @invoice_bp.route('/', methods=["POST"])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def post_generate_invoice_file():
     if request.content_type == 'application/json':
         data = request.get_json()
@@ -78,6 +80,9 @@ def post_generate_invoice_file():
         return jsonify({"success": False, "message": f"Invalid input: {e}"}), 400
 
 @invoice_bp.route('/download', methods=['POST'])
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def get_download_invoice():
     invoice_id = request.form.get('invoice_id')
     file_type = request.form.get('file_type')
@@ -100,6 +105,8 @@ def get_download_invoice():
 
 @invoice_bp.route('/<invoice_id>')
 @login_required
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def invoice_view(invoice_id):
     """
     Get a specific invoice by its ID.
@@ -113,12 +120,15 @@ def invoice_view(invoice_id):
 
 
 @invoice_bp.route('/send/<int:invoice_id>', methods=['POST'])
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def post_send_invoice(invoice_id):
     return send_invoice(invoice_id)
 
 @invoice_bp.route('/export', methods=['GET'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
 def export_invoices():
     """
     Export all invoices to a file.

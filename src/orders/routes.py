@@ -15,7 +15,7 @@ import os
 @order_bp.route('/')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager", 'Designer')
 def order_list():
     # Get pagination parameters from URL
     page = request.args.get('page', 1, type=int)
@@ -46,7 +46,7 @@ def order_list():
 @order_bp.route('/', methods=['GET', 'POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def create_order():
     if request.method == 'POST':
         try:
@@ -128,7 +128,7 @@ def create_order():
 @order_bp.route('/<id>')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager") 
+@role_required('Admin', "OrderManager" , 'Designer') 
 def get_order_id(id):
     """
     Get a specific order by its ID.
@@ -143,7 +143,7 @@ def get_order_id(id):
 @order_bp.route('/<id>', methods=['DELETE'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def delete_order(id):
     """
     Delete an order by its ID.
@@ -169,7 +169,7 @@ def delete_order(id):
 @order_bp.route('/<id>', methods=['PUT', 'PATCH'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def update_order(id):
     """
     Update an existing order with the provided form data.
@@ -202,7 +202,7 @@ def update_order(id):
 @order_bp.route('/<id>/duplicate', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def duplicate_order_route(id):
     """
     Duplicate an existing order with a new ID.
@@ -229,7 +229,7 @@ def duplicate_order_route(id):
 @order_bp.route('/export/excel')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def export_orders_excel():
     """
     Export orders to an Excel file.
@@ -256,7 +256,7 @@ def export_orders_excel():
 @order_bp.route('/<int:order_id>/images', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def upload_image(order_id):
     """
     Upload an image for an order.
@@ -281,7 +281,7 @@ def upload_image(order_id):
 @order_bp.route('/<int:order_id>/images', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def get_images(order_id):
     """
     Get all images for an order.
@@ -299,7 +299,7 @@ def get_images(order_id):
 @order_bp.route('/images/<int:image_id>', methods=['DELETE'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , "Designer")
 def delete_image(image_id):
     """
     Delete an order image.
@@ -317,7 +317,7 @@ def delete_image(image_id):
 @order_bp.route('/images/<int:image_id>', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager")
+@role_required('Admin', "OrderManager" , 'Designer')
 def serve_image(image_id):
     """
     Serve an order image.
