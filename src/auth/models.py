@@ -24,11 +24,19 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     role = db.relationship('Role', backref='users')
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-        
+    
+    @property
+    def password(self):
+        raise AttributeError("Password is write‐only")
+
+    @password.setter
+    def password(self, plaintext):
+        """Hashes on assignment to .password"""
+        self.password_hash = generate_password_hash(plaintext)
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
     def get_role(self):
         return self.role
 

@@ -49,11 +49,12 @@ def create_app(config_obj='config.Config'):
     from src.orders.models import Order
     from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
 
+    from src.seeders import run_seeds
     with app.app_context():
         db.create_all()
+        run_seeds()
 
-    from src.seeders import seed_roles
-    app.cli.add_command(seed_roles)
+
 
     return app
 
