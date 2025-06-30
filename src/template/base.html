@@ -87,8 +87,8 @@
                             مهمان
                         {% endif %}!
                     </h2>
-                    <p>{{ "{{ moment().format('dddd، D MMMM YYYY') }}" }}</p>
-                </div>
+                <p>{{ now|to_persian_date }}</p>
+               </div>
                 <div class="user-role-badge">
                     {% if current_user.is_authenticated %}
                         {{ current_user.role.name if current_user.role else 'کاربر' }}

@@ -11,3 +11,5 @@ python-dotenv
 flask-seeder
 sqlalchemyseed 
 sqlalchemy_seeder
+jdatetime
+dateutils 
