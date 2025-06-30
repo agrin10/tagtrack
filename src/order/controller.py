@@ -1,5 +1,5 @@
 from src import db
-from src.orders.models import Order, OrderImage
+from src.order.models import Order, OrderImage
 from flask_login import current_user
 from datetime import datetime, date
 from typing import Tuple, Dict, Any, List
@@ -275,7 +275,6 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
         print("Changes committed successfully")
         
         updated_order = order.to_dict()
-        print("Updated order data:", updated_order)
         
         return True, {
             "message": "Order updated successfully",

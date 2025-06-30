@@ -2,12 +2,12 @@ from src.production import production_bp
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
 from flask import render_template, redirect, jsonify, request, flash, url_for
-from src.orders.controller import get_orders
+from src.order.controller import get_orders
 from src.production.models import JobMetric
 from flask_jwt_extended import jwt_required
 from src.production.controller import get_job_metrics_for_order, save_job_metrics_for_order, get_order_details_for_modal, update_order_production_status
 
-@production_bp.route('/factory-processing')
+@production_bp.route('/')
 @login_required
 @jwt_required()
 @role_required('Admin', "OrderManager" ,'Designer' , "FactorySupervisor")
@@ -43,7 +43,7 @@ def factory_processing():
                          search=search,
                          status=status)
 
-@production_bp.route('/api/orders/<int:order_id>/details', methods=['GET'])
+@production_bp.route('/orders/<int:order_id>/details', methods=['GET'])
 @login_required
 @jwt_required()
 @role_required('Admin', "OrderManager","Designer", "FactorySupervisor")
@@ -56,7 +56,7 @@ def get_order_details_api(order_id):
         return jsonify(response), 200
     return jsonify(response), 404 if "Order not found" in response.get("error", "") else 400
 
-@production_bp.route('/api/orders/<int:order_id>/update-production-status', methods=['POST'])
+@production_bp.route('/orders/<int:order_id>/update-production-status', methods=['POST'])
 @login_required
 @jwt_required()
 @role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor")

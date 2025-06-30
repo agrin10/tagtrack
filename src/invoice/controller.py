@@ -1,10 +1,10 @@
 from flask import render_template, request, jsonify, redirect, url_for
-from src.invoices.models import Payment
+from src.invoice.models import Payment
 from src import db
 from datetime import datetime
 from typing import Tuple, Dict, Any
 import uuid
-from src.orders.models import Order
+from src.order.models import Order
 import io
 from flask import send_file
 from reportlab.lib.pagesizes import A4

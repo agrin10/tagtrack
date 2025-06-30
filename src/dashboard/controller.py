@@ -1,10 +1,10 @@
-from src.orders.models import Order
+from src.order.models import Order
 from src.auth.models import User
 from src import db
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
-from src.invoices.models import Payment  # Make sure this import is correct
+from src.invoice.models import Payment  # Make sure this import is correct
 
 
 def get_dashboard_data() -> Dict[str, Any]:

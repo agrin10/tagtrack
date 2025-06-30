@@ -1,9 +1,9 @@
-from src.invoices import invoice_bp
-from src.invoices.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all
+from src.invoice import invoice_bp
+from src.invoice.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all
 from flask import request , jsonify , redirect , url_for , render_template , flash 
 from flask_login import login_required
 from src.utils.decorators import role_required
-from src.orders.controller import get_orders
+from src.order.controller import get_orders
 from flask_jwt_extended import jwt_required
 @invoice_bp.route('/')
 @login_required

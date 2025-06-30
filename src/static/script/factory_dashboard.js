@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadOrderDetails(orderId) {
         try {
-            const response = await fetch(`/api/orders/${orderId}/details`);
+            const response = await fetch(`/factory/orders/${orderId}/details`);
             if (!response.ok) {
                 throw new Error('Failed to load order details');
             }
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Collect production steps data from the modal
             payload.production_steps = collectProductionStepsFromModal();
 
-            const response = await fetch(`/api/orders/${orderId}/update-production-status`, {
+            const response = await fetch(`/factory/orders/${orderId}/update-production-status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

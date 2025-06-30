@@ -1,5 +1,5 @@
-from src.orders import order_bp
-from src.orders.controller import (
+from src.order import order_bp
+from src.order.controller import (
     add_order, get_orders, get_order_by_id, delete_order_by_id,
     update_order_id, duplicate_order, generate_excel_report,
     upload_order_image, delete_order_image, get_order_images
@@ -7,7 +7,7 @@ from src.orders.controller import (
 from flask import redirect, render_template, request, jsonify, flash, url_for, send_file, current_app
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
-from src.orders.models import db, Order
+from src.order.models import db, Order
 from flask_jwt_extended import jwt_required
 import traceback
 import os
@@ -323,7 +323,7 @@ def serve_image(image_id):
     Serve an order image.
     """
     try:
-        from src.orders.models import OrderImage
+        from src.order.models import OrderImage
         image = OrderImage.query.get(image_id)
         if not image:
             return jsonify({"error": "Image not found"}), 404
