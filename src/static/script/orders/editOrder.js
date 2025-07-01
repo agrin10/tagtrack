@@ -1,4 +1,4 @@
-import { showAlert } from './alerts.js';
+import { showAlert } from '../utils/alert.js';
 import { previewEditImage } from './imagePreview.js';
 
 export function initEditOrder() {

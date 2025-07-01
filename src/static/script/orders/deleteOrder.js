@@ -1,4 +1,4 @@
-import { showAlert } from './alerts.js';
+import { showAlert } from '../utils/alert.js';
 
 export function initDeleteOrder() {
     let orderToDelete = null;
