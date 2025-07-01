@@ -1,0 +1,88 @@
+[
+  {
+    "target_class": "src.auth.models:User",
+    "data": 
+      {
+        "username": "admin",
+        "password": "admin",
+        "!refs": {
+          "role": {
+            "target_class": "src.auth.models:Role",
+            "criteria": {
+              "name": "Admin"
+            }
+          }
+        }
+      }
+    
+  },
+  {
+    "target_class": "src.auth.models:User",
+    "data": 
+      {
+        "username": "order_manager",
+        "password": "order_manager",
+        "!refs": {
+          "role": {
+            "target_class": "src.auth.models:Role",
+            "criteria": {
+              "name": "OrderManager"
+            }
+          }
+        }
+      }
+    
+  },
+  
+  {    "target_class": "src.auth.models:User",
+    "data": 
+      {
+        "username": "designer",
+        "password": "designer",
+        "!refs": {
+          "role": {
+            "target_class": "src.auth.models:Role",
+            "criteria": {
+              "name": "Designer"
+            }
+          }
+        }
+      }
+    
+  },
+  
+  {
+    "target_class": "src.auth.models:User",
+    "data": 
+      {
+        "username": "factory_supervisor",
+        "password": "factory_supervisor",
+        "!refs": {
+          "role": {
+            "target_class": "src.auth.models:Role",
+            "criteria": {
+              "name": "FactorySupervisor"
+            }
+          }
+        }
+      }
+    
+  },
+  {
+    "target_class": "src.auth.models:User",
+    "data": 
+      {
+        "username": "invoice_clerk",
+        "password": "invoice_clerk",
+        "!refs": {
+          "role": {
+            "target_class": "src.auth.models:Role",
+            "criteria": {
+              "name": "InvoiceClerk"
+            }
+          }
+        }
+      }
+    
+  }
+]
