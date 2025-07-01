@@ -8,8 +8,12 @@ Flask_SocketIO
 Flask_Logging
 Flask-Login 
 python-dotenv
-flask-seeder
-sqlalchemyseed 
-sqlalchemy_seeder
+# flask-seeder
+sqlalchemy-seeder
+openpyxl
+reportlab
+python-bidi
+arabic-reshaper
+cryptography
 jdatetime
 dateutils 

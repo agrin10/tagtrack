@@ -1,0 +1,39 @@
+
+services:
+  db:
+    image: docker.arvancloud.ir/mysql
+    container_name: AM_db
+    environment:
+      MYSQL_DATABASE: AM_db
+      MYSQL_USER: AM_user
+      MYSQL_PASSWORD: 'M|W(Y1D49Btd5X3S'
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      retries: 5
+      timeout: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: AM_app
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    ports:
+      - "80:80"
+    environment:
+      FLASK_APP: src/app.py
+      FLASK_ENV: development
+      DATABASE_URL: mysql+pymysql://AM_user:M|W(Y1D49Btd5X3S@db:3306/AM_db
+    command: flask run --host=0.0.0.0 --port=80
+
+volumes:
+  db_data:

@@ -6,6 +6,8 @@ from flask_jwt_extended import JWTManager
 from importlib import import_module
 import os , dotenv
 
+
+
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
@@ -29,32 +31,15 @@ def create_app(config_obj='config.Config'):
     jwt.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
-
-    # from src.auth.routes import auth_bp
-    # app.register_blueprint(auth_bp, url_prefix='/auth')
-
-    # from src.orders.routes import order_bp
-    # app.register_blueprint(order_bp, url_prefix='/orders')
-    
-    # from src.dashboard.routes import dashboard_bp
-    # app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
-
-    # from src.production.routes import production_bp
-    # app.register_blueprint(production_bp , url_perfix='/factory')
-
-    # from src.invoices.routes import invoice_bp
-    # app.register_blueprint(invoice_bp, url_prefix='/invoice')
-
     from src.auth.models import User, Role
     from src.order.models import Order
     from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
+    from src.invoice.models import Payment
 
+    from src.seeders import run_seeds
     with app.app_context():
         db.create_all()
-
-    from src.seeders import seed_roles
-    app.cli.add_command(seed_roles)
-
+        run_seeds()
 
     register_blueprint(app)
 
@@ -78,3 +63,5 @@ def register_blueprint(app):
         import_module(f'src.{module}.routes')
 
         app.register_blueprint(getattr(blueprint_module, blueprint_name), url_prefix=url_prefixes[module])
+
+
