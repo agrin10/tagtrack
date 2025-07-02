@@ -32,7 +32,7 @@ def create_app(config_obj='config.Config'):
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     from src.auth.models import User, Role
-    from src.order.models import Order
+    from src.order.models import Order , OrderFile , OrderValue
     from src.production.models import Machine, JobMetric, ProductionStepLog, ProductionStepEnum
     from src.invoice.models import Payment
 

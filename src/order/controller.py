@@ -1,5 +1,5 @@
 from src import db
-from src.order.models import Order, OrderImage
+from src.order.models import Order, OrderImage, OrderValue , OrderFile
 from flask_login import current_user
 from datetime import datetime, date
 from typing import Tuple, Dict, Any, List
@@ -11,6 +11,8 @@ import uuid
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+import re
+import uuid
 
 # Add these constants at the top of the file
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -109,10 +111,48 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
 
         # Add to database
         db.session.add(new_order)
-        db.session.commit()
+        db.session.flush()
 
-        # Refresh the order to get the database-generated values
-        db.session.refresh(new_order)
+        # --- Save Order Values ---
+        values = form_data.get('values[]') or form_data.get('values')
+        if values:
+            # If values is a string (single value), make it a list
+            if isinstance(values, str):
+                values = [values]
+            for idx, value in enumerate(values, 1):
+                order_value = OrderValue(order_id=new_order.id, value_index=idx, value=value)
+                db.session.add(order_value)
+        
+        if files:
+            file_display_names = form_data.get('file_display_names[]') or form_data.get('file_display_names')
+            order_files = files.getlist('order_files[]') if 'order_files[]' in files else files.getlist('order_files')
+            if file_display_names and order_files:
+                # Ensure both are lists
+                if isinstance(file_display_names, str):
+                    file_display_names = [file_display_names]
+                for idx, file in enumerate(order_files):
+                    if file and file.filename:
+                        display_name = file_display_names[idx] if idx < len(file_display_names) else ""
+                        original_filename = secure_filename(file.filename)
+                        file_ext = original_filename.rsplit('.', 1)[-1].lower()
+                        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+                        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+                        file.save(file_path)
+                        file_size = os.path.getsize(file_path)
+                        mime_type = file.content_type
+                        order_file = OrderFile(
+                            order_id=new_order.id,
+                            display_name=display_name,
+                            filename=unique_filename,
+                            original_filename=original_filename,
+                            file_path=file_path,
+                            file_size=file_size,
+                            mime_type=mime_type,
+                            uploaded_by=current_user.id,
+                        )
+                        db.session.add(order_file)
+        db.session.commit()
+        print(f"Order {new_order.id} created successfully with form number {new_order.form_number}")
 
         # Handle image uploads if any
         if files and 'images' in files:
@@ -511,7 +551,7 @@ def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
         _ensure_upload_folder()
 
         # Generate unique filename
-        file_ext = original_filename.rsplit('.', 1)[1].lower()
+        file_ext = original_filename.rsplit('.', 1)[-1].lower()
         unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
         
         # Save file
