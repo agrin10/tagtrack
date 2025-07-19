@@ -22,5 +22,11 @@
         "data": {
             "name": "InvoiceClerk"
         }
+    },
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "Designer"
+        }
     }
 ]
