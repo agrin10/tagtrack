@@ -120,8 +120,8 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             if isinstance(values, str):
                 values = [values]
             for idx, value in enumerate(values, 1):
-                order_value = OrderValue(order_id=new_order.id, value_index=idx, value=value)
-                db.session.add(order_value)
+                if value and str(value).strip() != "":
+                    db.session.add(OrderValue(order_id=new_order.id, value_index=idx, value=value))
         
         if files:
             file_display_names = form_data.get('file_display_names[]') or form_data.get('file_display_names')
@@ -143,8 +143,8 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                         order_file = OrderFile(
                             order_id=new_order.id,
                             display_name=display_name,
-                            filename=unique_filename,
-                            original_filename=original_filename,
+                            file_name=unique_filename,
+                            # original_filename=original_filename,
                             file_path=file_path,
                             file_size=file_size,
                             mime_type=mime_type,

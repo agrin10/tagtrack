@@ -1,3 +1,4 @@
+
 from src.order import order_bp
 from src.order.controller import (
     add_order, get_orders, get_order_by_id, delete_order_by_id,
@@ -76,6 +77,8 @@ def create_order():
                         key: value if value != '' else None 
                         for key, value in request.form.items()
                     }
+                    # Ensure all values for 'values[]' are captured as a list
+                    form_data['values[]'] = request.form.getlist('values[]')
                     print("Parsed form data:", form_data)
                 except Exception as e:
                     print("Error parsing form data:", str(e))

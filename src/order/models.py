@@ -80,6 +80,8 @@ class Order(db.Model):
     production_step_logs = db.relationship('ProductionStepLog', backref='order', lazy=True, cascade="all, delete-orphan")
     payments = db.relationship('Payment', back_populates='order', lazy=True)
 
+    values = db.relationship('OrderValue', back_populates='order', lazy=True, cascade='all, delete-orphan')
+    files = db.relationship('OrderFile', back_populates='order', lazy=True, cascade='all, delete-orphan')
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -124,6 +126,8 @@ class Order(db.Model):
             "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
             "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {},
             "invoiced": self.invoiced,
+            "order_values": sorted([v.to_dict() for v in self.values], key=lambda x: x['value_index']) if self.values else [],
+            "order_files": [f.to_dict() for f in self.files] if self.files else [],
         }
 
 
@@ -140,7 +144,7 @@ class OrderFile(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     display_name = db.Column(db.String(255), nullable=True)
     # Relationships
-    order = db.relationship('Order', backref=db.backref('files', lazy=True, cascade='all, delete-orphan'))
+    order = db.relationship('Order', back_populates='files')
     uploader = db.relationship('User', backref='uploaded_files')
 
     def to_dict(self):
@@ -153,6 +157,7 @@ class OrderFile(db.Model):
             'mime_type': self.mime_type,
             'uploaded_by': self.uploaded_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+    
             'display_name': self.display_name,
         }
     
@@ -164,7 +169,7 @@ class OrderValue(db.Model):
     value_index = db.Column(db.Integer, nullable=True)  # 1-8
     value = db.Column(db.String(255), nullable=True)
 
-    order = db.relationship('Order', backref=db.backref('values', lazy=True, cascade='all, delete-orphan'))
+    order = db.relationship('Order', back_populates='values')
 
     def to_dict(self):
         return {
