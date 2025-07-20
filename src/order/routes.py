@@ -11,7 +11,7 @@ from src.utils.decorators import role_required
 from src.order.models import db, Order
 from flask_jwt_extended import jwt_required
 import traceback
-import os
+import os , logging
 
 @order_bp.route('/')
 @login_required
@@ -181,14 +181,17 @@ def update_order(id):
         if request.is_json:
             form_data = request.get_json()
             print("Received JSON data:", form_data)
+            logging.info(f"Received JSON data: {form_data}")
         else:
             form_data = {
                 key: value if value != '' else None 
                 for key, value in request.form.items()
             }
             print("Received form data:", form_data)
+            logging.info(f"Received form data: {form_data}")
             
         print(f'Processing update for order {id} with data:', form_data)
+        logging.info(f'Processing update for order {id} with data:', form_data)
         success, response = update_order_id(id, form_data)
         
         if success:

@@ -306,6 +306,30 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
             else:
                 print(f"Field {key} not found in Order model")
         
+        # --- PATCH-like update for Order Values ---
+        values = (
+            form_data.get('edit-values[]')
+            or form_data.get('edit-values')
+            or form_data.get('values[]')
+            or form_data.get('values')
+        )
+        if values:
+            if isinstance(values, str):
+                values = [values]
+            values = list(values)
+            while len(values) < 8:
+                values.append("")
+            for idx, value in enumerate(values, 1):
+                order_value = OrderValue.query.filter_by(order_id=order.id, value_index=idx).first()
+                if value and str(value).strip() != "":
+                    if order_value:
+                        order_value.value = value
+                    else:
+                        db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
+                else:
+                    if order_value:
+                        db.session.delete(order_value)
+        
         # Update timestamps
         order.updated_at = datetime.utcnow()
         print("Updated timestamps")

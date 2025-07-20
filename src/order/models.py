@@ -91,6 +91,9 @@ class Order(db.Model):
 
     def to_dict(self):
         """Convert order to dictionary for JSON response"""
+        # Build a dict of index: value from order_values (or values)
+        value_dict = {v.value_index: v.value for v in self.values}
+        values_list = [value_dict.get(i + 1, "") for i in range(8)]
         return {
             "id": self.id,
             "form_number": self.form_number,
@@ -126,7 +129,7 @@ class Order(db.Model):
             "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
             "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {},
             "invoiced": self.invoiced,
-            "order_values": sorted([v.to_dict() for v in self.values], key=lambda x: x['value_index']) if self.values else [],
+            "values": values_list,
             "order_files": [f.to_dict() for f in self.files] if self.files else [],
         }
 

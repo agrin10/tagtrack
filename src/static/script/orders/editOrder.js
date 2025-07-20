@@ -27,6 +27,7 @@ export function initEditOrder() {
                 .then(data => {
                     if (!data.order) throw new Error('Order data not found');
                     const order = data.order;
+                    console.log(data);
                     document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
                     document.getElementById('edit_form_number').value = order.form_number || '';
                     document.getElementById('edit_customer_name').value = order.customer_name || '';
@@ -49,6 +50,13 @@ export function initEditOrder() {
                     document.getElementById('edit_office_notes').value = order.office_notes || '';
                     document.getElementById('edit_factory_notes').value = order.factory_notes || '';
                     document.getElementById('edit_customer_note_to_office').value = order.customer_note_to_office || '';
+                    // Populate Order Values (مقادیر)
+                    const valueInputs = document.querySelectorAll('input[name="edit-values[]"]');
+                    if (order.values && Array.isArray(order.values)) {
+                        valueInputs.forEach((input, idx) => {
+                            input.value = order.values[idx] || '';
+                        });
+                    }
                     if (order.created_at) {
                         const createdDate = new Date(order.created_at);
                         const year = createdDate.getFullYear();
@@ -111,12 +119,17 @@ export function initEditOrder() {
         const submitBtn = this.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        const data = {};
+        // Collect all edit-values[] as an array
+        const valueInputs = this.querySelectorAll('input[name="edit-values[]"]');
+        data['edit-values[]'] = Array.from(valueInputs).map(input => input.value);
+        // Collect other fields as before, skipping edit-values[]
         const formFields = Array.from(this.elements).filter(element => 
             element.name && 
             element.name !== 'images' && 
-            element.type !== 'file'
+            element.type !== 'file' &&
+            element.name !== 'edit-values[]'
         );
-        const data = {};
         formFields.forEach(element => {
             if (element.name === 'created_at' && element.value) {
                 const date = new Date(element.value);
@@ -125,6 +138,8 @@ export function initEditOrder() {
                 data[element.name] = element.value === '' ? null : element.value;
             }
         });
+        console.log(data);
+        
         fetch(this.action, {
             method: 'PATCH',
             headers: {

@@ -141,14 +141,14 @@
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
-                                                    <td><input type="text" class="form-control form-control-sm text-center" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
+                                                    <td><input type="text" class="form-control form-control-sm text-center" name="edit-values[]" placeholder="مقدار"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -167,14 +167,32 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
-                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
-                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
-                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
-                                                <tr><td><input type="text" class="form-control form-control-sm"></td><td><input type="file" class="form-control form-control-sm"></td></tr>
+                                                <tr>
+                                                    <td>
+                                                        <a href="/app/src/static/uploads/orders/filename.xlsx" target="_blank">3232</a>
+                                                    </td>
+
+                                                </tr>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" name="edit-file_display_names[]"></td>
+                                                    <td><input type="file" class="form-control form-control-sm" name="edit-order_files[]"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" name="edit-file_display_names[]"></td>
+                                                    <td><input type="file" class="form-control form-control-sm" name="edit-order_files[]"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" name="edit-file_display_names[]"></td>
+                                                    <td><input type="file" class="form-control form-control-sm" name="edit-order_files[]"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" name="edit-file_display_names[]"></td>
+                                                    <td><input type="file" class="form-control form-control-sm" name="edit-order_files[]"></td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                     </div>
+                                    <div id="edit-order-files-container"></div>
                                 </div>
                             </div>
                         </div>
@@ -358,6 +376,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
