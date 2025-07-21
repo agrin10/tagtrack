@@ -26,9 +26,7 @@ export function initEditOrder() {
                 })
                 .then(data => {
                     if (!data.order) throw new Error('Order data not found');
-                    const order = data.order;
-                    console.log(data);
-                    document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
+                    const order = data.order;                    document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
                     document.getElementById('edit_form_number').value = order.form_number || '';
                     document.getElementById('edit_customer_name').value = order.customer_name || '';
                     document.getElementById('edit_sketch_name').value = order.sketch_name || '';
@@ -56,6 +54,31 @@ export function initEditOrder() {
                         valueInputs.forEach((input, idx) => {
                             input.value = order.values[idx] || '';
                         });
+                    }
+                    // Populate display name inputs for files
+                    const displayInputs = document.querySelectorAll('input[name="edit-file_display_names[]"]');
+                    if (order.order_files && Array.isArray(order.order_files)) {
+                        displayInputs.forEach((input, idx) => {
+                            input.value = order.order_files[idx] ? (order.order_files[idx].display_name || '') : '';
+                        });
+                    }
+                    // Populate file rows in the table with existing file info
+                    const fileRows = document.querySelectorAll('input[name="edit-file_display_names[]"]');
+                    const fileIdInputs = document.querySelectorAll('input[name="existing_file_ids[]"]');
+                    const fileInfoSpans = document.querySelectorAll('.existing-file-info');
+                    if (order.order_files && Array.isArray(order.order_files)) {
+                        for (let i = 0; i < fileRows.length; i++) {
+                            const file = order.order_files[i];
+                            if (file) {
+                                fileRows[i].value = file.display_name || '';
+                                fileIdInputs[i].value = file.id || '';
+                                fileInfoSpans[i].innerHTML = `<a href="/orders/files/${file.id}" target="_blank">${file.display_name || file.file_name}</a> <span>(${Math.round(file.file_size / 1024)} KB)</span>`;
+                            } else {
+                                fileRows[i].value = '';
+                                fileIdInputs[i].value = '';
+                                fileInfoSpans[i].innerHTML = '';
+                            }
+                        }
                     }
                     if (order.created_at) {
                         const createdDate = new Date(order.created_at);
@@ -119,34 +142,31 @@ export function initEditOrder() {
         const submitBtn = this.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-        const data = {};
-        // Collect all edit-values[] as an array
-        const valueInputs = this.querySelectorAll('input[name="edit-values[]"]');
-        data['edit-values[]'] = Array.from(valueInputs).map(input => input.value);
-        // Collect other fields as before, skipping edit-values[]
-        const formFields = Array.from(this.elements).filter(element => 
-            element.name && 
-            element.name !== 'images' && 
-            element.type !== 'file' &&
-            element.name !== 'edit-values[]'
-        );
-        formFields.forEach(element => {
-            if (element.name === 'created_at' && element.value) {
-                const date = new Date(element.value);
-                data[element.name] = date.toISOString();
-            } else {
-                data[element.name] = element.value === '' ? null : element.value;
+
+        // Ensure all display name and file ID fields are present
+        const displayInputs = this.querySelectorAll('input[name="edit-file_display_names[]"]');
+        const fileIdInputs = this.querySelectorAll('input[name="existing_file_ids[]"]');
+        const fileInputs = this.querySelectorAll('input[type="file"][name="edit-order_files[]"]');
+        let fileDisplayNameMissing = false;
+        fileInputs.forEach((fileInput, idx) => {
+            if (fileInput.files && fileInput.files.length > 0) {
+                if (!displayInputs[idx] || !displayInputs[idx].value.trim()) {
+                    fileDisplayNameMissing = true;
+                }
             }
         });
-        console.log(data);
-        
+        displayInputs.forEach(input => {
+            if (input.value === undefined || input.value === null) input.value = "";
+        });
+        fileIdInputs.forEach(input => {
+            if (input.value === undefined || input.value === null) input.value = "";
+        });
+
+        const formData = new FormData(this); // Includes all fields and files
+
         fetch(this.action, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(data)
+            body: formData
         })
         .then(async response => {
             const responseData = await response.json();

@@ -132,7 +132,7 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                     file_display_names = [file_display_names]
                 for idx, file in enumerate(order_files):
                     if file and file.filename:
-                        display_name = file_display_names[idx] if idx < len(file_display_names) else ""
+                        display_name = file_display_names[idx] if idx < len(file_display_names) and file_display_names[idx] else ""
                         original_filename = secure_filename(file.filename)
                         file_ext = original_filename.rsplit('.', 1)[-1].lower()
                         unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
@@ -144,7 +144,6 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                             order_id=new_order.id,
                             display_name=display_name,
                             file_name=unique_filename,
-                            # original_filename=original_filename,
                             file_path=file_path,
                             file_size=file_size,
                             mime_type=mime_type,
@@ -152,7 +151,6 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                         )
                         db.session.add(order_file)
         db.session.commit()
-        print(f"Order {new_order.id} created successfully with form number {new_order.form_number}")
 
         # Handle image uploads if any
         if files and 'images' in files:
@@ -257,20 +255,17 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
         print(f"Error deleting order {order_id}: {str(e)}")
         return False, {"error": f"Failed to delete order: {str(e)}"}
     
-def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     """
     Update an existing order with the provided form data.
     """
     try:
-        print(f"Starting update for order {order_id}")
-        print("Received form data:", form_data)
         
         order = Order.query.get(order_id)
         if not order:
             print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
         
-        print("Found order:", order.to_dict())
         
         # Update fields from form_data
         for key, value in form_data.items():
@@ -281,7 +276,6 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
                     try:
                         # Convert ISO string to datetime
                         value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                        print(f"Converted created_at to datetime: {value}")
                     except ValueError as e:
                         print(f"Error converting created_at: {str(e)}")
                         return False, {"error": f"Invalid created_at datetime format: {str(e)}"}
@@ -329,6 +323,91 @@ def update_order_id(order_id: int, form_data: Dict[str, Any]) -> Tuple[bool, Dic
                 else:
                     if order_value:
                         db.session.delete(order_value)
+        
+        # Always update display names for all file IDs sent, even if no new file is uploaded
+        file_display_names = form_data.get('edit-file_display_names[]') or []
+        existing_file_ids = form_data.get('existing_file_ids[]') or []
+        for idx, file_id in enumerate(existing_file_ids):
+            if file_id:
+                order_file = OrderFile.query.get(int(file_id))
+                if order_file:
+                    display_name = file_display_names[idx] if idx < len(file_display_names) else ""
+                    order_file.display_name = display_name
+
+        # --- PATCH-like update for Order Files (stepwise with logging) ---
+        if files:
+            file_display_names = form_data.get('edit-file_display_names[]') or form_data.get('edit-file_display_names')
+            if not file_display_names:
+                file_display_names = []
+            existing_file_ids = form_data.get('existing_file_ids[]') or form_data.get('existing_file_ids')
+            if not existing_file_ids:
+                existing_file_ids = []
+            order_files = files.getlist('edit-order_files[]') if 'edit-order_files[]' in files else files.getlist('edit-order_files')
+            # Ensure all are lists
+            if isinstance(file_display_names, str):
+                file_display_names = [file_display_names]
+            if isinstance(existing_file_ids, str):
+                existing_file_ids = [existing_file_ids]
+            print("edit-order_files[]:", order_files)
+            print("edit-file_display_names[]:", file_display_names)
+            print("existing_file_ids[]:", existing_file_ids)
+            # Ensure all lists are the same length as order_files
+            max_len = max(len(order_files), len(file_display_names), len(existing_file_ids))
+            while len(file_display_names) < max_len:
+                file_display_names.append("")
+            while len(existing_file_ids) < max_len:
+                existing_file_ids.append("")
+            for idx, file in enumerate(order_files):
+                display_name = file_display_names[idx] if idx < len(file_display_names) and file_display_names[idx] else ""
+                old_file_id = existing_file_ids[idx] if idx < len(existing_file_ids) else None
+
+                if old_file_id:
+                    order_file = OrderFile.query.get(int(old_file_id))
+                    if order_file:
+                        if file and file.filename:
+                            # Delete old file from disk
+                            try:
+                                if os.path.exists(order_file.file_path):
+                                    os.remove(order_file.file_path)
+                            except Exception as e:
+                                print(f"Error deleting old file: {str(e)}")
+                            # Save new file to disk
+                            original_filename = secure_filename(file.filename)
+                            file_ext = original_filename.rsplit('.', 1)[-1].lower()
+                            unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+                            file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+                            file.save(file_path)
+                            file_size = os.path.getsize(file_path)
+                            mime_type = file.content_type
+                            # Update all fields
+                            order_file.display_name = display_name
+                            order_file.file_name = unique_filename
+                            order_file.file_path = file_path
+                            order_file.file_size = file_size
+                            order_file.mime_type = mime_type
+                            order_file.uploaded_by = current_user.id
+                        else:
+                            # Only update display name (even if it's empty)
+                            order_file.display_name = display_name
+                elif file and file.filename:
+                    # No old file, so create new record
+                    original_filename = secure_filename(file.filename)
+                    file_ext = original_filename.rsplit('.', 1)[-1].lower()
+                    unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+                    file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+                    file.save(file_path)
+                    file_size = os.path.getsize(file_path)
+                    mime_type = file.content_type
+                    order_file = OrderFile(
+                        order_id=order.id,
+                        display_name=display_name,
+                        file_name=unique_filename,
+                        file_path=file_path,
+                        file_size=file_size,
+                        mime_type=mime_type,
+                        uploaded_by=current_user.id,
+                    )
+                    db.session.add(order_file)
         
         # Update timestamps
         order.updated_at = datetime.utcnow()

@@ -44,14 +44,12 @@ export function initOrderDetails() {
                     setTextContent('detail-form-number', order.form_number);
                     setTextContent('detail-customer-name', order.customer_name);
                     setTextContent('detail-sketch-name', order.sketch_name);
-                    setTextContent('detail-file-name', order.file_name);
                     setTextContent('detail-fabric-density', order.fabric_density);
                     setTextContent('detail-fabric-code', order.fabric_cut);
                     setTextContent('detail-width', order.width ? `${order.width} cm` : null);
                     setTextContent('detail-height', order.height ? `${order.height} cm` : null);
                     setTextContent('detail-quantity', order.quantity);
                     setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
-                    setTextContent('detail-fusing-type', order.fusing_type);
                     setTextContent('detail-lamination-type', order.lamination_type);
                     setTextContent('detail-cut-type', order.cut_type);
                     setTextContent('detail-label-type', order.label_type);

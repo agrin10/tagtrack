@@ -180,29 +180,22 @@ def update_order(id):
     try:
         if request.is_json:
             form_data = request.get_json()
-            print("Received JSON data:", form_data)
-            logging.info(f"Received JSON data: {form_data}")
         else:
             form_data = {
                 key: value if value != '' else None 
                 for key, value in request.form.items()
             }
-            print("Received form data:", form_data)
-            logging.info(f"Received form data: {form_data}")
-            
-        print(f'Processing update for order {id} with data:', form_data)
-        logging.info(f'Processing update for order {id} with data:', form_data)
-        success, response = update_order_id(id, form_data)
+            # Always get all file display names and file IDs as lists
+            form_data['edit-file_display_names[]'] = request.form.getlist('edit-file_display_names[]')
+            form_data['existing_file_ids[]'] = request.form.getlist('existing_file_ids[]')
+        files = request.files if not request.is_json else None
+        success, response = update_order_id(id, form_data, files)
         
         if success:
-            print("Update successful:", response)
             return jsonify(response), 200
-        print("Update failed:", response)
         return jsonify(response), 400
     
     except Exception as e:
-        print(f"Error in update_order route: {str(e)}")
-        print("Full error details:", traceback.format_exc())
         return jsonify({"error": "An error occurred while updating the order"}), 500
 
 @order_bp.route('/<id>/duplicate', methods=['POST'])
@@ -346,3 +339,15 @@ def serve_image(image_id):
     except Exception as e:
         print(f"Error in serve_image route: {str(e)}")
         return jsonify({"error": "An error occurred while serving the image"}), 500
+
+@order_bp.route('/files/<int:file_id>', methods=['GET'])
+def serve_order_file(file_id):
+    """
+    Serve an order file by its ID.
+    """
+    from src.order.models import OrderFile
+    import os
+    file = OrderFile.query.get(file_id)
+    if not file or not os.path.exists(file.file_path):
+        return jsonify({"error": "File not found"}), 404
+    return send_file(file.file_path, as_attachment=False)
