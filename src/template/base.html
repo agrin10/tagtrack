@@ -1,3 +1,4 @@
+{% set current_endpoint = request.endpoint %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -22,33 +23,30 @@
                 <ul class="nav flex-column">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link active" href="{{url_for('index')}}"><i class="fas fa-tachometer-alt"></i> داشبورد</a>
+                            <a class="nav-link {% if current_endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}"><i class="fas fa-tachometer-alt"></i> داشبورد</a>
                         </li>
                         
                         {% if current_user.role.name in ['Admin', 'OrderManager'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{url_for('order.order_list')}}"><i class="fas fa-clipboard-list"></i> مدیریت سفارشات</a>
+                            <a class="nav-link {% if current_endpoint == 'order.order_list' %}active{% endif %}" href="{{ url_for('order.order_list') }}"><i class="fas fa-clipboard-list"></i> مدیریت سفارشات</a>
                         </li>
                         {% endif %}
 
                         {% if current_user.role.name in ['Admin', 'FactorySupervisor'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{url_for('production.factory_processing')}}"><i class="fas fa-industry"></i> پردازش کارخانه</a>
+                            <a class="nav-link {% if current_endpoint == 'production.factory_processing' %}active{% endif %}" href="{{ url_for('production.factory_processing') }}"><i class="fas fa-industry"></i> پردازش کارخانه</a>
                         </li>
                         {% endif %}
 
                         {% if current_user.role.name in ['Admin', 'InvoiceClerk'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{url_for('invoice.get_invoice_list')}}"><i class="fas fa-file-invoice-dollar"></i> فاکتورها</a>
+                            <a class="nav-link {% if current_endpoint == 'invoice.get_invoice_list' %}active{% endif %}" href="{{ url_for('invoice.get_invoice_list') }}"></i> فاکتورها</a>
                         </li>
                         {% endif %}
 
                         {% if current_user.role.name == 'Admin' %}
                         <li class="nav-item">
                             <a class="nav-link" href="#"><i class="fas fa-chart-bar"></i> گزارشات</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-users-cog"></i> مدیریت کاربران</a>
                         </li>
                         {% endif %}
                     {% else %}

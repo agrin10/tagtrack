@@ -71,7 +71,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col me-2">
                             <div class="text-xs fw-bold text-info text-uppercase mb-1">درآمد</div>
-                            <div class="h5 mb-0 fw-bold text-gray-800">{{ revenue }}</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ revenue | iran_money }} <span class="text-muted" style="font-size:0.9em;">تومان</span></div>
                             <div class="text-xs text-muted">{{ revenue_change }}</div>
                         </div>
                         <div class="col-auto">

@@ -40,11 +40,11 @@
                         <tbody>
                             {% for invoice in invoices %}
                             <tr>
-                                <td>{{ invoice.order_id }}</td>
-                                <td>{{ invoice.customer_name }}</td>
-                                <td>{{ "%.2f"|format(invoice.total_price) }} تومان</td>
-                                <td>{{ invoice.invoice_number }}</td>
-                                <td>
+                                <td data-label="سفارش">{{ invoice.order_id }}</td>
+                                <td data-label="نام مشتری">{{ invoice.customer_name }}</td>
+                                <td data-label="مبلغ">{{ invoice.total_price|iran_money }} تومان</td>
+                                <td data-label="شماره فاکتور">{{ invoice.invoice_number }}</td>
+                                <td data-label="وضعیت">
                                     <span class="badge 
                                         {% if invoice.status == 'Generated' %} bg-primary
                                         {% elif invoice.status == 'Sent' %} bg-warning text-dark
@@ -122,7 +122,7 @@
                         <div class="mb-3 row align-items-center">
                             <label for="modalCreditCard" class="col-sm-4 col-form-label">کارت اعتباری</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="modalCreditCard" name="credit_card" required>
+                                <input type="text" class="form-control" id="modalCreditCard" placeholder="XXXX.XXXX.XXXX.XXXX" name="credit_card" required maxlength="19">
                             </div>
                         </div>
 
@@ -152,7 +152,7 @@
 
                         <!-- Number of Density -->
                         <div class="mb-3 row align-items-center">
-                            <label for="modalNumberOfDensity" class="col-sm-4 col-form-label">تعداد چگالی</label>
+                            <label for="modalNumberOfDensity" class="col-sm-4 col-form-label">تعداد اهار</label>
                             <div class="col-sm-8">
                                 <input type="number" class="form-control" id="modalNumberOfDensity" name="number_of_density" required>
                             </div>
@@ -160,7 +160,7 @@
 
                         <!-- Peak Quantity -->
                         <div class="mb-3 row align-items-center">
-                            <label for="modalPeakQuantity" class="col-sm-4 col-form-label">مقدار اوج</label>
+                            <label for="modalPeakQuantity" class="col-sm-4 col-form-label">تعداد پیک</label>
                             <div class="col-sm-8">
                                 <input type="number" class="form-control" id="modalPeakQuantity" name="peak_quantity" required>
                             </div>
@@ -168,7 +168,7 @@
 
                         <!-- Peak Width -->
                         <div class="mb-3 row align-items-center">
-                            <label for="modalPeakWidth" class="col-sm-4 col-form-label">عرض اوج</label>
+                            <label for="modalPeakWidth" class="col-sm-4 col-form-label">عرض</label>
                             <div class="col-sm-8">
                                 <input type="number" class="form-control" id="modalPeakWidth" name="peak_width" required>
                             </div>
@@ -176,7 +176,7 @@
 
                         <!-- Fee -->
                         <div class="mb-3 row align-items-center">
-                            <label for="modalFee" class="col-sm-4 col-form-label">هزینه</label>
+                            <label for="modalFee" class="col-sm-4 col-form-label">فی</label>
                             <div class="col-sm-8">
                                 <input type="number" step="0.01" class="form-control" id="modalFee" name="Fee" required>
                             </div>
@@ -233,5 +233,15 @@
                 invoiceModal.querySelector('#modalNotes').value = '';
             });
         });
+        document.getElementById('modalCreditCard').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, ''); // remove non-digits
+        value = value.substring(0, 16); // limit to 16 digits
+
+        // Format like XXXX.XXXX.XXXX.XXXX
+        const formatted = value.match(/.{1,4}/g)?.join('.') || '';
+        e.target.value = formatted;
+        });
+
+        
     </script>
 {% endblock %}

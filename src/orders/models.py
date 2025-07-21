@@ -67,6 +67,8 @@ class Order(db.Model):
     file_name = db.Column(db.String(255))
     customer_note_to_office = db.Column(db.Text)
     production_duration = db.Column(db.String(256), nullable=True)
+    invoiced = db.Column(db.Boolean, default=False)
+
 
     created_by_user = db.relationship('User', backref='orders_created')
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -120,6 +122,7 @@ class Order(db.Model):
             "created_by_id": self.created_by,
             "created_by_username": self.created_by_user.username if self.created_by_user else None,
             "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
-            "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {}
+            "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {},
+            "invoiced": self.invoiced,
         }
 
