@@ -208,7 +208,7 @@ def download_invoice(invoice_id, file_type):
         p.setFont("Vazir", 9)
         p.setFillColor(colors.grey)
         p.drawRightString(width - 50, 65, persian("با تشکر از خرید شما"))
-        p.drawString(50, 65, persian("تولید شده توسط سیستم فاکتور TagTrack"))
+        p.drawString(50, 65, persian("تولید شده توسط سیستم فاکتور AM"))
 
         p.showPage()
         p.save()
