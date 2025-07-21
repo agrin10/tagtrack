@@ -10,10 +10,8 @@
         <div class="row mb-3">
             <div class="col-md-6 offset-md-6">
                 <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
                     <input type="text" class="form-control" id="orderSearch" placeholder="جستجو بر اساس شماره فرم، مشتری یا نام طرح" value="{{ search if search else '' }}">
-                    <button class="btn btn-outline-secondary" type="button" onclick="searchOrders()">
-                        <i class="fas fa-search"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -68,20 +66,33 @@
         </div>
 
         <!-- صفحه‌بندی -->
-        {% if pagination and pagination.pages > 1 %}
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center mb-0">
-                {% for page_num in pagination.iter_pages() %}
-                    {% if page_num %}
-                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
-                            <a class="page-link" href="{{ url_for('production.factory_processing', page=page_num, search=search, status=status) }}">{{ page_num }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        </nav>
+            {% if pagination %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% set search_param = request.args.get('search', '') %}
+                    {% set status_param = request.args.get('status', '') %}
+
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('production.factory_processing', page=pagination.prev_num, search=search_param, status=status_param) }}" aria-label="قبلی">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('production.factory_processing', page=p, search=search_param, status=status_param) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('production.factory_processing', page=pagination.next_num, search=search_param, status=status_param) }}" aria-label="بعدی">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         {% endif %}
     </div>
 
@@ -92,11 +103,7 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='script/factory_dashboard.js') }}"></script>
 <script>
-function searchOrders() {
-    const searchQuery = document.getElementById('orderSearch').value;
-    window.location.href = "{{ url_for('production.factory_processing') }}?search=" + encodeURIComponent(searchQuery);
-}
-
+setupTableSearch('#orderSearch', '.order-card');
 // اعمال درصد پیشرفت پس از بارگذاری DOM
 document.querySelectorAll('.progress-bar').forEach(bar => {
     const progress = bar.dataset.progress;

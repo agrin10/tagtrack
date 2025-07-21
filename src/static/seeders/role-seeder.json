@@ -1,0 +1,32 @@
+[
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "Admin"
+        }
+    },
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "OrderManager"
+        }
+    },
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "FactorySupervisor"
+        }
+    },
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "InvoiceClerk"
+        }
+    },
+    {
+        "target_class": "src.auth.models:Role",
+        "data": {
+            "name": "Designer"
+        }
+    }
+]

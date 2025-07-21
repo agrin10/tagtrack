@@ -4,7 +4,7 @@ from datetime import datetime, date, timezone
 
 from src import db
 from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum
-from src.orders.models import Order
+from src.order.models import Order
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """

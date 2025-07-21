@@ -80,6 +80,8 @@ class Order(db.Model):
     production_step_logs = db.relationship('ProductionStepLog', backref='order', lazy=True, cascade="all, delete-orphan")
     payments = db.relationship('Payment', back_populates='order', lazy=True)
 
+    values = db.relationship('OrderValue', back_populates='order', lazy=True, cascade='all, delete-orphan')
+    files = db.relationship('OrderFile', back_populates='order', lazy=True, cascade='all, delete-orphan')
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -89,6 +91,9 @@ class Order(db.Model):
 
     def to_dict(self):
         """Convert order to dictionary for JSON response"""
+        # Build a dict of index: value from order_values (or values)
+        value_dict = {v.value_index: v.value for v in self.values}
+        values_list = [value_dict.get(i + 1, "") for i in range(8)]
         return {
             "id": self.id,
             "form_number": self.form_number,
@@ -124,5 +129,56 @@ class Order(db.Model):
             "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
             "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {},
             "invoiced": self.invoiced,
+            "values": values_list,
+            "order_files": [f.to_dict() for f in self.files] if self.files else [],
         }
 
+
+class OrderFile(db.Model):
+    __tablename__ = 'order_files'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(512), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    mime_type = db.Column(db.String(100), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    display_name = db.Column(db.String(255), nullable=True)
+    # Relationships
+    order = db.relationship('Order', back_populates='files')
+    uploader = db.relationship('User', backref='uploaded_files')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'file_name': self.file_name,
+            'file_path': self.file_path,
+            'file_size': self.file_size,
+            'mime_type': self.mime_type,
+            'uploaded_by': self.uploaded_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+    
+            'display_name': self.display_name,
+        }
+    
+class OrderValue(db.Model):
+    __tablename__ = 'order_values'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    value_index = db.Column(db.Integer, nullable=True)  # 1-8
+    value = db.Column(db.String(255), nullable=True)
+
+    order = db.relationship('Order', back_populates='values')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'value_index': self.value_index,
+            'value': self.value,
+        }
+    

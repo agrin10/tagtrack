@@ -14,14 +14,15 @@ def authenticate_user(username, password, remember=True):
     try:
         user = User.query.filter_by(username=username).first()
         if not user:
-            return False, {"error": "User not found"}
+            return False, {"error": "کاربر یافت نشد"}  # "User not found"
             
         if not user.check_password(password):
-            return False, {"error": "Invalid password"}
+            return False, {"error": "رمز عبور اشتباه است"}  # "Incorrect password"
             
         flask_login_user(user, remember=remember)
         return True, {
-            "message": "Login successful",
+            "message": "ورود با موفقیت انجام شد",  # "Login successful"
+            "user_id": user.id,
             "user": {
                 "username": user.username,
                 "role": user.role.name if user.role else None

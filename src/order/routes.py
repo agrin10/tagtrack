@@ -1,5 +1,6 @@
-from src.orders import order_bp
-from src.orders.controller import (
+
+from src.order import order_bp
+from src.order.controller import (
     add_order, get_orders, get_order_by_id, delete_order_by_id,
     update_order_id, duplicate_order, generate_excel_report,
     upload_order_image, delete_order_image, get_order_images
@@ -7,14 +8,15 @@ from src.orders.controller import (
 from flask import redirect, render_template, request, jsonify, flash, url_for, send_file, current_app
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
-from src.orders.models import db, Order
-import io
+from src.order.models import db, Order
+from flask_jwt_extended import jwt_required
 import traceback
-import os
+import os , logging
 
 @order_bp.route('/')
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager", 'Designer')
 def order_list():
     # Get pagination parameters from URL
     page = request.args.get('page', 1, type=int)
@@ -44,7 +46,8 @@ def order_list():
 
 @order_bp.route('/', methods=['GET', 'POST'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def create_order():
     if request.method == 'POST':
         try:
@@ -74,6 +77,8 @@ def create_order():
                         key: value if value != '' else None 
                         for key, value in request.form.items()
                     }
+                    # Ensure all values for 'values[]' are captured as a list
+                    form_data['values[]'] = request.form.getlist('values[]')
                     print("Parsed form data:", form_data)
                 except Exception as e:
                     print("Error parsing form data:", str(e))
@@ -124,6 +129,9 @@ def create_order():
     return render_template('order-list.html')
     
 @order_bp.route('/<id>')
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , 'Designer') 
 def get_order_id(id):
     """
     Get a specific order by its ID.
@@ -137,7 +145,8 @@ def get_order_id(id):
     
 @order_bp.route('/<id>', methods=['DELETE'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def delete_order(id):
     """
     Delete an order by its ID.
@@ -162,7 +171,8 @@ def delete_order(id):
         }), 500
 @order_bp.route('/<id>', methods=['PUT', 'PATCH'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def update_order(id):
     """
     Update an existing order with the provided form data.
@@ -170,31 +180,28 @@ def update_order(id):
     try:
         if request.is_json:
             form_data = request.get_json()
-            print("Received JSON data:", form_data)
         else:
             form_data = {
                 key: value if value != '' else None 
                 for key, value in request.form.items()
             }
-            print("Received form data:", form_data)
-            
-        print(f'Processing update for order {id} with data:', form_data)
-        success, response = update_order_id(id, form_data)
+            # Always get all file display names and file IDs as lists
+            form_data['edit-file_display_names[]'] = request.form.getlist('edit-file_display_names[]')
+            form_data['existing_file_ids[]'] = request.form.getlist('existing_file_ids[]')
+        files = request.files if not request.is_json else None
+        success, response = update_order_id(id, form_data, files)
         
         if success:
-            print("Update successful:", response)
             return jsonify(response), 200
-        print("Update failed:", response)
         return jsonify(response), 400
     
     except Exception as e:
-        print(f"Error in update_order route: {str(e)}")
-        print("Full error details:", traceback.format_exc())
         return jsonify({"error": "An error occurred while updating the order"}), 500
 
 @order_bp.route('/<id>/duplicate', methods=['POST'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def duplicate_order_route(id):
     """
     Duplicate an existing order with a new ID.
@@ -220,7 +227,8 @@ def duplicate_order_route(id):
 
 @order_bp.route('/export/excel')
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def export_orders_excel():
     """
     Export orders to an Excel file.
@@ -246,7 +254,8 @@ def export_orders_excel():
 
 @order_bp.route('/<int:order_id>/images', methods=['POST'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def upload_image(order_id):
     """
     Upload an image for an order.
@@ -270,6 +279,8 @@ def upload_image(order_id):
 
 @order_bp.route('/<int:order_id>/images', methods=['GET'])
 @login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def get_images(order_id):
     """
     Get all images for an order.
@@ -286,7 +297,8 @@ def get_images(order_id):
 
 @order_bp.route('/images/<int:image_id>', methods=['DELETE'])
 @login_required
-@role_required('Admin', "OrderManager")
+@jwt_required()
+@role_required('Admin', "OrderManager" , "Designer")
 def delete_image(image_id):
     """
     Delete an order image.
@@ -303,12 +315,14 @@ def delete_image(image_id):
 
 @order_bp.route('/images/<int:image_id>', methods=['GET'])
 @login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , 'Designer')
 def serve_image(image_id):
     """
     Serve an order image.
     """
     try:
-        from src.orders.models import OrderImage
+        from src.order.models import OrderImage
         image = OrderImage.query.get(image_id)
         if not image:
             return jsonify({"error": "Image not found"}), 404
@@ -325,3 +339,15 @@ def serve_image(image_id):
     except Exception as e:
         print(f"Error in serve_image route: {str(e)}")
         return jsonify({"error": "An error occurred while serving the image"}), 500
+
+@order_bp.route('/files/<int:file_id>', methods=['GET'])
+def serve_order_file(file_id):
+    """
+    Serve an order file by its ID.
+    """
+    from src.order.models import OrderFile
+    import os
+    file = OrderFile.query.get(file_id)
+    if not file or not os.path.exists(file.file_path):
+        return jsonify({"error": "File not found"}), 404
+    return send_file(file.file_path, as_attachment=False)
