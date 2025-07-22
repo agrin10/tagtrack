@@ -173,10 +173,10 @@ export function initFilters() {
         sketchFilter.addEventListener('input', filterRows);
     }
     if (dateFromFilter) {
-        dateFromFilter.addEventListener('change', () => { filterRows(); });
+        dateFromFilter.addEventListener('input', filterRows);
     }
     if (dateToFilter) {
-        dateToFilter.addEventListener('change', () => { filterRows(); });
+        dateToFilter.addEventListener('input', filterRows);
     }
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', () => { clearAllFilters(); });
@@ -190,6 +190,12 @@ export function initFilters() {
                 const bsCollapse = new bootstrap.Collapse(filterCollapse);
                 bsCollapse.hide();
             }
+        });
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            currentSearch = searchInput.value;
+            filterRows();
         });
     }
     updateFilterButton('all');
