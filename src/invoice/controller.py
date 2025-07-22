@@ -92,7 +92,7 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
         invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
 
         unit_price = peak_quantity * peak_width * Fee
-        total_price = unit_price * (cutting_cost + number_of_cuts)
+        total_price = (unit_price * cutting_cost) + number_of_cuts
 
         new_invoice = Payment(
             order_id=order_id,
