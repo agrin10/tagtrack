@@ -12,7 +12,7 @@ export function previewDetailImage(imageId, filename) {
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content shadow-lg">
                     <div class="modal-header bg-light">
-                        <h5 class="modal-title">
+                        <h5 class="modal-title" style="word-break: break-word;">
                             <i class="fas fa-image me-2"></i>${filename}
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
