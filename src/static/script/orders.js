@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const progressBar = document.getElementById('detail-status-progress');
                     const statusContainer = document.getElementById('detail-status-container');
                     
-                    let statusClass, progressWidth, statusIcon;
+                    let statusClass, progressWidth, statursIcon;
                     
                     switch(order.status) {
                         case 'Completed':
@@ -555,6 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('searchInput');
     const rows = Array.from(document.querySelectorAll('#ordersTable tbody tr'));
     const customerFilter = document.getElementById('customerFilter');
+    const sketchFilter = document.getElementById('sketchFilter');
     const dateFromFilter = document.getElementById('dateFromFilter');
     const dateToFilter = document.getElementById('dateToFilter');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
@@ -727,79 +728,55 @@ document.addEventListener('DOMContentLoaded', function () {
   
     // Enhanced filter function
     function filterRows() {
-        if (!rows.length) {
-            console.log('No rows found in the table');
-            return;
-        }
+    const searchText = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const customerText = customerFilter ? customerFilter.value.trim().toLowerCase() : '';
+    const sketchText = sketchFilter && !sketchFilter.disabled ? sketchFilter.value.trim().toLowerCase() : '';
+    const fromDate = dateFromFilter ? dateFromFilter.value : '';
+    const toDate = dateToFilter ? dateToFilter.value : '';
 
-        const searchText = currentSearch.toLowerCase();
-        const customerText = customerFilter ? customerFilter.value.toLowerCase() : '';
-        const fromDate = dateFromFilter ? dateFromFilter.value : '';
-        const toDate = dateToFilter ? dateToFilter.value : '';
+    let visibleCount = 0;
+    rows.forEach(row => {
+        // Status check
+        const badge = row.querySelector('td:nth-child(8) .badge');
+        const status = badge ? badge.textContent.trim().toLowerCase() : '';
+        const mappedStatus = mapStatusToPersian(currentStatus);
+        const statusMatch = mappedStatus === 'all' || status === mappedStatus;
 
-        console.log('Filtering with status:', currentStatus);
-  
-        let visibleCount = 0;
-        rows.forEach(row => {
-            // Status check - make it case-insensitive
-            const badge = row.querySelector('td:nth-child(8) .badge');
-            const status = badge ? badge.textContent.trim().toLowerCase() : '';
-            const mappedStatus = mapStatusToPersian(currentStatus);
-            const statusMatch = mappedStatus === 'all' || status === mappedStatus;
-  
-            // Customer name check
-            const customerCell = row.querySelector('td:nth-child(4)');
-            const customerName = customerCell ? customerCell.textContent.toLowerCase() : '';
-            const customerMatch = !customerText || customerName.includes(customerText);
-  
-            // Date checks - both created and delivery dates
-            const createdDateCell = row.querySelector('td:nth-child(2)');
-            const deliveryDateCell = row.querySelector('td:nth-child(9)');
-            
-            // Get created date from title attribute (contains full datetime)
-            const createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;
-            // Get delivery date from cell text (contains just the date)
-            const deliveryDate = deliveryDateCell ? deliveryDateCell.textContent.trim() : null;
-            
-            const dateMatch = isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate);
-            
-            if (!dateMatch) {
-                console.log('Row filtered out by date:', {
-                    customer: customerName,
-                    status: status,
-                    createdDate,
-                    deliveryDate,
-                    fromDate,
-                    toDate
-                });
-            }
-  
-            // Search text check (across all cells)
-            const text = Array.from(row.cells)
-                            .map(cell => cell.textContent.trim().toLowerCase())
-                            .join(' ');
-            const searchMatch = !searchText || text.includes(searchText);
-  
-            // Show row only if all conditions match
-            const shouldShow = statusMatch && customerMatch && dateMatch && searchMatch;
-            row.style.display = shouldShow ? '' : 'none';
-            
-            if (shouldShow) {
-                visibleCount++;
-                console.log('Row visible:', {
-                    customer: customerName,
-                    status: status,
-                    createdDate,
-                    deliveryDate,
-                    fromDate,
-                    toDate
-                });
-            }
-        });
-        
-        console.log(`Filtered results: ${visibleCount} rows visible out of ${rows.length} total rows`);
-        updateActiveFiltersCount();
+        // Sketch name check (assume sketch is in column 3)
+        const sketchCell = row.querySelector('td:nth-child(3)');
+        const sketchName = sketchCell ? sketchCell.textContent.trim().toLowerCase() : '';
+        const sketchMatch = !sketchText || sketchName.includes(sketchText);
+
+        // Customer name check (assume customer is in column 4)
+        const customerCell = row.querySelector('td:nth-child(4)');
+        const customerName = customerCell ? customerCell.textContent.trim().toLowerCase() : '';
+        const customerMatch = !customerText || customerName.includes(customerText);
+
+        // Date checks
+        const createdDateCell = row.querySelector('td:nth-child(2)');
+        const deliveryDateCell = row.querySelector('td:nth-child(9)');
+        const createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;
+        const deliveryDate = deliveryDateCell ? deliveryDateCell.textContent.trim() : null;
+        const dateMatch = isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate);
+
+        // Search text check (across all cells)
+        const rowText = Array.from(row.cells)
+            .map(cell => cell.textContent.trim().toLowerCase())
+            .join(' ');
+        const searchMatch = !searchText || rowText.includes(searchText);
+
+        // Show row only if all conditions match
+        const shouldShow = statusMatch && customerMatch && sketchMatch && dateMatch && searchMatch;
+        row.style.display = shouldShow ? '' : 'none';
+
+        if (shouldShow) visibleCount++;
+    });
+
+    // Optionally update a badge or counter
+    if (activeFiltersBadge) {
+        activeFiltersBadge.textContent = visibleCount;
     }
+}
   
     // Event Listeners
     if (statusItems) {
@@ -815,12 +792,19 @@ document.addEventListener('DOMContentLoaded', function () {
   
     setupTableSearch('#searchInput', '#ordersTable tbody tr');
     
-    if (customerFilter) {
+    if (customerFilter && sketchFilter) {
         customerFilter.addEventListener('input', () => {
-            console.log('Customer filter changed:', customerFilter.value);
+            if (customerFilter.value.trim()) {
+                sketchFilter.disabled = false;
+            } else {
+                sketchFilter.value = '';
+                sketchFilter.disabled = true;
+            }
             filterRows();
         });
+        sketchFilter.addEventListener('input', filterRows);
     }
+
     
     if (dateFromFilter) {
         dateFromFilter.addEventListener('change', () => {
