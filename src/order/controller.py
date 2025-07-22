@@ -266,13 +266,10 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
         
-        
         # Update fields from form_data
         for key, value in form_data.items():
-            print(f"Processing field {key} with value {value} (type: {type(value)})")
             if hasattr(order, key):
                 if key == 'created_at' and value:
-                    print(f"Processing created_at value: {value} (type: {type(value)})")
                     try:
                         # Convert ISO string to datetime
                         value = datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -283,7 +280,6 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     try:
                         # Convert ISO string to date
                         value = datetime.fromisoformat(value).date()
-                        print(f"Converted delivery_date to date: {value}")
                     except ValueError as e:
                         print(f"Error converting delivery_date: {str(e)}")
                         return False, {"error": f"Invalid delivery_date format: {str(e)}"}
@@ -291,11 +287,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     try:
                         # Convert ISO string to date
                         value = datetime.fromisoformat(value).date()
-                        print(f"Converted {key} to date: {value}")
                     except ValueError as e:
-                        print(f"Error converting {key}: {str(e)}")
                         return False, {"error": f"Invalid {key} format: {str(e)}"}
-                print(f"Setting {key} to {value}")
                 setattr(order, key, value)
             else:
                 print(f"Field {key} not found in Order model")
@@ -313,16 +306,13 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             values = list(values)
             while len(values) < 8:
                 values.append("")
-            for idx, value in enumerate(values, 1):
+            for idx in range(1, 9):
+                value = values[idx - 1] if idx - 1 < len(values) else ""
                 order_value = OrderValue.query.filter_by(order_id=order.id, value_index=idx).first()
-                if value and str(value).strip() != "":
-                    if order_value:
-                        order_value.value = value
-                    else:
-                        db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
+                if order_value:
+                    order_value.value = value
                 else:
-                    if order_value:
-                        db.session.delete(order_value)
+                    db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
         
         # Always update display names for all file IDs sent, even if no new file is uploaded
         file_display_names = form_data.get('edit-file_display_names[]') or []
@@ -348,9 +338,6 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 file_display_names = [file_display_names]
             if isinstance(existing_file_ids, str):
                 existing_file_ids = [existing_file_ids]
-            print("edit-order_files[]:", order_files)
-            print("edit-file_display_names[]:", file_display_names)
-            print("existing_file_ids[]:", existing_file_ids)
             # Ensure all lists are the same length as order_files
             max_len = max(len(order_files), len(file_display_names), len(existing_file_ids))
             while len(file_display_names) < max_len:
@@ -371,6 +358,7 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                                     os.remove(order_file.file_path)
                             except Exception as e:
                                 print(f"Error deleting old file: {str(e)}")
+                                return False, {"error": f"Error deleting old file: {str(e)}"}
                             # Save new file to disk
                             original_filename = secure_filename(file.filename)
                             file_ext = original_filename.rsplit('.', 1)[-1].lower()
@@ -411,18 +399,14 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         
         # Update timestamps
         order.updated_at = datetime.utcnow()
-        print("Updated timestamps")
         
-        print("Committing changes to database")
         db.session.commit()
         print("Changes committed successfully")
-        
-        updated_order = order.to_dict()
-        
         return True, {
             "message": "Order updated successfully",
-            "order": updated_order
+            "order": order.to_dict()
         }
+        
         
     except Exception as e:
         db.session.rollback()
