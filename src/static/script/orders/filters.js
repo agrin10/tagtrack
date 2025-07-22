@@ -12,6 +12,7 @@ export function initFilters() {
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
     const activeFiltersBadge = document.getElementById('activeFiltersBadge');
     const filterCollapse = document.getElementById('filterCollapse');
+    const sketchFilter = document.getElementById('sketchFilter');
     let currentStatus = 'all';
     let currentSearch = '';
     let activeFilters = 0;
@@ -35,6 +36,7 @@ export function initFilters() {
         if (currentSearch) count++;
         if (customerFilter && customerFilter.value) count++;
         if ((dateFromFilter && dateFromFilter.value) || (dateToFilter && dateToFilter.value)) count++;
+        if (sketchFilter && !sketchFilter.disabled && sketchFilter.value) count++;
         if (activeFiltersBadge) {
             activeFilters = count;
             activeFiltersBadge.textContent = count;
@@ -45,6 +47,10 @@ export function initFilters() {
         currentStatus = 'all';
         currentSearch = '';
         if (customerFilter) customerFilter.value = '';
+        if (sketchFilter) {
+            sketchFilter.value = '';
+            sketchFilter.disabled = true;
+        }
         if (dateFromFilter) dateFromFilter.value = '';
         if (dateToFilter) dateToFilter.value = '';
         if (searchInput) searchInput.value = '';
@@ -114,6 +120,7 @@ export function initFilters() {
         if (!rows.length) return;
         const searchText = currentSearch.toLowerCase();
         const customerText = customerFilter ? customerFilter.value.toLowerCase() : '';
+        const sketchText = (sketchFilter && !sketchFilter.disabled) ? sketchFilter.value.toLowerCase() : '';
         const fromDate = dateFromFilter ? dateFromFilter.value : '';
         const toDate = dateToFilter ? dateToFilter.value : '';
         let visibleCount = 0;
@@ -132,7 +139,10 @@ export function initFilters() {
             const dateMatch = isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate);
             const text = Array.from(row.cells).map(cell => cell.textContent.trim().toLowerCase()).join(' ');
             const searchMatch = !searchText || text.includes(searchText);
-            const shouldShow = statusMatch && customerMatch && dateMatch && searchMatch;
+            const sketchCell = row.querySelector('td:nth-child(3)');
+            const sketchName = sketchCell ? sketchCell.textContent.toLowerCase() : '';
+            const sketchMatch = !sketchText || sketchName.includes(sketchText);
+            const shouldShow = statusMatch && customerMatch && dateMatch && searchMatch && sketchMatch;
             row.style.display = shouldShow ? '' : 'none';
             if (shouldShow) visibleCount++;
         });
@@ -149,7 +159,18 @@ export function initFilters() {
         });
     }
     if (customerFilter) {
-        customerFilter.addEventListener('input', () => { filterRows(); });
+        customerFilter.addEventListener('input', () => {
+            if (customerFilter.value.trim()) {
+                sketchFilter.disabled = false;
+            } else {
+                sketchFilter.value = '';
+                sketchFilter.disabled = true;
+            }
+            filterRows();
+        });
+    }
+    if (sketchFilter) {
+        sketchFilter.addEventListener('input', filterRows);
     }
     if (dateFromFilter) {
         dateFromFilter.addEventListener('change', () => { filterRows(); });
