@@ -27,7 +27,7 @@ def login():
                 set_access_cookies(resp, access_token)
                 return resp
             else:
-                flash('با موفقیت وارد حساب کاریری شدید', 'success')
+                flash('با موفقیت وارد حساب کاربری شدید', 'success')
                 resp = make_response(redirect(url_for('index')))
                 set_access_cookies(resp, access_token)
                 return resp
