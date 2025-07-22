@@ -18,6 +18,7 @@ import uuid
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'orders')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def _get_next_form_number_for_year() -> int:
     current_year = datetime.now().year
