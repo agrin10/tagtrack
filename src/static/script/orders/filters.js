@@ -59,7 +59,9 @@ export function initFilters() {
         filterRows();
     }
     function isDateInRange(dateStr, fromDate, toDate) {
-        if (!dateStr) return false;
+        // If no filter is set, always return true (show all)
+        if (!fromDate && !toDate) return true;
+        if (!dateStr || dateStr === '-') return false;
         try {
             let orderDate;
             if (dateStr.includes('T')) {
@@ -68,7 +70,6 @@ export function initFilters() {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 orderDate = new Date(year, month - 1, day);
             }
-            if (!fromDate && !toDate) return true;
             const from = fromDate ? new Date(fromDate) : null;
             const to = toDate ? new Date(toDate) : null;
             if (from) from.setHours(0, 0, 0, 0);
@@ -82,6 +83,8 @@ export function initFilters() {
         }
     }
     function isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate) {
+        // If no filter is set, always return true (show all)
+        if (!fromDate && !toDate) return true;
         const createdInRange = createdDate ? isDateInRange(createdDate, fromDate, toDate) : false;
         const deliveryInRange = deliveryDate ? isDateInRange(deliveryDate, fromDate, toDate) : false;
         return createdInRange || deliveryInRange;
@@ -133,9 +136,17 @@ export function initFilters() {
             const customerName = customerCell ? customerCell.textContent.toLowerCase() : '';
             const customerMatch = !customerText || customerName.includes(customerText);
             const createdDateCell = row.querySelector('td:nth-child(2)');
+            let createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;
+            if ((!createdDate || createdDate === '') && createdDateCell) {
+                const visibleText = createdDateCell.textContent.trim();
+                createdDate = (visibleText && visibleText !== '-') ? visibleText : null;
+            }
             const deliveryDateCell = row.querySelector('td:nth-child(9)');
-            const createdDate = createdDateCell ? createdDateCell.getAttribute('title') : null;
-            const deliveryDate = deliveryDateCell ? deliveryDateCell.textContent.trim() : null;
+            let deliveryDate = deliveryDateCell ? deliveryDateCell.getAttribute('title') : null;
+            if ((!deliveryDate || deliveryDate === '') && deliveryDateCell) {
+                const visibleText = deliveryDateCell.textContent.trim();
+                deliveryDate = (visibleText && visibleText !== '-') ? visibleText : null;
+            }
             const dateMatch = isEitherDateInRange(createdDate, deliveryDate, fromDate, toDate);
             const text = Array.from(row.cells).map(cell => cell.textContent.trim().toLowerCase()).join(' ');
             const searchMatch = !searchText || text.includes(searchText);

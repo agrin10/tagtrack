@@ -159,7 +159,7 @@
                                 <span class="btn btn-outline-primary">{{ order.form_number }}</span>
                             </td>
                             <td data-label="تاریخ ثبت">
-                                <small class="text-muted" title="{{ order.updated_at or '' }}">
+                                <small class="text-muted" title="{{ order.created_at or '' }}">
                                     {% if order.created_at %}
                                         {{ order.created_at.split('T')[0] if 'T' in order.created_at else order.created_at }}
                                     {% else %}
@@ -215,7 +215,7 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td data-label="تاریخ تحویل">{{ order.delivery_date or '-' }}</td>
+                            <td data-label="تاریخ تحویل" title="{{ order.delivery_date or '' }}">{{ order.delivery_date or '-' }}</td>
                             <td data-label="عملیات">
                                 <div class="btn-group btn-group-sm gap-2 justify-content-center">
                                     <button type="button" class="btn btn-info view-details-btn" title="مشاهده جزئیات" data-bs-toggle="modal" data-bs-target="#orderDetailsModal" data-order-id="{{ order.id }}">
