@@ -140,9 +140,6 @@ class OrderFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     file_name = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(512), nullable=False)
-    file_size = db.Column(db.Integer, nullable=False)
-    mime_type = db.Column(db.String(100), nullable=False)
     uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     display_name = db.Column(db.String(255), nullable=True)
@@ -155,12 +152,8 @@ class OrderFile(db.Model):
             'id': self.id,
             'order_id': self.order_id,
             'file_name': self.file_name,
-            'file_path': self.file_path,
-            'file_size': self.file_size,
-            'mime_type': self.mime_type,
             'uploaded_by': self.uploaded_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-    
             'display_name': self.display_name,
         }
     

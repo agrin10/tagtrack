@@ -152,37 +152,40 @@
                                 <div class="col-12">
                                     <h6 class="border-bottom pb-2 mb-3">فایل‌ها</h6>
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-sm align-middle">
+                                        <table class="table table-bordered table-sm align-middle" id="filesTable">
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>ردیف</th>
                                                     <th>نام فایل</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="filesTableBody">
                                                 <tr>
                                                     <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="order_files[]"></td>
+                                                    <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
                                                 </tr>
                                                 <tr>
                                                     <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="order_files[]"></td>
+                                                    <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
                                                 </tr>
                                                 <tr>
                                                     <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="order_files[]"></td>
+                                                    <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
                                                 </tr>
                                                 <tr>
                                                     <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="order_files[]"></td>
+                                                    <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
                                                 </tr>
                                                 <tr>
                                                     <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                                                    <td><input type="file" class="form-control form-control-sm" name="order_files[]"></td>
+                                                    <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addFileRowBtn">
+                                        <i class="fas fa-plus"></i> افزودن فایل
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -353,3 +356,21 @@
     </div>
 </div>
 <!-- End of Create Order Modal -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add file row functionality for create order modal
+    const addFileRowBtn = document.getElementById('addFileRowBtn');
+    if (addFileRowBtn) {
+        addFileRowBtn.addEventListener('click', function() {
+            const tbody = document.getElementById('filesTableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
+                <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
+            `;
+            tbody.appendChild(newRow);
+        });
+    }
+});
+</script>

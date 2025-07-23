@@ -12,8 +12,11 @@ from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 import re
-import uuid
+import uuid , logging
+from itertools import zip_longest
 
+
+logging.basicConfig(level=logging.INFO)
 # Add these constants at the top of the file
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -124,33 +127,32 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                 if value and str(value).strip() != "":
                     db.session.add(OrderValue(order_id=new_order.id, value_index=idx, value=value))
         
-        if files:
-            file_display_names = form_data.get('file_display_names[]') or form_data.get('file_display_names')
-            order_files = files.getlist('order_files[]') if 'order_files[]' in files else files.getlist('order_files')
-            if file_display_names and order_files:
-                # Ensure both are lists
-                if isinstance(file_display_names, str):
-                    file_display_names = [file_display_names]
-                for idx, file in enumerate(order_files):
-                    if file and file.filename:
-                        display_name = file_display_names[idx] if idx < len(file_display_names) and file_display_names[idx] else ""
-                        original_filename = secure_filename(file.filename)
-                        file_ext = original_filename.rsplit('.', 1)[-1].lower()
-                        unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-                        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-                        file.save(file_path)
-                        file_size = os.path.getsize(file_path)
-                        mime_type = file.content_type
-                        order_file = OrderFile(
-                            order_id=new_order.id,
-                            display_name=display_name,
-                            file_name=unique_filename,
-                            file_path=file_path,
-                            file_size=file_size,
-                            mime_type=mime_type,
-                            uploaded_by=current_user.id,
-                        )
-                        db.session.add(order_file)
+        # --- Save Order Files robustly ---
+        # Get file display names and file names as lists
+        if hasattr(form_data, 'getlist'):
+            file_display_names = form_data.getlist('file_display_names[]')
+            file_names = form_data.getlist('order_files[]')
+        else:
+            file_display_names = form_data.get('file_display_names[]') or []
+            file_names = form_data.get('order_files[]') or []
+            if isinstance(file_display_names, str):
+                file_display_names = [file_display_names]
+            if isinstance(file_names, str):
+                file_names = [file_names]
+        # Align lists
+        max_len = max(len(file_display_names), len(file_names))
+        file_display_names += [""] * (max_len - len(file_display_names))
+        file_names += [""] * (max_len - len(file_names))
+        # Save only non-empty pairs
+        for display_name, file_name in zip(file_display_names, file_names):
+            if display_name or file_name:
+                order_file = OrderFile(
+                    order_id=new_order.id,
+                    display_name=display_name,
+                    file_name=file_name,
+                    uploaded_by=current_user.id
+                )
+                db.session.add(order_file)
         db.session.commit()
 
         # Handle image uploads if any
@@ -314,101 +316,56 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     order_value.value = value
                 else:
                     db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
-        
-        # Always update display names for all file IDs sent, even if no new file is uploaded
-        file_display_names = form_data.get('edit-file_display_names[]') or []
-        existing_file_ids = form_data.get('existing_file_ids[]') or []
-        for idx, file_id in enumerate(existing_file_ids):
+
+        # Normalize file lists properly
+        if hasattr(form_data, 'getlist'):
+            file_display_names = form_data.getlist('edit-file_display_names[]')
+            file_names = form_data.getlist('edit-file_names[]')
+            existing_file_ids = form_data.getlist('existing_file_ids[]')
+        else:
+            file_display_names = form_data.get('edit-file_display_names[]') or []
+            file_names = form_data.get('edit-file_names[]') or []
+            existing_file_ids = form_data.get('existing_file_ids[]') or []
+
+            if isinstance(file_display_names, str):
+                file_display_names = [file_display_names]
+            if isinstance(file_names, str):
+                file_names = [file_names]
+            if isinstance(existing_file_ids, str):
+                existing_file_ids = [existing_file_ids]
+            
+        # Logging to debug incoming file data from frontend
+
+        # Align all lists to the same length
+        max_len = max(len(file_display_names), len(file_names), len(existing_file_ids))
+        file_display_names += [""] * (max_len - len(file_display_names))
+        file_names += [""] * (max_len - len(file_names))
+        existing_file_ids += [""] * (max_len - len(existing_file_ids))
+
+        # --- Update or Add OrderFiles ---
+        for file_id, display_name, file_name in zip_longest(existing_file_ids, file_display_names, file_names, fillvalue=""):
             if file_id:
                 order_file = OrderFile.query.get(int(file_id))
                 if order_file:
-                    display_name = file_display_names[idx] if idx < len(file_display_names) else ""
                     order_file.display_name = display_name
-
-        # --- PATCH-like update for Order Files (stepwise with logging) ---
-        if files:
-            file_display_names = form_data.get('edit-file_display_names[]') or form_data.get('edit-file_display_names')
-            if not file_display_names:
-                file_display_names = []
-            existing_file_ids = form_data.get('existing_file_ids[]') or form_data.get('existing_file_ids')
-            if not existing_file_ids:
-                existing_file_ids = []
-            order_files = files.getlist('edit-order_files[]') if 'edit-order_files[]' in files else files.getlist('edit-order_files')
-            # Ensure all are lists
-            if isinstance(file_display_names, str):
-                file_display_names = [file_display_names]
-            if isinstance(existing_file_ids, str):
-                existing_file_ids = [existing_file_ids]
-            # Ensure all lists are the same length as order_files
-            max_len = max(len(order_files), len(file_display_names), len(existing_file_ids))
-            while len(file_display_names) < max_len:
-                file_display_names.append("")
-            while len(existing_file_ids) < max_len:
-                existing_file_ids.append("")
-            for idx, file in enumerate(order_files):
-                display_name = file_display_names[idx] if idx < len(file_display_names) and file_display_names[idx] else ""
-                old_file_id = existing_file_ids[idx] if idx < len(existing_file_ids) else None
-
-                if old_file_id:
-                    order_file = OrderFile.query.get(int(old_file_id))
-                    if order_file:
-                        if file and file.filename:
-                            # Delete old file from disk
-                            try:
-                                if os.path.exists(order_file.file_path):
-                                    os.remove(order_file.file_path)
-                            except Exception as e:
-                                print(f"Error deleting old file: {str(e)}")
-                                return False, {"error": f"Error deleting old file: {str(e)}"}
-                            # Save new file to disk
-                            original_filename = secure_filename(file.filename)
-                            file_ext = original_filename.rsplit('.', 1)[-1].lower()
-                            unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-                            file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-                            file.save(file_path)
-                            file_size = os.path.getsize(file_path)
-                            mime_type = file.content_type
-                            # Update all fields
-                            order_file.display_name = display_name
-                            order_file.file_name = unique_filename
-                            order_file.file_path = file_path
-                            order_file.file_size = file_size
-                            order_file.mime_type = mime_type
-                            order_file.uploaded_by = current_user.id
-                        else:
-                            # Only update display name (even if it's empty)
-                            order_file.display_name = display_name
-                elif file and file.filename:
-                    # No old file, so create new record
-                    original_filename = secure_filename(file.filename)
-                    file_ext = original_filename.rsplit('.', 1)[-1].lower()
-                    unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-                    file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-                    file.save(file_path)
-                    file_size = os.path.getsize(file_path)
-                    mime_type = file.content_type
-                    order_file = OrderFile(
+                    order_file.file_name = file_name
+            else:
+                if display_name or file_name:
+                    new_file = OrderFile(
                         order_id=order.id,
                         display_name=display_name,
-                        file_name=unique_filename,
-                        file_path=file_path,
-                        file_size=file_size,
-                        mime_type=mime_type,
-                        uploaded_by=current_user.id,
+                        file_name=file_name,
+                        uploaded_by=current_user.id
                     )
-                    db.session.add(order_file)
-        
-        # Update timestamps
+                    db.session.add(new_file)
+
         order.updated_at = datetime.utcnow()
-        
         db.session.commit()
-        print("Changes committed successfully")
         return True, {
             "message": "Order updated successfully",
             "order": order.to_dict()
         }
-        
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error updating order {order_id}: {str(e)}")

@@ -79,6 +79,8 @@ def create_order():
                     }
                     # Ensure all values for 'values[]' are captured as a list
                     form_data['values[]'] = request.form.getlist('values[]')
+                    form_data['order_files[]'] = request.form.getlist('order_files[]')
+                    form_data['file_display_names[]'] = request.form.getlist('file_display_names[]')
                     print("Parsed form data:", form_data)
                 except Exception as e:
                     print("Error parsing form data:", str(e))
@@ -189,6 +191,7 @@ def update_order(id):
             form_data['edit-file_display_names[]'] = request.form.getlist('edit-file_display_names[]')
             form_data['existing_file_ids[]'] = request.form.getlist('existing_file_ids[]')
             form_data['edit-values[]'] = request.form.getlist('edit-values[]')
+            form_data['edit-file_names[]'] = request.form.getlist('edit-file_names[]')
         files = request.files if not request.is_json else None
         success, response = update_order_id(id, form_data, files)
         

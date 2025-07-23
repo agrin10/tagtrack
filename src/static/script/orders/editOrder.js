@@ -56,14 +56,8 @@ export function initEditOrder() {
                         });
                     }
                     // Populate display name inputs for files
-                    const displayInputs = document.querySelectorAll('input[name="edit-file_display_names[]"]');
-                    if (order.order_files && Array.isArray(order.order_files)) {
-                        displayInputs.forEach((input, idx) => {
-                            input.value = order.order_files[idx] ? (order.order_files[idx].display_name || '') : '';
-                        });
-                    }
-                    // Populate file rows in the table with existing file info
                     const fileRows = document.querySelectorAll('input[name="edit-file_display_names[]"]');
+                    const fileNameInputs = document.querySelectorAll('input[name="edit-file_names[]"]');
                     const fileIdInputs = document.querySelectorAll('input[name="existing_file_ids[]"]');
                     const fileInfoSpans = document.querySelectorAll('.existing-file-info');
                     if (order.order_files && Array.isArray(order.order_files)) {
@@ -71,10 +65,12 @@ export function initEditOrder() {
                             const file = order.order_files[i];
                             if (file) {
                                 fileRows[i].value = file.display_name || '';
+                                fileNameInputs[i].value = file.file_name || '';
                                 fileIdInputs[i].value = file.id || '';
-                                fileInfoSpans[i].innerHTML = `<a href="/orders/files/${file.id}" target="_blank">${file.display_name || file.file_name}</a> <span>(${Math.round(file.file_size / 1024)} KB)</span>`;
+                                fileInfoSpans[i].innerHTML = '';
                             } else {
                                 fileRows[i].value = '';
+                                fileNameInputs[i].value = '';
                                 fileIdInputs[i].value = '';
                                 fileInfoSpans[i].innerHTML = '';
                             }
@@ -143,26 +139,21 @@ export function initEditOrder() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
-        // Ensure all display name and file ID fields are present
         const displayInputs = this.querySelectorAll('input[name="edit-file_display_names[]"]');
         const fileIdInputs = this.querySelectorAll('input[name="existing_file_ids[]"]');
-        const fileInputs = this.querySelectorAll('input[type="file"][name="edit-order_files[]"]');
-        let fileDisplayNameMissing = false;
-        fileInputs.forEach((fileInput, idx) => {
-            if (fileInput.files && fileInput.files.length > 0) {
-                if (!displayInputs[idx] || !displayInputs[idx].value.trim()) {
-                    fileDisplayNameMissing = true;
-                }
-            }
-        });
+        const fileNameInputs = this.querySelectorAll('input[name="edit-file_names[]"]');
+
         displayInputs.forEach(input => {
+            if (input.value === undefined || input.value === null) input.value = "";
+        });
+        fileNameInputs.forEach(input => {
             if (input.value === undefined || input.value === null) input.value = "";
         });
         fileIdInputs.forEach(input => {
             if (input.value === undefined || input.value === null) input.value = "";
         });
 
-        const formData = new FormData(this); // Includes all fields and files
+        const formData = new FormData(this); // This will now include all fields once
 
         fetch(this.action, {
             method: 'PATCH',
@@ -178,7 +169,7 @@ export function initEditOrder() {
         .then(data => {
             showAlert('success', 'Order updated successfully!', document.querySelector('.container-fluid'));
             editModal.hide();
-            window.location.reload();
+            // window.location.reload();
         })
         .catch(error => {
             showAlert('danger', `Error updating order: ${error.message}`, document.querySelector('.container-fluid'));
