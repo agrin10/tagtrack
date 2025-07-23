@@ -169,7 +169,7 @@ export function initEditOrder() {
         .then(data => {
             showAlert('success', 'Order updated successfully!', document.querySelector('.container-fluid'));
             editModal.hide();
-            // window.location.reload();
+            window.location.reload();
         })
         .catch(error => {
             showAlert('danger', `Error updating order: ${error.message}`, document.querySelector('.container-fluid'));

@@ -374,24 +374,20 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
 
 def duplicate_order(order_id):
     """
-    Duplicate an existing order with a new ID.
+    Duplicate an existing order with a new ID, including its OrderFiles, OrderValues, and OrderImages.
     """
     try:
-        # Get the original order
+        # Step 1: Fetch the original order
         success, response = get_order_by_id(order_id)
-        if not success:
+        if not success or not response.get('order'):
             return False, {"error": "Order not found"}
 
-        original_order = response.get('order')
-        if not original_order:
-            return False, {"error": "Order not found"}
+        original_order = response['order']
+        form_number = _get_next_form_number_for_year()  # Generate new form number
 
-        # Auto-generate form_number with yearly reset
-        form_number = _get_next_form_number_for_year()
-
-        # Create a copy of the order data with a new form number
+        # Step 2: Create new order with copied values
         new_order_data = {
-            'form_number': form_number,  # Use the auto-generated form number
+            'form_number': form_number,
             'customer_name': original_order.get('customer_name'),
             'fabric_density': original_order.get('fabric_density'),
             'fabric_cut': original_order.get('fabric_cut'),
@@ -408,20 +404,54 @@ def duplicate_order(order_id):
             'exit_from_factory_date': original_order.get('exit_from_factory_date'),
             'sketch_name': original_order.get('sketch_name'),
             'file_name': original_order.get('file_name'),
-            'status': 'Pending',  # Set status to Pending for the new order
+            'status': 'Pending',
             'design_specification': original_order.get('design_specification'),
             'office_notes': original_order.get('office_notes'),
             'factory_notes': original_order.get('factory_notes'),
             'customer_note_to_office': original_order.get('customer_note_to_office')
         }
 
-        # Add the new order
         success, response = add_order(new_order_data)
-        if success:
-            return True, {"order": response.get('order')}
-        return False, response
+        if not success:
+            return False, response
+
+        new_order = Order.query.get(response['order']['id'])
+        orig_order_obj = Order.query.get(order_id)
+
+        # Step 3: Copy OrderValues
+        for val in orig_order_obj.values:
+            db.session.add(OrderValue(
+                order_id=new_order.id,
+                value_index=val.value_index,
+                value=val.value
+            ))
+
+        # Step 4: Copy OrderFiles
+        for file in orig_order_obj.files:
+            db.session.add(OrderFile(
+                order_id=new_order.id,
+                file_name=file.file_name,
+                display_name=file.display_name,
+                uploaded_by=file.uploaded_by
+            ))
+
+        # Step 5: Copy OrderImages
+        for image in orig_order_obj.images:
+            db.session.add(OrderImage(
+                order_id=new_order.id,
+                filename=image.filename,
+                original_filename=image.original_filename,
+                file_path=image.file_path,
+                file_size=image.file_size,
+                mime_type=image.mime_type,
+                uploaded_by=image.uploaded_by
+            ))
+
+        db.session.commit()
+        return True, {"order": new_order.to_dict()}
 
     except Exception as e:
+        db.session.rollback()
         print(f"Error in duplicate_order: {str(e)}")
         return False, {"error": "An error occurred while duplicating the order"}
 
