@@ -5,6 +5,7 @@ from datetime import datetime, date, timezone
 from src import db
 from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum
 from src.order.models import Order
+from src.utils import parse_date_input
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -294,8 +295,9 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
                 worker_name = data.get('worker_name')
                 date_str = data.get('date')
                 member_count = data.get('member_count')
-    
-                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+
+                # Parse date (supports both Jalali and Gregorian formats)
+                date_obj = parse_date_input(date_str) if date_str else None
     
             except ValueError as e:
                 return False, {"error": f"Invalid data format for production step entry: {str(e)}"}

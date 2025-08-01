@@ -141,37 +141,32 @@
                                         <th class="py-2 px-3">نام کارگر</th>
                                         <th class="py-2 px-3">تاریخ</th>
                                         <th class="py-2 px-3">تعداد</th>
-                                        <th class="py-2 px-3">امضاء</th>
                                     </tr>
                                 </thead>
                                 <tbody id="production-steps-table-body">
                                     <tr>
                                         <td class="py-2 px-3">منگنه</td>
                                         <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[mongane][worker_name]" placeholder="کارگر"></td>
-                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[mongane][date]"></td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[mongane][date]" data-jdp></td>
                                         <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[mongane][member_count]" placeholder="تعداد"></td>
-                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
                                     </tr>
                                     <tr>
                                         <td class="py-2 px-3">آهار</td>
                                         <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[ahar][worker_name]" placeholder="کارگر"></td>
-                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[ahar][date]"></td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[ahar][date]" data-jdp></td>
                                         <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[ahar][member_count]" placeholder="تعداد"></td>
-                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
                                     </tr>
                                     <tr>
                                         <td class="py-2 px-3">پرس</td>
                                         <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[press][worker_name]" placeholder="کارگر"></td>
-                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[press][date]"></td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[press][date]" data-jdp></td>
                                         <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[press][member_count]" placeholder="تعداد"></td>
-                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
                                     </tr>
                                     <tr>
                                         <td class="py-2 px-3">برش</td>
                                         <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[bresh][worker_name]" placeholder="کارگر"></td>
-                                        <td class="py-2 px-3"><input type="date" class="form-control form-control-sm" name="production_steps[bresh][date]"></td>
+                                        <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="production_steps[bresh][date]" data-jdp></td>
                                         <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="production_steps[bresh][member_count]" placeholder="تعداد"></td>
-                                        <td class="py-2 px-3"><span class="form-control-plaintext text-muted small">امضاء</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -187,49 +182,70 @@
     </div>
 </div>
 
+<!-- JalaliDatePicker will be automatically initialized for all inputs with data-jdp attribute -->
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Jalali date pickers for production steps
-    $('.jalali-date').persianDatepicker({
-        format: 'YYYY/MM/DD',
-        initialValue: false,
-        autoClose: true,
-        observer: true,
-        calendar: {
-            persian: {
-                locale: 'fa'
+// Helper function to convert Jalali date to Gregorian format
+function convertToGregorian(jalaliDate) {
+    if (!jalaliDate) return '';
+    
+    // Parse Jalali date (format: YYYY/MM/DD)
+    const parts = jalaliDate.split('/');
+    if (parts.length !== 3) return jalaliDate;
+    
+    const jalaliYear = parseInt(parts[0]);
+    const jalaliMonth = parseInt(parts[1]);
+    const jalaliDay = parseInt(parts[2]);
+    
+    // Accurate conversion back to Gregorian
+    let gregorianYear = jalaliYear + 621;
+    let gregorianMonth = jalaliMonth - 2;
+    let gregorianDay = jalaliDay;
+    
+    // Adjust for month boundaries
+    if (gregorianMonth <= 0) {
+        gregorianMonth += 12;
+        gregorianYear -= 1;
+    }
+    
+    // Adjust days for month lengths
+    const gregorianMonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (gregorianDay > gregorianMonthDays[gregorianMonth - 1]) {
+        gregorianDay = gregorianMonthDays[gregorianMonth - 1];
+    }
+    
+    const date = new Date(gregorianYear, gregorianMonth - 1, gregorianDay);
+    return date.toISOString().split('T')[0];
+}
+
+// Handle form submission to convert Jalali dates back to Gregorian
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (form.tagName === 'FORM') {
+        const dateInputs = form.querySelectorAll('input[data-jdp]');
+        dateInputs.forEach(input => {
+            if (input.value && input.value.includes('/')) {
+                // Store the Jalali value for display
+                input.setAttribute('data-jalali-value', input.value);
+                // Convert to Gregorian for backend
+                const gregorianDate = convertToGregorian(input.value);
+                input.value = gregorianDate;
             }
-        },
-        responsive: true,
-        position: 'auto',
-        onSelect: function(unix) {
-            // Convert Jalali date to Gregorian for form submission
-            const gregorianDate = new Date(unix);
-            const year = gregorianDate.getFullYear();
-            const month = String(gregorianDate.getMonth() + 1).padStart(2, '0');
-            const day = String(gregorianDate.getDate()).padStart(2, '0');
-            const gregorianDateString = `${year}-${month}-${day}`;
-            
-            // Store the Gregorian date in a hidden input for form submission
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = this.model.inputElement.name + '_gregorian';
-            hiddenInput.value = gregorianDateString;
-            this.model.inputElement.parentNode.appendChild(hiddenInput);
-        },
-        onShow: function() {
-            // Adjust position for mobile devices
-            if (window.innerWidth <= 768) {
-                const picker = this.model.datepickerElement;
-                if (picker) {
-                    picker.style.position = 'fixed';
-                    picker.style.top = '50%';
-                    picker.style.left = '50%';
-                    picker.style.transform = 'translate(-50%, -50%)';
-                    picker.style.zIndex = '10000';
-                }
+        });
+    }
+});
+
+// Handle form reset to restore Jalali values
+document.addEventListener('reset', function(e) {
+    const form = e.target;
+    if (form.tagName === 'FORM') {
+        const dateInputs = form.querySelectorAll('input[data-jdp]');
+        dateInputs.forEach(input => {
+            const jalaliValue = input.getAttribute('data-jalali-value');
+            if (jalaliValue) {
+                input.value = jalaliValue;
             }
-        }
-    });
+        });
+    }
 });
 </script>
