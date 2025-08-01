@@ -333,6 +333,11 @@
                 <div class="modal-footer bg-light">
                     <div class="d-flex justify-content-between w-100">
                         <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>انصراف
+                            </button>
+                        </div>
+                        <div>
                             <button type="button" class="btn btn-outline-primary me-2" id="prevTab">
                                 <i class="fas fa-arrow-right me-2"></i>قبلی
                             </button>
@@ -341,11 +346,6 @@
                             </button>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-2"></i>ایجاد سفارش
-                            </button>
-                        </div>
-                                                <div>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-2"></i>انصراف
                             </button>
                         </div>
 
@@ -372,5 +372,71 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.appendChild(newRow);
         });
     }
+
+    // Tab navigation functionality
+    const nextTabBtn = document.getElementById('nextTab');
+    const prevTabBtn = document.getElementById('prevTab');
+    const tabButtons = document.querySelectorAll('#orderFormTabs .nav-link');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const progressBar = document.getElementById('formProgress');
+
+    let currentTabIndex = 0;
+
+    // Function to update progress bar
+    function updateProgress() {
+        const progress = ((currentTabIndex + 1) / tabButtons.length) * 100;
+        progressBar.style.width = progress + '%';
+    }
+
+    // Function to show specific tab
+    function showTab(index) {
+        // Hide all tabs
+        tabPanes.forEach(pane => {
+            pane.classList.remove('show', 'active');
+        });
+        tabButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show specific tab
+        if (index >= 0 && index < tabButtons.length) {
+            tabPanes[index].classList.add('show', 'active');
+            tabButtons[index].classList.add('active');
+            currentTabIndex = index;
+            updateProgress();
+        }
+
+        // Update button states
+        prevTabBtn.disabled = currentTabIndex === 0;
+        nextTabBtn.disabled = currentTabIndex === tabButtons.length - 1;
+    }
+
+    // Next button click handler
+    if (nextTabBtn) {
+        nextTabBtn.addEventListener('click', function() {
+            if (currentTabIndex < tabButtons.length - 1) {
+                showTab(currentTabIndex + 1);
+            }
+        });
+    }
+
+    // Previous button click handler
+    if (prevTabBtn) {
+        prevTabBtn.addEventListener('click', function() {
+            if (currentTabIndex > 0) {
+                showTab(currentTabIndex - 1);
+            }
+        });
+    }
+
+    // Tab button click handlers
+    tabButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            showTab(index);
+        });
+    });
+
+    // Initialize progress bar
+    updateProgress();
 });
 </script>
