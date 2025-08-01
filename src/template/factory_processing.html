@@ -56,7 +56,7 @@
                                  aria-valuenow="{% if order.status in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده'] %}100{% else %}{{ order.progress_percentage or 0 }}{% endif %}" 
                                  aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <p class="card-text"><small class="text-muted">شروع: {{ order.order_date if order.order_date else '-' }} | زمان تحویل: {{ order.delivery_date if order.delivery_date else '-' }}</small></p>
+                        <p class="card-text"><small class="text-muted">شروع: {{ order.order_date|to_persian_date if order.order_date else '-' }} | زمان تحویل: {{ order.delivery_date|to_persian_date if order.delivery_date else '-' }}</small></p>
                         <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">جزئیات</button>
                     </div>
                 </div>
