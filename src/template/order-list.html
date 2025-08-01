@@ -112,11 +112,11 @@
                             <i class="fas fa-calendar-alt me-1"></i>بازه زمانی
                         </label>
                         <div class="input-group input-group-sm">
-                            <input type="date" class="form-control form-control-sm border-end-0" id="dateFromFilter" placeholder="از">
+                            <input type="text" class="form-control form-control-sm border-end-0" id="dateFromFilter" placeholder="از" data-jdp>
                             <span class="input-group-text bg-white border-start-0 border-end-0 px-1">
                                 <i class="fas fa-arrow-right text-muted small"></i>
                             </span>
-                            <input type="date" class="form-control form-control-sm border-start-0" id="dateToFilter" placeholder="تا">
+                            <input type="text" class="form-control form-control-sm border-start-0" id="dateToFilter" placeholder="تا" data-jdp>
                         </div>
                     </div>
 
@@ -159,13 +159,13 @@
                                 <span class="btn btn-outline-primary">{{ order.form_number }}</span>
                             </td>
                             <td data-label="تاریخ ثبت">
-                                <small class="text-muted" title="{{ order.created_at or '' }}">
-                                    {% if order.created_at %}
-                                        {{ order.created_at.split('T')[0] if 'T' in order.created_at else order.created_at }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </small>
+                                                            <small class="text-muted" title="{{ order.created_at or '' }}">
+                                {% if order.created_at %}
+                                {{ order.created_at|to_persian_date }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </small>
                             </td>
                             <td data-label="نام طراح">
                                 {% if order.sketch_name == '' %}
@@ -215,7 +215,7 @@
                                     </div>
                                 {% endif %}
                             </td>
-                            <td data-label="تاریخ تحویل" title="{{ order.delivery_date or '' }}">{{ order.delivery_date or '-' }}</td>
+                            <td data-label="تاریخ تحویل" title="{{ order.delivery_date or '' }}">{{ order.delivery_date|to_persian_date or '-' }}</td>
                             <td data-label="عملیات">
                                 <div class="btn-group btn-group-sm gap-2 justify-content-center">
                                     <button type="button" class="btn btn-info view-details-btn" title="مشاهده جزئیات" data-bs-toggle="modal" data-bs-target="#orderDetailsModal" data-order-id="{{ order.id }}">

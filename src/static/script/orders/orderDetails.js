@@ -1,6 +1,35 @@
 export function initOrderDetails() {
     const detailModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
 
+    // Helper function to convert Gregorian date to Jalali format
+    function convertToJalali(gregorianDate) {
+        if (!gregorianDate) return '';
+        
+        const date = new Date(gregorianDate);
+        const gregorianYear = date.getFullYear();
+        const gregorianMonth = date.getMonth() + 1;
+        const gregorianDay = date.getDate();
+        
+        // Accurate Jalali calendar conversion
+        let jalaliYear = gregorianYear - 621;
+        let jalaliMonth = gregorianMonth + 2;
+        let jalaliDay = gregorianDay;
+        
+        // Adjust for leap years and month lengths
+        if (jalaliMonth > 12) {
+            jalaliMonth -= 12;
+            jalaliYear += 1;
+        }
+        
+        // Adjust days for month lengths
+        const jalaliMonthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30];
+        if (jalaliDay > jalaliMonthDays[jalaliMonth - 1]) {
+            jalaliDay = jalaliMonthDays[jalaliMonth - 1];
+        }
+        
+        return `${jalaliYear}/${jalaliMonth.toString().padStart(2, '0')}/${jalaliDay.toString().padStart(2, '0')}`;
+    }
+
     document.querySelectorAll('.view-details-btn').forEach(button => {
         button.addEventListener('click', function () {
             const orderId = this.getAttribute('data-order-id');
@@ -64,10 +93,10 @@ export function initOrderDetails() {
                     setTextContent('detail-office-notes', order.office_notes);
                     setTextContent('detail-factory-notes', order.factory_notes);
                     setTextContent('detail-customer-note-to-office', order.customer_note_to_office);
-                    setTextContent('detail-delivery-date', order.delivery_date);
-                    setTextContent('detail-exit-from-office-date', order.exit_from_office_date);
-                    setTextContent('detail-exit-from-factory-date', order.exit_from_factory_date);
-                    setTextContent('detail-created-at', order.created_at ? order.created_at.split('T')[0] : null);
+                    setTextContent('detail-delivery-date', convertToJalali(order.delivery_date));
+                    setTextContent('detail-exit-from-office-date', convertToJalali(order.exit_from_office_date));
+                    setTextContent('detail-exit-from-factory-date', convertToJalali(order.exit_from_factory_date));
+                    setTextContent('detail-created-at', order.created_at ? convertToJalali(order.created_at.split('T')[0]) : null);
                     setTextContent('detail-created-by-username', order.created_by_username);
                     // Handle images display
                     const imagesContainer = document.getElementById('detail-images-container');

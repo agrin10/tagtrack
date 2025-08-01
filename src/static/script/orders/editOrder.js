@@ -1,6 +1,68 @@
 import { showAlert } from '../utils/alert.js';
 import { previewEditImage } from './imagePreview.js';
 
+// Helper function to convert Gregorian date to Jalali format
+function convertToJalali(gregorianDate) {
+    if (!gregorianDate) return '';
+    
+    const date = new Date(gregorianDate);
+    const gregorianYear = date.getFullYear();
+    const gregorianMonth = date.getMonth() + 1;
+    const gregorianDay = date.getDate();
+    
+    // Accurate Jalali calendar conversion
+    let jalaliYear = gregorianYear - 621;
+    let jalaliMonth = gregorianMonth + 2;
+    let jalaliDay = gregorianDay;
+    
+    // Adjust for leap years and month lengths
+    if (jalaliMonth > 12) {
+        jalaliMonth -= 12;
+        jalaliYear += 1;
+    }
+    
+    // Adjust days for month lengths
+    const jalaliMonthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30];
+    if (jalaliDay > jalaliMonthDays[jalaliMonth - 1]) {
+        jalaliDay = jalaliMonthDays[jalaliMonth - 1];
+    }
+    
+    return `${jalaliYear}/${jalaliMonth.toString().padStart(2, '0')}/${jalaliDay.toString().padStart(2, '0')}`;
+}
+
+// Helper function to convert Jalali date to Gregorian format
+function convertToGregorian(jalaliDate) {
+    if (!jalaliDate) return '';
+    
+    // Parse Jalali date (format: YYYY/MM/DD)
+    const parts = jalaliDate.split('/');
+    if (parts.length !== 3) return jalaliDate;
+    
+    const jalaliYear = parseInt(parts[0]);
+    const jalaliMonth = parseInt(parts[1]);
+    const jalaliDay = parseInt(parts[2]);
+    
+    // Accurate conversion back to Gregorian
+    let gregorianYear = jalaliYear + 621;
+    let gregorianMonth = jalaliMonth - 2;
+    let gregorianDay = jalaliDay;
+    
+    // Adjust for month boundaries
+    if (gregorianMonth <= 0) {
+        gregorianMonth += 12;
+        gregorianYear -= 1;
+    }
+    
+    // Adjust days for month lengths
+    const gregorianMonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (gregorianDay > gregorianMonthDays[gregorianMonth - 1]) {
+        gregorianDay = gregorianMonthDays[gregorianMonth - 1];
+    }
+    
+    const date = new Date(gregorianYear, gregorianMonth - 1, gregorianDay);
+    return date.toISOString().split('T')[0];
+}
+
 export function initEditOrder() {
     const editModal = new bootstrap.Modal(document.getElementById('editOrderModal'));
     const editForm = document.getElementById('editOrderForm');
@@ -40,9 +102,9 @@ export function initEditOrder() {
                     document.getElementById('edit_lamination_type').value = order.lamination_type || '';
                     document.getElementById('edit_cut_type').value = order.cut_type || '';
                     document.getElementById('edit_label_type').value = order.label_type || '';
-                    document.getElementById('edit_delivery_date').value = order.delivery_date || '';
-                    document.getElementById('edit_exit_from_office_date').value = order.exit_from_office_date || '';
-                    document.getElementById('edit_exit_from_factory_date').value = order.exit_from_factory_date || '';
+                    document.getElementById('edit_delivery_date').value = convertToJalali(order.delivery_date) || '';
+                    document.getElementById('edit_exit_from_office_date').value = convertToJalali(order.exit_from_office_date) || '';
+                    document.getElementById('edit_exit_from_factory_date').value = convertToJalali(order.exit_from_factory_date) || '';
                     document.getElementById('edit_status').value = order.status || 'Pending';
                     document.getElementById('edit_design_specification').value = order.design_specification || '';
                     document.getElementById('edit_office_notes').value = order.office_notes || '';
@@ -77,14 +139,8 @@ export function initEditOrder() {
                         }
                     }
                     if (order.created_at) {
-                        const createdDate = new Date(order.created_at);
-                        const year = createdDate.getFullYear();
-                        const month = String(createdDate.getMonth() + 1).padStart(2, '0');
-                        const day = String(createdDate.getDate()).padStart(2, '0');
-                        const hours = String(createdDate.getHours()).padStart(2, '0');
-                        const minutes = String(createdDate.getMinutes()).padStart(2, '0');
-                        const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-                        document.getElementById('edit_created_at').value = formattedDateTime;
+                        // Convert to Persian date format for display
+                        document.getElementById('edit_created_at').value = convertToJalali(order.created_at.split('T')[0]);
                     } else {
                         document.getElementById('edit_created_at').value = '';
                     }
@@ -139,6 +195,18 @@ export function initEditOrder() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
 
+        // Convert Jalali dates to Gregorian before submission
+        const dateInputs = this.querySelectorAll('input[data-jdp]');
+        dateInputs.forEach(input => {
+            if (input.value && input.value.includes('/')) {
+                // Store the Jalali value for potential restoration
+                input.setAttribute('data-jalali-value', input.value);
+                // This is a Jalali date, convert to Gregorian
+                const gregorianDate = convertToGregorian(input.value);
+                input.value = gregorianDate;
+            }
+        });
+
         const displayInputs = this.querySelectorAll('input[name="edit-file_display_names[]"]');
         const fileIdInputs = this.querySelectorAll('input[name="existing_file_ids[]"]');
         const fileNameInputs = this.querySelectorAll('input[name="edit-file_names[]"]');
@@ -173,6 +241,13 @@ export function initEditOrder() {
         })
         .catch(error => {
             showAlert('danger', `Error updating order: ${error.message}`, document.querySelector('.container-fluid'));
+            // Restore Jalali values in case of error
+            dateInputs.forEach(input => {
+                const jalaliValue = input.getAttribute('data-jalali-value');
+                if (jalaliValue) {
+                    input.value = jalaliValue;
+                }
+            });
         })
         .finally(() => {
             submitBtn.disabled = false;

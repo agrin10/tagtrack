@@ -14,6 +14,7 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 import re
 import uuid , logging
 from itertools import zip_longest
+from src.utils import parse_date_input
 
 
 logging.basicConfig(level=logging.INFO)
@@ -54,28 +55,19 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         # Auto-generate form_number with yearly reset (only when actually creating)
         form_number = _get_next_form_number_for_year()
 
-        # Parse dates if provided
-        delivery_date = None
-        if form_data.get('delivery_date'):
-            try:
-                delivery_date = datetime.strptime(form_data['delivery_date'], '%Y-%m-%d').date()
-            except ValueError:
-                return False, {"error": "Invalid delivery date format. Use YYYY-MM-DD"}
+        # Parse dates if provided (supports both Jalali and Gregorian formats)
+        delivery_date = parse_date_input(form_data.get('delivery_date'))
+        if form_data.get('delivery_date') and delivery_date is None:
+            return False, {"error": "Invalid delivery date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        # Parse exit dates if provided
-        exit_from_office_date = None
-        if form_data.get('exit_from_office_date'):
-            try:
-                exit_from_office_date = datetime.strptime(form_data['exit_from_office_date'], '%Y-%m-%d').date()
-            except ValueError:
-                return False, {"error": "Invalid exit from office date format. Use YYYY-MM-DD"}
+        # Parse exit dates if provided (supports both Jalali and Gregorian formats)
+        exit_from_office_date = parse_date_input(form_data.get('exit_from_office_date'))
+        if form_data.get('exit_from_office_date') and exit_from_office_date is None:
+            return False, {"error": "Invalid exit from office date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        exit_from_factory_date = None
-        if form_data.get('exit_from_factory_date'):
-            try:
-                exit_from_factory_date = datetime.strptime(form_data['exit_from_factory_date'], '%Y-%m-%d').date()
-            except ValueError:
-                return False, {"error": "Invalid exit from factory date format. Use YYYY-MM-DD"}
+        exit_from_factory_date = parse_date_input(form_data.get('exit_from_factory_date'))
+        if form_data.get('exit_from_factory_date') and exit_from_factory_date is None:
+            return False, {"error": "Invalid exit from factory date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
         # Convert numeric fields
         try:
@@ -273,25 +265,24 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         for key, value in form_data.items():
             if hasattr(order, key):
                 if key == 'created_at' and value:
-                    try:
-                        # Convert ISO string to datetime
-                        value = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    except ValueError as e:
-                        print(f"Error converting created_at: {str(e)}")
-                        return False, {"error": f"Invalid created_at datetime format: {str(e)}"}
+                    # Parse date (supports both Jalali and Gregorian formats)
+                    parsed_date = parse_date_input(value)
+                    if parsed_date is None:
+                        return False, {"error": f"Invalid created_at format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
+                    # Convert date to datetime for created_at field
+                    value = datetime.combine(parsed_date, datetime.min.time())
                 elif key == 'delivery_date' and value:
-                    try:
-                        # Convert ISO string to date
-                        value = datetime.fromisoformat(value).date()
-                    except ValueError as e:
-                        print(f"Error converting delivery_date: {str(e)}")
-                        return False, {"error": f"Invalid delivery_date format: {str(e)}"}
+                    # Parse date (supports both Jalali and Gregorian formats)
+                    parsed_date = parse_date_input(value)
+                    if parsed_date is None:
+                        return False, {"error": f"Invalid delivery_date format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
+                    value = parsed_date
                 elif key in ['exit_from_office_date', 'exit_from_factory_date'] and value:
-                    try:
-                        # Convert ISO string to date
-                        value = datetime.fromisoformat(value).date()
-                    except ValueError as e:
-                        return False, {"error": f"Invalid {key} format: {str(e)}"}
+                    # Parse date (supports both Jalali and Gregorian formats)
+                    parsed_date = parse_date_input(value)
+                    if parsed_date is None:
+                        return False, {"error": f"Invalid {key} format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
+                    value = parsed_date
                 setattr(order, key, value)
             else:
                 print(f"Field {key} not found in Order model")
