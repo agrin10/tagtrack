@@ -51,7 +51,10 @@
                             </span>                        </div>
                         <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.quantity }} عدد</h6>
                         <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" data-progress="{{ order.progress_percentage or 0 }}" aria-valuenow="{{ order.progress_percentage or 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 data-progress="{% if order.status in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده'] %}100{% else %}{{ order.progress_percentage or 0 }}{% endif %}" 
+                                 aria-valuenow="{% if order.status in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده'] %}100{% else %}{{ order.progress_percentage or 0 }}{% endif %}" 
+                                 aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                         <p class="card-text"><small class="text-muted">شروع: {{ order.order_date if order.order_date else '-' }} | زمان تحویل: {{ order.delivery_date if order.delivery_date else '-' }}</small></p>
                         <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">جزئیات</button>

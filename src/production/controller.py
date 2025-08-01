@@ -54,7 +54,16 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
             order.status = str(current_stage).strip() # Also update the main status
-        if progress_percentage is not None:
+            
+            # If status is completed or shipped, automatically set progress to 100%
+            if str(current_stage).strip() in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده']:
+                order.progress_percentage = 100
+            elif progress_percentage is not None:
+                try:
+                    order.progress_percentage = int(progress_percentage)
+                except ValueError:
+                    return False, {"error": "Invalid progress percentage"}
+        elif progress_percentage is not None:
             try:
                 order.progress_percentage = int(progress_percentage)
             except ValueError:
@@ -199,6 +208,7 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
                 start_time = datetime.strptime(f"{today} {start_time_str}", "%Y-%m-%d %H:%M") if start_time_str else None
                 end_time = datetime.strptime(f"{today} {end_time_str}", "%Y-%m-%d %H:%M") if end_time_str else None
 
+                starting_quantity = int(data.get('starting_quantity', 0)) if data.get('starting_quantity') else 0
                 remaining_quantity = int(data.get('remaining_quantity', 0)) if data.get('remaining_quantity') else 0
                 shift_type_str = data.get('shift_type')
                 # Convert to uppercase to match the Enum definition
@@ -216,6 +226,7 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
                 worker_name=data.get('worker_name'),
                 start_time=start_time,
                 end_time=end_time,
+                starting_quantity=starting_quantity,
                 remaining_quantity=remaining_quantity,
                 shift_type=shift_type, # Now passing an Enum member
                 created_by=user_id

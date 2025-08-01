@@ -48,6 +48,7 @@ class Machine(db.Model):
     worker_name = db.Column(db.String(256), nullable=True)
     start_time = db.Column(db.DateTime, nullable=True)
     end_time = db.Column(db.DateTime, nullable=True)
+    starting_quantity = db.Column(db.Integer, nullable=True)
     remaining_quantity = db.Column(db.Integer, nullable=True)
     shift_type = db.Column(db.Enum(ShiftType), nullable=False)
 
@@ -61,6 +62,7 @@ class Machine(db.Model):
             'worker_name': self.worker_name,
             'start_time': self.start_time.isoformat() if self.start_time else None,
             'end_time': self.end_time.isoformat() if self.end_time else None,
+            'starting_quantity': self.starting_quantity,
             'remaining_quantity': self.remaining_quantity,
             'shift_type': self.shift_type.value if self.shift_type else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,

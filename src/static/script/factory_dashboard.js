@@ -69,8 +69,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateModal(order) {
         document.getElementById('modal-form-number').textContent = order.form_number;
         document.getElementById('modal-customer-details').textContent = `${order.customer_name} • ${order.quantity || 0} عدد`;
-        document.getElementById('modal-progress-bar').style.width = `${order.progress_percentage || 0}%`;
-        document.getElementById('modal-progress-bar').setAttribute('aria-valuenow', order.progress_percentage || 0);
+        
+        // Set progress bar - if status is completed or shipped, set to 100%
+        let progressPercentage = order.progress_percentage || 0;
+        if (order.status === 'Completed' || order.status === 'تکمیل شده' || 
+            order.status === 'Shipped' || order.status === 'ارسال شده') {
+            progressPercentage = 100;
+        }
+        document.getElementById('modal-progress-bar').style.width = `${progressPercentage}%`;
+        document.getElementById('modal-progress-bar').setAttribute('aria-valuenow', progressPercentage);
+        
         document.getElementById('modal-started-date').textContent = formatDate(order.order_date);
         document.getElementById('modal-est-completion-date').textContent = formatDate(order.delivery_date);
         document.getElementById('modal-status-badge').textContent = order.status ? getStatusText(order.status) : 'جدید';
@@ -79,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Production Status Form
         document.getElementById('modal-order-id').value = order.id;
         document.getElementById('modal-update-stage').value = order.current_stage || '';
-        document.getElementById('modal-progress-percentage').value = order.progress_percentage || 0;
+        document.getElementById('modal-progress-percentage').value = progressPercentage;
         document.getElementById('modal-factory-notes').value = order.factory_notes || '';
 
         // Job Metrics
@@ -192,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const worker_name = row.querySelector('input[name$="[worker_name]"]')?.value || null;
             const start_time = row.querySelector('input[name$="[start_time]"]')?.value || null;
             const end_time = row.querySelector('input[name$="[end_time]"]')?.value || null;
+            const starting_quantity = row.querySelector('input[name$="[starting_quantity]"]')?.value || null;
             const remaining_quantity = row.querySelector('input[name$="[remaining_quantity]"]')?.value || null;
             const shift_type = row.querySelector('select[name$="[shift_type]"]')?.value || null;
 
@@ -201,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     worker_name: worker_name,
                     start_time: start_time,
                     end_time: end_time,
+                    starting_quantity: starting_quantity,
                     remaining_quantity: remaining_quantity,
                     shift_type: shift_type
                 });
@@ -343,6 +353,14 @@ function getStatusText(status) {
     window.formatDateForInput = formatDateForInput;
     window.formatTimeForInput = formatTimeForInput;
 
+    // Update progress bars for completed/shipped orders on page load
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        const progress = bar.dataset.progress;
+        if (progress) {
+            bar.style.width = `${progress}%`;
+        }
+    });
+
     function addProductionRow() {
         const tableBody = document.getElementById('production-table-body');
         const newRow = tableBody.insertRow();
@@ -359,6 +377,7 @@ function getStatusText(status) {
             <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
             <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
             <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
+            <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][starting_quantity]" placeholder="تعداد شروع"></td>
             <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
             <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
         `;
@@ -388,6 +407,7 @@ function getStatusText(status) {
                     <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
                     <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
                     <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][starting_quantity]" placeholder="تعداد شروع" value="${data.starting_quantity || ''}"></td>
                     <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
                     <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
                 `;
@@ -417,6 +437,7 @@ function getStatusText(status) {
             <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
             <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
             <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
+            <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${rowIndex}][starting_quantity]" placeholder="تعداد شروع"></td>
             <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
             <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
         `;
@@ -446,6 +467,7 @@ function getStatusText(status) {
                     <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
                     <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
                     <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
+                    <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${index}][starting_quantity]" placeholder="تعداد شروع" value="${data.starting_quantity || ''}"></td>
                     <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
                     <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
                 `;
@@ -467,19 +489,19 @@ function getStatusText(status) {
         newMetricRow.className = 'row g-2 mb-2 align-items-end';
         newMetricRow.innerHTML = `
             <div class="col-md-3">
-                <label class="form-label">Package Count</label>
+                <label class="form-label">تعداد بسته</label>
                 <input type="number" class="form-control" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Package Value</label>
+                <label class="form-label">ارزش بسته</label>
                 <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Roll Count</label>
+                <label class="form-label">تعداد رول</label>
                 <input type="number" class="form-control" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
             </div>
             <div class="col-md-2">
-                <label class="form-label">Meterage</label>
+                <label class="form-label">متراژ</label>
                 <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
             </div>
             <div class="col-md-1">

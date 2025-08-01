@@ -81,6 +81,7 @@
                                         <th class="py-2 px-3">نام کارگر</th>
                                         <th class="py-2 px-3">ساعت شروع</th>
                                         <th class="py-2 px-3">ساعت اتمام</th>
+                                        <th class="py-2 px-3">تعداد شروع</th>
                                         <th class="py-2 px-3">تعداد مانده</th>
                                         <th class="py-2 px-3">عملیات</th>
                                     </tr>
@@ -185,3 +186,50 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Jalali date pickers for production steps
+    $('.jalali-date').persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValue: false,
+        autoClose: true,
+        observer: true,
+        calendar: {
+            persian: {
+                locale: 'fa'
+            }
+        },
+        responsive: true,
+        position: 'auto',
+        onSelect: function(unix) {
+            // Convert Jalali date to Gregorian for form submission
+            const gregorianDate = new Date(unix);
+            const year = gregorianDate.getFullYear();
+            const month = String(gregorianDate.getMonth() + 1).padStart(2, '0');
+            const day = String(gregorianDate.getDate()).padStart(2, '0');
+            const gregorianDateString = `${year}-${month}-${day}`;
+            
+            // Store the Gregorian date in a hidden input for form submission
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = this.model.inputElement.name + '_gregorian';
+            hiddenInput.value = gregorianDateString;
+            this.model.inputElement.parentNode.appendChild(hiddenInput);
+        },
+        onShow: function() {
+            // Adjust position for mobile devices
+            if (window.innerWidth <= 768) {
+                const picker = this.model.datepickerElement;
+                if (picker) {
+                    picker.style.position = 'fixed';
+                    picker.style.top = '50%';
+                    picker.style.left = '50%';
+                    picker.style.transform = 'translate(-50%, -50%)';
+                    picker.style.zIndex = '10000';
+                }
+            }
+        }
+    });
+});
+</script>
