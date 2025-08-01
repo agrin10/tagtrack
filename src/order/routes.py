@@ -3,7 +3,8 @@ from src.order import order_bp
 from src.order.controller import (
     add_order, get_orders, get_order_by_id, delete_order_by_id,
     update_order_id, duplicate_order, generate_excel_report,
-    upload_order_image, delete_order_image, get_order_images
+    upload_order_image, delete_order_image, get_order_images,
+    _get_next_form_number_for_year
 )
 from flask import redirect, render_template, request, jsonify, flash, url_for, send_file, current_app
 from flask_login import login_required, current_user
@@ -130,6 +131,26 @@ def create_order():
     
     return render_template('order-list.html')
     
+@order_bp.route('/next-form-number')
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , 'Designer') 
+def get_next_form_number():
+    """
+    Get the next available form number for preview.
+    """
+    try:
+        next_number = _get_next_form_number_for_year()
+        return jsonify({
+            "success": True,
+            "next_form_number": next_number
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to get next form number: {str(e)}"
+        }), 500
+
 @order_bp.route('/<id>')
 @login_required
 @jwt_required()

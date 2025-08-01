@@ -51,7 +51,7 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         if not form_data.get('customer_name'):
             return False, {"error": "Customer name is required"}
 
-        # Auto-generate form_number with yearly reset
+        # Auto-generate form_number with yearly reset (only when actually creating)
         form_number = _get_next_form_number_for_year()
 
         # Parse dates if provided

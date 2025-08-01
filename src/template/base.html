@@ -106,6 +106,14 @@
     <script src="{{ url_for('static', filename='script/handle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='script/moment.min.js') }}"></script>
     <script src="{{ url_for('static', filename='script/app.js') }}"></script>
+    
+    <!-- jQuery (required for persian-datepicker) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Jalali Calendar -->
+    <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css">
+    <script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+    <script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>    
     {% block scripts %}{% endblock scripts %}
 </body>
 </html>

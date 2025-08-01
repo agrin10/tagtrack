@@ -168,6 +168,21 @@ input[type="number"] {
   font-size: 1.1em;
 }
 
+#form_number {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  font-style: italic;
+}
+
+#form_number:disabled {
+  opacity: 0.8;
+}
+
+.form-floating > label[for="form_number"] {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
 /* Responsive styles */
 @media (max-width: 991.98px) {
   .sidebar {
