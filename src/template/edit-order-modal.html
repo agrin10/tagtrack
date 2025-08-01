@@ -85,14 +85,14 @@
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_fabric_density" name="fabric_density">
-                                                <label for="edit_fabric_density">تراکم پارچه</label>
+                                                <input type="number" class="form-control" id="edit_quantity" name="quantity">
+                                                <label for="edit_quantity">تعداد</label>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
-                                                <label for="edit_fabric_cut">برش پارچه</label>
+                                                <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
+                                                <label for="edit_total_length_meters">متر</label>
                                             </div>
                                         </div>
                                     </div>
@@ -104,28 +104,29 @@
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <div class="form-floating">
+                                                <input type="number" class="form-control" id="edit_fabric_density" name="fabric_density">
+                                                <label for="edit_fabric_density">تراکم </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="edit_width" name="width">
-                                                <label for="edit_width">عرض (سانتی‌متر)</label>
+                                                <label for="edit_width">عرض</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" step="0.01" class="form-control" id="edit_height" name="height">
-                                                <label for="edit_height">ارتفاع (سانتی‌متر)</label>
+                                                <label for="edit_height">طول</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_quantity" name="quantity">
-                                                <label for="edit_quantity">تعداد</label>
+                                                <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
+                                                <label for="edit_fabric_cut">برش </label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <div class="form-floating">
-                                                <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
-                                                <label for="edit_total_length_meters">طول کل (متر)</label>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 </div>
 
@@ -390,45 +391,70 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const editTabs = document.querySelectorAll('#editOrderFormTabs button');
-    const editProgressBar = document.getElementById('editFormProgress');
-    const editPrevBtn = document.getElementById('editPrevTab');
-    const editNextBtn = document.getElementById('editNextTab');
-    let currentEditTab = 0;
+    // Tab navigation functionality for edit modal
+    const nextTabBtn = document.getElementById('editNextTab');
+    const prevTabBtn = document.getElementById('editPrevTab');
+    const tabButtons = document.querySelectorAll('#editOrderFormTabs .nav-link');
+    const tabPanes = document.querySelectorAll('#editOrderFormTabContent .tab-pane');
+    const progressBar = document.getElementById('editFormProgress');
 
-    function updateEditProgress() {
-        const progress = ((currentEditTab + 1) / editTabs.length) * 100;
-        editProgressBar.style.width = `${progress}%`;
+    let currentTabIndex = 0;
+
+    // Function to update progress bar
+    function updateProgress() {
+        const progress = ((currentTabIndex + 1) / tabButtons.length) * 100;
+        progressBar.style.width = progress + '%';
     }
 
-    function showEditTab(index) {
-        editTabs.forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('#editOrderFormTabContent .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
-        
-        editTabs[index].classList.add('active');
-        document.querySelector(editTabs[index].dataset.bsTarget).classList.add('show', 'active');
-        
-        currentEditTab = index;
-        updateEditProgress();
-        
+    // Function to show specific tab
+    function showTab(index) {
+        // Hide all tabs
+        tabPanes.forEach(pane => {
+            pane.classList.remove('show', 'active');
+        });
+        tabButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show specific tab
+        if (index >= 0 && index < tabButtons.length) {
+            tabPanes[index].classList.add('show', 'active');
+            tabButtons[index].classList.add('active');
+            currentTabIndex = index;
+            updateProgress();
+        }
+
         // Update button states
-        editPrevBtn.disabled = currentEditTab === 0;
-        editNextBtn.disabled = currentEditTab === editTabs.length - 1;
+        prevTabBtn.disabled = currentTabIndex === 0;
+        nextTabBtn.disabled = currentTabIndex === tabButtons.length - 1;
     }
 
-    editPrevBtn.addEventListener('click', () => {
-        if (currentEditTab > 0) {
-            showEditTab(currentEditTab - 1);
-        }
+    // Next button click handler
+    if (nextTabBtn) {
+        nextTabBtn.addEventListener('click', function() {
+            if (currentTabIndex < tabButtons.length - 1) {
+                showTab(currentTabIndex + 1);
+            }
+        });
+    }
+
+    // Previous button click handler
+    if (prevTabBtn) {
+        prevTabBtn.addEventListener('click', function() {
+            if (currentTabIndex > 0) {
+                showTab(currentTabIndex - 1);
+            }
+        });
+    }
+
+    // Tab button click handlers
+    tabButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            showTab(index);
+        });
     });
 
-    editNextBtn.addEventListener('click', () => {
-        if (currentEditTab < editTabs.length - 1) {
-            showEditTab(currentEditTab + 1);
-        }
-    });
-
-    // Initialize edit form tabs
-    showEditTab(0);
+    // Initialize progress bar
+    updateProgress();
 });
 </script>
