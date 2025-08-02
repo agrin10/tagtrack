@@ -3,7 +3,6 @@ from src.invoice.controller import invoice_list , generate_invoice_file , view_i
 from flask import request , jsonify , redirect , url_for , render_template , flash 
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
-from src.order.controller import get_orders
 from flask_jwt_extended import jwt_required
 @invoice_bp.route('/')
 @login_required
@@ -18,9 +17,6 @@ def get_invoice_list():
     search = request.args.get('search', None, type=str)
     status = request.args.get('status', None, type=str)
 
-    sucess , orders = get_orders()
-    orders = orders['orders'] if sucess else []
-    orders = [order for order in orders if order.get('status') == 'Completed' and not order.get('invoiced')]    
     success, response = invoice_list(page, per_page, search, status)
 
     if success:
@@ -30,7 +26,6 @@ def get_invoice_list():
         else:
             return render_template(
                 'invoice_list.html',
-                orders = orders,
                 invoices=response["payments"],
                 total=response["total"],
                 pagination=response["pagination"]

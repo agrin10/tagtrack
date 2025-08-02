@@ -3,272 +3,96 @@
     <div class="container-fluid mt-3" dir="rtl">
         <h1 class="mb-4">مدیریت فاکتورها</h1>
 
-        <ul class="nav nav-tabs mb-4" id="invoiceTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="invoice-list-tab" data-bs-toggle="tab" data-bs-target="#invoice-list" type="button" role="tab" aria-controls="invoice-list" aria-selected="true">لیست فاکتورها</button>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="input-group" style="width: 300px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="searchInput" placeholder="جستجوی فاکتورها..." aria-label="جستجوی فاکتورها">
+                </button>
+            </div>
+            <a class="btn btn-primary" href="{{ url_for('invoice.export_invoices') }}">خروجی گرفتن همه</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-striped" id="invoiceTable">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">سفارش</th>
+                        <th scope="col">مشتری</th>
+                        <th scope="col">مبلغ</th>
+                        <th scope="col">شماره فاکتور</th>
+                        <th scope="col">وضعیت</th>
+                        <th scope="col" class="text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td data-label="سفارش">{{ invoice.form_number }}</td>
+                        <td data-label="نام مشتری">{{ invoice.customer_name }}</td>
+                        <td data-label="مبلغ">{{ invoice.total_price|iran_money }} تومان</td>
+                        <td data-label="شماره فاکتور">{{ invoice.invoice_number }}</td>
+                        <td data-label="وضعیت">
+                            <span class="badge 
+                                {% if invoice.status == 'Generated' %} bg-primary
+                                {% elif invoice.status == 'Paid' %} bg-success
+                                {% else %} bg-secondary
+                                {% endif %}">
+                                {% if invoice.status == 'Generated' %}ایجاد شده
+                                {% elif invoice.status == 'Paid' %}پرداخت شده
+                                {% else %}نامشخص
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#invoiceDetailsModal" data-invoice-id="{{ invoice.id }}">
+                                    <i class="fas fa-eye"></i> مشاهده
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#downloadChoiceModal" data-invoice-id="{{ invoice.id }}">
+                                    <i class="fas fa-download"></i> دانلود
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+        </div>
+    {% if pagination %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% set search_param = request.args.get('search', '') %}
+            {% set status_param = request.args.get('status', '') %}
+
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=pagination.prev_num, search=search_param, status=status_param) }}" aria-label="قبلی">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="generate-invoice-tab" data-bs-toggle="tab" data-bs-target="#generate-invoice" type="button" role="tab" aria-controls="generate-invoice" aria-selected="false">صدور فاکتور جدید</button>
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                    <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=p, search=search_param, status=status_param) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=pagination.next_num, search=search_param, status=status_param) }}" aria-label="بعدی">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
             </li>
         </ul>
-
-        <div class="tab-content" id="invoiceTabsContent">
-            <div class="tab-pane fade show active" id="invoice-list" role="tabpanel" aria-labelledby="invoice-list-tab">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="input-group" style="width: 300px;">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" placeholder="جستجوی فاکتورها..." aria-label="جستجوی فاکتورها">
-                        </button>
-                    </div>
-                <a class="btn btn-primary" href="{{ url_for('invoice.export_invoices') }}">خروجی گرفتن همه</a>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped" id="invoiceTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">سفارش</th>
-                                <th scope="col">مشتری</th>
-                                <th scope="col">مبلغ</th>
-                                <th scope="col">شماره فاکتور</th>
-                                <th scope="col">وضعیت</th>
-                                <th scope="col" class="text-center">عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for invoice in invoices %}
-                            <tr>
-                                <td data-label="سفارش">{{ invoice.form_number }}</td>
-                                <td data-label="نام مشتری">{{ invoice.customer_name }}</td>
-                                <td data-label="مبلغ">{{ invoice.total_price|iran_money }} تومان</td>
-                                <td data-label="شماره فاکتور">{{ invoice.invoice_number }}</td>
-                                <td data-label="وضعیت">
-                                    <span class="badge 
-                                        {% if invoice.status == 'Generated' %} bg-primary
-                                        {% elif invoice.status == 'Sent' %} bg-warning text-dark
-                                        {% elif invoice.status == 'Paid' %} bg-success
-                                        {% else %} bg-secondary
-                                        {% endif %}">
-                                        {% if invoice.status == 'Generated' %}ایجاد شده
-                                        {% elif invoice.status == 'Sent' %}ارسال شده
-                                        {% elif invoice.status == 'Paid' %}پرداخت شده
-                                        {% else %}نامشخص
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#invoiceDetailsModal" data-invoice-id="{{ invoice.id }}">
-                                            <i class="fas fa-eye"></i> مشاهده
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#downloadChoiceModal" data-invoice-id="{{ invoice.id }}">
-                                            <i class="fas fa-download"></i> دانلود
-                                        </button>
-                                        <form action="{{ url_for('invoice.post_send_invoice', invoice_id=invoice.id) }}" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-paper-plane"></i> ارسال</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    
-                </div>
-            {% if pagination %}
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center">
-                    {% set search_param = request.args.get('search', '') %}
-                    {% set status_param = request.args.get('status', '') %}
-
-                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=pagination.prev_num, search=search_param, status=status_param) }}" aria-label="قبلی">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% for p in pagination.iter_pages() %}
-                        {% if p %}
-                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=p, search=search_param, status=status_param) }}">{{ p }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                        {% endif %}
-                    {% endfor %}
-                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('invoice.get_invoice_list', page=pagination.next_num, search=search_param, status=status_param) }}" aria-label="بعدی">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            {% endif %}
-            </div>
-
-            <div class="tab-pane fade" id="generate-invoice" role="tabpanel" aria-labelledby="generate-invoice-tab">
-                <h2 class="mb-4 fw-bold text-primary">صدور فاکتور جدید از سفارش</h2>
-
-                
-                {% if orders %}
-                <div class="list-group shadow-sm rounded">
-                    {% for order in orders %}
-                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center select-order-btn"
-                    data-bs-toggle="modal" data-bs-target="#invoiceModal"
-                    data-order-id="{{ order.id }}"
-                    data-customer-name="{{ order.customer_name }}"
-                    data-order-number="{{ order.form_number }}">
-                        <div>
-                            <strong>سفارش شماره {{ order.form_number }}</strong><br>
-                            <small class="text-muted">{{ order.customer_name }}</small>
-                        </div>
-                        <i class="bi bi-chevron-right text-secondary"></i>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="alert alert-info">سفارشی برای صدور فاکتور وجود ندارد.</div>
-                {% endif %}
-            </div>
-
-        </div>
+    </nav>
+    {% endif %}
     </div>
 
-    <!-- Invoice Modal --> 
-    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="invoiceModalLabel">ایجاد فاکتور برای سفارش <span id="modalOrderNumber"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
-                </div>
-                <form action="{{ url_for('invoice.post_generate_invoice_file') }}" method="POST" id="modalInvoiceForm" dir="rtl">
-                    <div class="modal-body">
-                        <input type="hidden" id="modalOrderId" name="order_id">
-
-                        <!-- Credit Card -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalCreditCard" class="col-sm-4 col-form-label">کارت اعتباری</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="form-control" id="modalCreditCard" placeholder="XXXX.XXXX.XXXX.XXXX" name="credit_card" required maxlength="19">
-                            </div>
-                        </div>
-
-                        <!-- Quantity -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalQuantity" class="col-sm-4 col-form-label">تعداد</label>
-                            <div class="col-sm-8">
-                                <input type="number" class="form-control" id="modalQuantity" name="quantity" required>
-                            </div>
-                        </div>
-
-                        <!-- Cutting Cost -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalCuttingCost" class="col-sm-4 col-form-label">هزینه برش</label>
-                            <div class="col-sm-8">
-                                <input type="number" step="0.01" class="form-control" id="modalCuttingCost" name="cutting_cost" value="0.0">
-                            </div>
-                        </div>
-
-                        <!-- Number of Cuts -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalNumberOfCuts" class="col-sm-4 col-form-label">تعداد برش‌ها</label>
-                            <div class="col-sm-8">
-                                <input type="number" class="form-control" id="modalNumberOfCuts" name="number_of_cuts" required>
-                            </div>
-                        </div>
-
-                        <!-- Number of Density -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalNumberOfDensity" class="col-sm-4 col-form-label">تعداد اهار</label>
-                            <div class="col-sm-8">
-                                <input type="number" class="form-control" id="modalNumberOfDensity" name="number_of_density" required>
-                            </div>
-                        </div>
-
-                        <!-- Peak Quantity -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalPeakQuantity" class="col-sm-4 col-form-label">تعداد پیک</label>
-                            <div class="col-sm-8">
-                                <input type="number" class="form-control" id="modalPeakQuantity" name="peak_quantity" required>
-                            </div>
-                        </div>
-
-                        <!-- Peak Width -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalPeakWidth" class="col-sm-4 col-form-label">عرض</label>
-                            <div class="col-sm-8">
-                                <input type="number" class="form-control" id="modalPeakWidth" name="peak_width" required>
-                            </div>
-                        </div>
-
-                        <!-- Fee -->
-                        <div class="mb-3 row align-items-center">
-                            <label for="modalFee" class="col-sm-4 col-form-label">فی</label>
-                            <div class="col-sm-8">
-                                <input type="number" step="0.01" class="form-control" id="modalFee" name="Fee" required>
-                            </div>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="mb-3 row">
-                            <label for="modalNotes" class="col-sm-4 col-form-label">یادداشت‌ها</label>
-                            <div class="col-sm-8">
-                                <textarea class="form-control" id="modalNotes" name="notes" rows="3"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
-                        <button type="submit" class="btn btn-primary">صدور فاکتور</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     {% include 'invoice_detail.html' %}
     {% include 'downloadmodalinvoice.html' %}
 {% endblock %}
 {% block scripts %}
     <!-- Add invoice.js for search functionality -->
     <script src="{{ url_for('static', filename='script/invoice.js') }}"></script>
-    <script>
-        var invoiceTabs = new bootstrap.Tab(document.getElementById('invoice-list-tab'))
-        invoiceTabs.show()
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var invoiceModal = document.getElementById('invoiceModal');
-            invoiceModal.addEventListener('show.bs.modal', function (event) {
-                var button = event.relatedTarget;
-                var orderId = button.getAttribute('data-order-id');
-                var customerName = button.getAttribute('data-customer-name');
-                var orderNumber = button.getAttribute('data-order-number');
-
-                var modalOrderNumber = invoiceModal.querySelector('#modalOrderNumber');
-                var modalOrderId = invoiceModal.querySelector('#modalOrderId');
-                var modalCustomerName = invoiceModal.querySelector('#modalCustomerName');
-
-                modalOrderNumber.textContent = orderNumber;
-                modalOrderId.value = orderId;
-                modalCustomerName.value = customerName;
-
-                invoiceModal.querySelector('#modalUnitPrice').value = '';
-                invoiceModal.querySelector('#modalQuantity').value = '';
-                invoiceModal.querySelector('#modalCuttingCost').value = '0.0';
-                invoiceModal.querySelector('#modalDiscount').value = '0.0';
-                invoiceModal.querySelector('#modalTax').value = '0.0';
-                invoiceModal.querySelector('#modalNotes').value = '';
-            });
-        });
-        document.getElementById('modalCreditCard').addEventListener('input', function (e) {
-        let value = e.target.value.replace(/\D/g, ''); // remove non-digits
-        value = value.substring(0, 16); // limit to 16 digits
-
-        // Format like XXXX.XXXX.XXXX.XXXX
-        const formatted = value.match(/.{1,4}/g)?.join('.') || '';
-        e.target.value = formatted;
-        });
-
-        
-    </script>
 {% endblock %}
