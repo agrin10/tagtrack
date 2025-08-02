@@ -5,6 +5,7 @@ from datetime import datetime, date, timezone
 from src import db
 from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum
 from src.order.models import Order
+from src.invoice.models import Payment, InvoiceDraft
 from src.utils import parse_date_input
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
@@ -29,15 +30,58 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         success_steps, step_data = get_production_step_logs_for_order(order_id)
         order_dict['production_steps'] = step_data.get('production_steps', {})
 
+        # Add invoice data to the order dict
+        success_invoice, invoice_data = get_invoice_data_for_order(order_id)
+        order_dict['invoice_data'] = invoice_data.get('invoice', {})
+
         return True, {"message": "Order details retrieved successfully", "order": order_dict}
     except Exception as e:
         print(f"Error retrieving order details for modal: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve order details: {str(e)}"}
 
+def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get invoice data for a specific order (both actual invoices and drafts).
+    """
+    try:
+        # Check for actual invoice first
+        invoice = Payment.query.filter_by(order_id=order_id).first()
+        if invoice:
+            return True, {
+                "message": "Invoice data retrieved successfully",
+                "invoice": invoice.to_dict(),
+                "has_actual_invoice": True,
+                "has_draft": False
+            }
+        
+        # Check for invoice draft if no actual invoice exists
+        draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+        if draft:
+            return True, {
+                "message": "Invoice draft data retrieved successfully",
+                "invoice": draft.to_dict(),
+                "has_actual_invoice": False,
+                "has_draft": True
+            }
+        
+        # No invoice or draft found
+        return True, {
+            "message": "No invoice or draft found for this order", 
+            "invoice": {},
+            "has_actual_invoice": False,
+            "has_draft": False
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving invoice for order {order_id}: {str(e)}")
+        traceback.print_exc()
+        return False, {"error": f"Failed to retrieve invoice: {str(e)}"}
+
 def update_order_production_status(order_id: int, form_data: Dict[str, Any], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Updates the production status (stage, progress, notes) and job metrics of an order.
+    Also handles invoice data if provided.
     """
     try:
         order = Order.query.get(order_id)
@@ -51,6 +95,10 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         machine_data = form_data.get('machine_data', [])
         production_duration = form_data.get('production_duration')
         production_steps_data = form_data.get('production_steps', {})
+        
+        # Invoice data from factory processing
+        invoice_data = form_data.get('invoice_data', {})
+        should_save_invoice = invoice_data.get('should_save_invoice', False)
 
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
@@ -84,10 +132,34 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         # Save production step logs
         save_production_step_logs_for_order(order_id, production_steps_data, user_id)
 
+        # Handle invoice data - only generate actual invoice when status is "Completed"
+        invoice_result = None
+        is_completed = str(current_stage).strip() in ['Completed', 'تکمیل شده']
+        
+        if should_save_invoice and invoice_data:
+            if is_completed:
+                # Generate actual invoice when order is completed
+                invoice_result = save_invoice_from_factory(order_id, invoice_data, user_id)
+            else:
+                # Save invoice data as draft/placeholder for later completion
+                invoice_result = save_invoice_draft(order_id, invoice_data, user_id)
+
         order.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
-        return True, {"message": "Order production status and metrics updated successfully", "order": order.to_dict()}
+        response_message = "Order production status and metrics updated successfully"
+        if invoice_result and invoice_result.get('success'):
+            if is_completed:
+                response_message += f". Invoice {invoice_result.get('invoice_number')} created successfully."
+            else:
+                response_message += ". Invoice data saved as draft for completion."
+
+        return True, {
+            "message": response_message, 
+            "order": order.to_dict(),
+            "invoice_result": invoice_result,
+            "is_completed": is_completed
+        }
 
     except Exception as e:
         db.session.rollback()
@@ -330,3 +402,202 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
         print(f"Error saving production step logs: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to save production step logs: {str(e)}"}
+
+def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+    """
+    Save or update invoice data from factory processing to payment table.
+    When order is completed, this function also converts drafts to actual invoices.
+    """
+    try:
+        # Check if invoice already exists for this order
+        existing_invoice = Payment.query.filter_by(order_id=order_id).first()
+        
+        # Check for existing draft
+        existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+        
+        # Extract invoice data
+        credit_card = invoice_data.get('credit_card', 'N/A')
+        quantity = invoice_data.get('quantity', 0)
+        cutting_cost = invoice_data.get('cutting_cost', 0.0)
+        number_of_cuts = invoice_data.get('number_of_cuts', 0)
+        number_of_density = invoice_data.get('number_of_density', 0)
+        peak_quantity = invoice_data.get('peak_quantity', 0.0)
+        peak_width = invoice_data.get('peak_width', 0.0)
+        fee = invoice_data.get('Fee', 0.0)
+        notes = invoice_data.get('notes', 'Generated from factory processing')
+
+        # Validate required fields
+        if not quantity or not peak_quantity or not peak_width or not fee:
+            return {"success": False, "message": "Required invoice fields cannot be empty."}
+
+        # Ensure all numeric inputs are cast correctly
+        try:
+            quantity = int(quantity) if quantity else 0
+            cutting_cost = float(cutting_cost) if cutting_cost else 0.0
+            number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
+            number_of_density = int(number_of_density) if number_of_density else 0
+            peak_quantity = float(peak_quantity) if peak_quantity else 0.0
+            peak_width = float(peak_width) if peak_width else 0.0
+            fee = float(fee) if fee else 0.0
+        except (ValueError, TypeError) as e:
+            return {"success": False, "message": f"Invalid numeric value: {e}"}
+
+        # Validate that values are positive
+        if quantity <= 0 or peak_quantity <= 0 or peak_width <= 0 or fee <= 0:
+            return {"success": False, "message": "Quantity, peak_quantity, peak_width, and Fee must be positive values."}
+
+        # Calculate prices
+        unit_price = peak_quantity * peak_width * fee
+        total_price = (unit_price * quantity) + cutting_cost + number_of_cuts
+
+        if existing_invoice:
+            # Update existing invoice
+            existing_invoice.credit_card = credit_card
+            existing_invoice.unit_price = unit_price
+            existing_invoice.quantity = quantity
+            existing_invoice.cutting_cost = cutting_cost
+            existing_invoice.number_of_cuts = number_of_cuts
+            existing_invoice.number_of_density = number_of_density
+            existing_invoice.peak_quantity = peak_quantity
+            existing_invoice.peak_width = peak_width
+            existing_invoice.Fee = fee
+            existing_invoice.total_price = total_price
+            existing_invoice.notes = notes
+            
+            # Remove draft if it exists (since we now have an actual invoice)
+            if existing_draft:
+                db.session.delete(existing_draft)
+            
+            db.session.commit()
+            
+            return {
+                "success": True,
+                "message": "Invoice updated successfully from factory processing",
+                "invoice_number": existing_invoice.invoice_number,
+                "total_price": total_price,
+                "is_update": True
+            }
+        else:
+            # Create new invoice
+            # Generate invoice number
+            last_invoice = Payment.query.order_by(Payment.id.desc()).first()
+            new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
+            invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
+
+            new_invoice = Payment(
+                order_id=order_id,
+                credit_card=credit_card,
+                invoice_number=invoice_number,
+                unit_price=unit_price,
+                quantity=quantity,
+                cutting_cost=cutting_cost,
+                number_of_cuts=number_of_cuts,
+                number_of_density=number_of_density,
+                peak_quantity=peak_quantity,
+                peak_width=peak_width,
+                Fee=fee,
+                total_price=total_price,
+                status='Generated',
+                notes=notes,
+                created_by=user_id
+            )
+
+            db.session.add(new_invoice)
+            
+            # Remove draft if it exists (since we now have an actual invoice)
+            if existing_draft:
+                db.session.delete(existing_draft)
+            
+            db.session.commit()
+            
+            return {
+                "success": True,
+                "message": "Invoice created successfully from factory processing",
+                "invoice_number": invoice_number,
+                "total_price": total_price,
+                "is_update": False
+            }
+
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Error saving factory invoice: {e}"}
+
+def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+    """
+    Save invoice data as a draft for later completion when order is finished.
+    """
+    try:
+        # Check if draft already exists for this order
+        existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+        
+        # Extract invoice data
+        credit_card = invoice_data.get('credit_card', '')
+        quantity = invoice_data.get('quantity', 0)
+        cutting_cost = invoice_data.get('cutting_cost', 0.0)
+        number_of_cuts = invoice_data.get('number_of_cuts', 0)
+        number_of_density = invoice_data.get('number_of_density', 0)
+        peak_quantity = invoice_data.get('peak_quantity', 0.0)
+        peak_width = invoice_data.get('peak_width', 0.0)
+        fee = invoice_data.get('Fee', 0.0)
+        notes = invoice_data.get('notes', '')
+
+        # Ensure all numeric inputs are cast correctly
+        try:
+            quantity = int(quantity) if quantity else 0
+            cutting_cost = float(cutting_cost) if cutting_cost else 0.0
+            number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
+            number_of_density = int(number_of_density) if number_of_density else 0
+            peak_quantity = float(peak_quantity) if peak_quantity else 0.0
+            peak_width = float(peak_width) if peak_width else 0.0
+            fee = float(fee) if fee else 0.0
+        except (ValueError, TypeError) as e:
+            return {"success": False, "message": f"Invalid numeric value: {e}"}
+
+        if existing_draft:
+            # Update existing draft
+            existing_draft.credit_card = credit_card
+            existing_draft.quantity = quantity
+            existing_draft.cutting_cost = cutting_cost
+            existing_draft.number_of_cuts = number_of_cuts
+            existing_draft.number_of_density = number_of_density
+            existing_draft.peak_quantity = peak_quantity
+            existing_draft.peak_width = peak_width
+            existing_draft.Fee = fee
+            existing_draft.notes = notes
+            existing_draft.updated_at = datetime.now(timezone.utc)
+            
+            db.session.commit()
+            
+            return {
+                "success": True,
+                "message": "Invoice draft updated successfully",
+                "is_update": True
+            }
+        else:
+            # Create new draft
+            new_draft = InvoiceDraft(
+                order_id=order_id,
+                credit_card=credit_card,
+                quantity=quantity,
+                cutting_cost=cutting_cost,
+                number_of_cuts=number_of_cuts,
+                number_of_density=number_of_density,
+                peak_quantity=peak_quantity,
+                peak_width=peak_width,
+                Fee=fee,
+                notes=notes,
+                created_by=user_id
+            )
+
+            db.session.add(new_draft)
+            db.session.commit()
+            
+            return {
+                "success": True,
+                "message": "Invoice draft created successfully",
+                "is_update": False
+            }
+
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Error saving invoice draft: {e}"}

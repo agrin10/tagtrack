@@ -60,3 +60,43 @@ class Payment(db.Model):
             "created_by": self.created_by
 
         }
+
+class InvoiceDraft(db.Model):
+    __tablename__ = 'invoice_drafts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    
+    credit_card = db.Column(db.String(50), nullable=True)
+    quantity = db.Column(db.Integer, nullable=True)
+    cutting_cost = db.Column(db.Float, default=0.0)
+    number_of_cuts = db.Column(db.Integer, nullable=True)
+    number_of_density = db.Column(db.Integer, nullable=True)
+    peak_quantity = db.Column(db.Float, nullable=True)
+    peak_width = db.Column(db.Float, nullable=True)
+    Fee = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    order = db.relationship('Order', backref='invoice_drafts')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "order_id": self.order_id,
+            "credit_card": self.credit_card,
+            "quantity": self.quantity,
+            "cutting_cost": self.cutting_cost,
+            "number_of_cuts": self.number_of_cuts,
+            "number_of_density": self.number_of_density,
+            "peak_quantity": self.peak_quantity,
+            "peak_width": self.peak_width,
+            "Fee": self.Fee,
+            "notes": self.notes,
+            "created_by": self.created_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }

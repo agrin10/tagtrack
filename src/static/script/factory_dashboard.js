@@ -122,6 +122,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             const data = await response.json();
             populateModal(data.order);
+            
+            // Ensure job metrics are properly populated after modal is shown
+            setTimeout(() => {
+                const jobMetricsContainer = document.getElementById('modal-job-metrics-container');
+                if (jobMetricsContainer) {
+                    // Force a re-render of job metrics if needed
+                    const order = data.order;
+                    if (order.job_metrics && order.job_metrics.length > 0) {
+                        jobMetricsContainer.innerHTML = '';
+                        order.job_metrics.forEach((metric, index) => {
+                            addMetricRowToModal(metric);
+                        });
+                    }
+                }
+            }, 100);
+            
         } catch (error) {
             console.error('Error loading order details:', error);
             showAlert('خطا در بارگذاری جزئیات سفارش', 'danger');
@@ -152,10 +168,82 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-progress-percentage').value = progressPercentage;
         document.getElementById('modal-factory-notes').value = order.factory_notes || '';
 
+        // Invoice Form - Set order ID for invoice generation
+        document.querySelector('#factoryInvoiceForm input[name="order_id"]').value = order.id;
+
+        // Populate invoice form with existing invoice data if available
+        if (order.invoice_data && Object.keys(order.invoice_data).length > 0) {
+            const invoice = order.invoice_data;
+            const hasActualInvoice = order.has_actual_invoice || false;
+            const hasDraft = order.has_draft || false;
+            
+            // Populate invoice form fields
+            const creditCardInput = document.getElementById('modalCreditCard');
+            const quantityInput = document.getElementById('modalQuantity');
+            const cuttingCostInput = document.getElementById('modalCuttingCost');
+            const numberOfCutsInput = document.getElementById('modalNumberOfCuts');
+            const numberOfDensityInput = document.getElementById('modalNumberOfDensity');
+            const peakQuantityInput = document.getElementById('modalPeakQuantity');
+            const peakWidthInput = document.getElementById('modalPeakWidth');
+            const feeInput = document.getElementById('modalFee');
+            const notesInput = document.getElementById('modalNotes');
+
+            if (creditCardInput) creditCardInput.value = invoice.credit_card || '';
+            if (quantityInput) quantityInput.value = invoice.quantity || '';
+            if (cuttingCostInput) cuttingCostInput.value = invoice.cutting_cost || '';
+            if (numberOfCutsInput) numberOfCutsInput.value = invoice.number_of_cuts || '';
+            if (numberOfDensityInput) numberOfDensityInput.value = invoice.number_of_density || '';
+            if (peakQuantityInput) peakQuantityInput.value = invoice.peak_quantity || '';
+            if (peakWidthInput) peakWidthInput.value = invoice.peak_width || '';
+            if (feeInput) feeInput.value = invoice.Fee || '';
+            if (notesInput) notesInput.value = invoice.notes || '';
+
+            // Add appropriate alert based on invoice type
+            const invoiceAlert = document.createElement('div');
+            invoiceAlert.className = hasActualInvoice ? 'alert alert-success mb-3' : 'alert alert-info mb-3';
+            
+            if (hasActualInvoice) {
+                invoiceAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>فاکتور موجود:</strong> فاکتور ${invoice.invoice_number} قبلاً برای این سفارش ایجاد شده است. 
+                    اطلاعات موجود در فرم قابل ویرایش است و با بروزرسانی وضعیت تولید، فاکتور نیز به‌روزرسانی خواهد شد.
+                `;
+            } else if (hasDraft) {
+                invoiceAlert.innerHTML = `
+                    <i class="fas fa-edit me-2"></i>
+                    <strong>پیش‌نویس فاکتور:</strong> اطلاعات فاکتور به صورت پیش‌نویس ذخیره شده است. 
+                    با تکمیل سفارش (وضعیت "تکمیل شده")، فاکتور نهایی ایجاد خواهد شد.
+                `;
+            }
+            
+            const invoiceForm = document.getElementById('factoryInvoiceForm');
+            if (invoiceForm) {
+                invoiceForm.insertBefore(invoiceAlert, invoiceForm.firstChild);
+            }
+
+            // Trigger price calculation to update the total
+            setTimeout(() => {
+                const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost', 'modalNumberOfCuts'];
+                priceInputs.forEach(inputId => {
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.dispatchEvent(new Event('input'));
+                    }
+                });
+            }, 100);
+        }
+
         // Job Metrics
-        jobMetricsContainer.innerHTML = '';
+        const jobMetricsContainer = document.getElementById('modal-job-metrics-container');
+        
+        // Clear existing dynamic content but preserve the container
+        const existingRows = jobMetricsContainer.querySelectorAll('.row');
+        existingRows.forEach(row => row.remove());
+        
         if (order.job_metrics && order.job_metrics.length > 0) {
-            order.job_metrics.forEach(metric => addMetricRowToModal(metric));
+            order.job_metrics.forEach((metric, index) => {
+                addMetricRowToModal(metric);
+            });
         } else {
             addMetricRowToModal(); // Add an empty row if no metrics exist
         }
@@ -217,6 +305,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Collect production steps data from the modal
             payload.production_steps = collectProductionStepsFromModal();
 
+            // Collect invoice data from the modal
+            payload.invoice_data = collectInvoiceDataFromModal();
+
             const response = await fetch(`/factory/orders/${orderId}/update-production-status`, {
                 method: 'POST',
                 headers: {
@@ -230,7 +321,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
-            showAlert(data.message || 'وضعیت تولید با موفقیت به‌روزرسانی شد', 'success');
+            
+            // Show success message with invoice info if available
+            let message = data.message || 'وضعیت تولید با موفقیت به‌روزرسانی شد';
+            if (data.invoice_result && data.invoice_result.success) {
+                if (data.is_completed) {
+                    if (data.invoice_result.is_update) {
+                        message += ` فاکتور ${data.invoice_result.invoice_number} با موفقیت به‌روزرسانی شد.`;
+                    } else {
+                        message += ` فاکتور ${data.invoice_result.invoice_number} با موفقیت ایجاد شد.`;
+                    }
+                } else {
+                    if (data.invoice_result.is_update) {
+                        message += ` پیش‌نویس فاکتور با موفقیت به‌روزرسانی شد.`;
+                    } else {
+                        message += ` پیش‌نویس فاکتور با موفقیت ایجاد شد.`;
+                    }
+                }
+            }
+            
+            showAlert(message, 'success');
             // Optionally, refresh the page or update the card to reflect changes
             location.reload(); 
         } catch (error) {
@@ -241,17 +351,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function collectJobMetricsFromModal() {
         const metrics = [];
-        document.querySelectorAll('.job-metric-modal-row').forEach(row => {
-            const package_count = row.querySelector('input[name="package_count[]"]')?.value || 0;
-            const package_value = row.querySelector('input[name="package_value[]"]')?.value || 0;
-            const roll_count = row.querySelector('input[name="roll_count[]"]')?.value || 0;
-            const meterage = row.querySelector('input[name="meterage[]"]')?.value || 0;
-            metrics.push({
-                package_count: package_count,
-                package_value: package_value,
-                roll_count: roll_count,
-                meterage: meterage
-            });
+        document.querySelectorAll('#modal-job-metrics-container .row').forEach(row => {
+            const package_count = row.querySelector('input[name*="[package_count]"]')?.value || 0;
+            const package_value = row.querySelector('input[name*="[package_value]"]')?.value || 0;
+            const roll_count = row.querySelector('input[name*="[roll_count]"]')?.value || 0;
+            const meterage = row.querySelector('input[name*="[meterage]"]')?.value || 0;
+            
+            // Only add if at least one field has a value
+            if (package_count || package_value || roll_count || meterage) {
+                metrics.push({
+                    package_count: package_count,
+                    package_value: package_value,
+                    roll_count: roll_count,
+                    meterage: meterage
+                });
+            }
         });
         return metrics;
     }
@@ -311,6 +425,46 @@ document.addEventListener('DOMContentLoaded', function() {
         return productionSteps;
     }
 
+    function collectInvoiceDataFromModal() {
+        const invoiceForm = document.getElementById('factoryInvoiceForm');
+        if (!invoiceForm) {
+            return { should_save_invoice: false };
+        }
+
+        // Check if any invoice fields have been filled
+        const invoiceFields = [
+            'credit_card', 'quantity', 'cutting_cost', 'number_of_cuts', 
+            'number_of_density', 'peak_quantity', 'peak_width', 'Fee', 'notes'
+        ];
+
+        let hasInvoiceData = false;
+        const invoiceData = {};
+
+        invoiceFields.forEach(fieldName => {
+            const field = invoiceForm.querySelector(`[name="${fieldName}"]`);
+            if (field && field.value && field.value.trim()) {
+                invoiceData[fieldName] = field.value.trim();
+                hasInvoiceData = true;
+            }
+        });
+
+        // Check if required fields are filled
+        const requiredFields = ['quantity', 'peak_quantity', 'peak_width', 'Fee'];
+        const hasRequiredFields = requiredFields.every(fieldName => 
+            invoiceData[fieldName] && invoiceData[fieldName] !== ''
+        );
+
+        // Check if there's an existing invoice alert (indicating an invoice already exists)
+        const existingInvoiceAlert = invoiceForm.querySelector('.alert-warning');
+        const hasExistingInvoice = existingInvoiceAlert !== null;
+
+        return {
+            should_save_invoice: hasInvoiceData && hasRequiredFields,
+            has_existing_invoice: hasExistingInvoice,
+            ...invoiceData
+        };
+    }
+
     function formatDate(dateString) {
         if (!dateString) return '-';
         const date = new Date(dateString);
@@ -368,7 +522,7 @@ function getStatusText(status) {
         'Design': 'طراحی',
         'Printing': 'چاپ',
         'Cutting': 'برش',
-        'Finishing': 'تکمیل',
+        'Finishing': 'تمام شده',
         'Quality Control': 'کنترل کیفیت',
         'Packaging': 'بسته‌بندی',
         'Shipped': 'ارسال شده',
@@ -420,12 +574,73 @@ function getStatusText(status) {
     window.formatDateForInput = formatDateForInput;
     window.formatTimeForInput = formatTimeForInput;
 
+    // Add tab click handler for job metrics
+    document.addEventListener('DOMContentLoaded', function() {
+        const jobMetricsTab = document.getElementById('job-metrics-tab');
+        if (jobMetricsTab) {
+            jobMetricsTab.addEventListener('click', function() {
+                // Ensure job metrics are properly populated when tab is shown
+                setTimeout(() => {
+                    const jobMetricsContainer = document.getElementById('modal-job-metrics-container');
+                    if (jobMetricsContainer && jobMetricsContainer.children.length === 0) {
+                        addMetricRowToModal();
+                    }
+                }, 50);
+            });
+        }
+    });
+
     // Update progress bars for completed/shipped orders on page load
     document.querySelectorAll('.progress-bar').forEach(bar => {
         const progress = bar.dataset.progress;
         if (progress) {
             bar.style.width = `${progress}%`;
         }
+    });
+
+    // Credit card formatting for invoice form
+    document.addEventListener('DOMContentLoaded', function() {
+        const creditCardInput = document.getElementById('modalCreditCard');
+        if (creditCardInput) {
+            creditCardInput.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, ''); // remove non-digits
+                value = value.substring(0, 16); // limit to 16 digits
+
+                // Format like XXXX.XXXX.XXXX.XXXX
+                const formatted = value.match(/.{1,4}/g)?.join('.') || '';
+                e.target.value = formatted;
+            });
+        }
+
+        // Real-time total price calculation
+        function calculateTotalPrice() {
+            const quantity = parseFloat(document.getElementById('modalQuantity')?.value) || 0;
+            const peakQuantity = parseFloat(document.getElementById('modalPeakQuantity')?.value) || 0;
+            const peakWidth = parseFloat(document.getElementById('modalPeakWidth')?.value) || 0;
+            const fee = parseFloat(document.getElementById('modalFee')?.value) || 0;
+            const cuttingCost = parseFloat(document.getElementById('modalCuttingCost')?.value) || 0;
+            const numberOfCuts = parseInt(document.getElementById('modalNumberOfCuts')?.value) || 0;
+
+            const unitPrice = peakQuantity * peakWidth * fee;
+            const totalPrice = (unitPrice * quantity) + cuttingCost + numberOfCuts;
+
+            // Display total price if element exists
+            const totalPriceElement = document.getElementById('calculated-total-price');
+            if (totalPriceElement) {
+                totalPriceElement.textContent = totalPrice.toLocaleString('fa-IR') + ' تومان';
+            }
+        }
+
+        // Add event listeners for price calculation
+        const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost', 'modalNumberOfCuts'];
+        priceInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', calculateTotalPrice);
+            }
+        });
+
+        // Remove the separate invoice form submission handler since it's now integrated into production status update
     });
 
     function addProductionRow() {
@@ -551,28 +766,30 @@ function getStatusText(status) {
     // Modify addMetricRowToModal to include a delete button for job metrics
     function addMetricRowToModal(metric = null) {
         const container = document.getElementById('modal-job-metrics-container');
-        const index = container.children.length;
+        const existingRows = container.querySelectorAll('.row');
+        const index = existingRows.length;
+        
         const newMetricRow = document.createElement('div');
         newMetricRow.className = 'row g-2 mb-2 align-items-end';
         newMetricRow.innerHTML = `
             <div class="col-md-3">
-                <label class="form-label">تعداد بسته</label>
-                <input type="number" class="form-control" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
+                <label class="form-label small text-muted">تعداد بسته</label>
+                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">ارزش بسته</label>
-                <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
+                <label class="form-label small text-muted">ارزش بسته</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">تعداد رول</label>
-                <input type="number" class="form-control" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
+                <label class="form-label small text-muted">تعداد رول</label>
+                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
             </div>
             <div class="col-md-2">
-                <label class="form-label">متراژ</label>
-                <input type="number" step="0.01" class="form-control" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
+                <label class="form-label small text-muted">متراژ</label>
+                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
             </div>
             <div class="col-md-1">
-                <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()">X</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove()"><i class="fas fa-times"></i></button>
             </div>
         `;
         container.appendChild(newMetricRow);

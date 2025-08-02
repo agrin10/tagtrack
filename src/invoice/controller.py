@@ -119,6 +119,102 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
     except Exception as e:
         return False, f"Something went wrong: {e}"
 
+def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
+                        number_of_cuts, number_of_density,
+                        peak_quantity, peak_width, Fee, notes, created_by=None):
+    """
+    Save invoice data from factory processing tab to payment table.
+    This function is specifically designed for the factory processing workflow.
+    """
+    order = db.session.query(Order).filter_by(id=order_id).first()
+    if not order:
+        return False, {"message": f"Order ID {order_id} does not exist."}
+
+    try:
+        # Check if invoice already exists for this order
+        existing_invoice = Payment.query.filter_by(order_id=order_id).first()
+        if existing_invoice:
+            return False, {"message": f"Invoice already exists for order {order_id}."}
+
+        # Validate required fields
+        if not quantity or not peak_quantity or not peak_width or not Fee:
+            return False, {"message": "Required fields (quantity, peak_quantity, peak_width, Fee) cannot be empty."}
+
+        # Ensure all numeric inputs are cast correctly
+        try:
+            quantity = int(quantity) if quantity else 0
+            cutting_cost = float(cutting_cost) if cutting_cost else 0.0
+            number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
+            number_of_density = int(number_of_density) if number_of_density else 0
+            peak_quantity = float(peak_quantity) if peak_quantity else 0.0
+            peak_width = float(peak_width) if peak_width else 0.0
+            Fee = float(Fee) if Fee else 0.0
+        except (ValueError, TypeError) as e:
+            return False, {"message": f"Invalid numeric value: {e}"}
+
+        # Validate that values are positive
+        if quantity <= 0 or peak_quantity <= 0 or peak_width <= 0 or Fee <= 0:
+            return False, {"message": "Quantity, peak_quantity, peak_width, and Fee must be positive values."}
+
+        # Generate invoice number
+        last_invoice = Payment.query.order_by(Payment.id.desc()).first()
+        new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
+        invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
+
+        # Calculate prices
+        unit_price = peak_quantity * peak_width * Fee
+        total_price = (unit_price * quantity) + cutting_cost + number_of_cuts
+
+        new_invoice = Payment(
+            order_id=order_id,
+            credit_card=credit_card or "N/A",
+            invoice_number=invoice_number,
+            unit_price=unit_price,
+            quantity=quantity,
+            cutting_cost=cutting_cost,
+            number_of_cuts=number_of_cuts,
+            number_of_density=number_of_density,
+            peak_quantity=peak_quantity,
+            peak_width=peak_width,
+            Fee=Fee,
+            total_price=total_price,
+            status='Generated',
+            notes=notes or "Generated from factory processing",
+            created_by=created_by
+        )
+
+        db.session.add(new_invoice)
+        order.invoiced = True  # Mark order as invoiced
+        db.session.commit()
+        
+        return True, {
+            "message": "Invoice saved successfully from factory processing",
+            "invoice_number": invoice_number,
+            "total_price": total_price
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error saving factory invoice: {e}"
+
+def get_invoice_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Get invoice data for a specific order to populate factory processing modal.
+    """
+    try:
+        invoice = Payment.query.filter_by(order_id=order_id).first()
+        if not invoice:
+            return False, {"message": "No invoice found for this order"}
+        
+        return True, {
+            "message": "Invoice data retrieved successfully",
+            "invoice": invoice.to_dict()
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving invoice for order {order_id}: {str(e)}")
+        return False, {"error": f"Failed to retrieve invoice: {str(e)}"}
+
 def view_invoice(invoice_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get a specific invoice by its ID.

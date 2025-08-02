@@ -1,7 +1,7 @@
 from src.invoice import invoice_bp
-from src.invoice.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all
+from src.invoice.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all, save_factory_invoice, get_invoice_for_order
 from flask import request , jsonify , redirect , url_for , render_template , flash 
-from flask_login import login_required
+from flask_login import login_required, current_user
 from src.utils.decorators import role_required
 from src.order.controller import get_orders
 from flask_jwt_extended import jwt_required
@@ -78,6 +78,70 @@ def post_generate_invoice_file():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Invalid input: {e}"}), 400
+
+@invoice_bp.route('/save-factory-invoice', methods=["POST"])
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
+def save_factory_invoice_route():
+    """
+    Endpoint to save invoice data from factory processing tab.
+    """
+    if request.content_type == 'application/json':
+        data = request.get_json()
+    else:
+        data = request.form
+
+    try:
+        order_id = int(data.get('order_id'))
+        credit_card = data.get('credit_card')
+        quantity = data.get('quantity')
+        cutting_cost = data.get('cutting_cost')
+        number_of_cuts = data.get('number_of_cuts')
+        number_of_density = data.get('number_of_density')
+        peak_quantity = data.get('peak_quantity')
+        peak_width = data.get('peak_width')
+        Fee = data.get('Fee')
+        notes = data.get('notes')
+
+        success, response = save_factory_invoice(
+            order_id, credit_card, quantity,
+            cutting_cost, number_of_cuts, number_of_density,
+            peak_quantity, peak_width, Fee, notes, current_user.id
+        )
+
+        if success:
+            if request.is_json:
+                return jsonify({"success": True, "message": response["message"], "invoice_number": response["invoice_number"], "total_price": response["total_price"]}), 200
+            flash(response["message"], "success")
+            return redirect(url_for('invoice.get_invoice_list')) 
+        else:
+            if request.is_json:
+                return jsonify({"success": False, "message": response}), 400
+            flash(response, "error")
+            return redirect(url_for('invoice.get_invoice_list')) 
+
+    except Exception as e:
+        error_msg = f"Invalid input: {e}"
+        if request.is_json:
+            return jsonify({"success": False, "message": error_msg}), 400
+        flash(error_msg, "error")
+        return redirect(url_for('invoice.get_invoice_list'))
+
+@invoice_bp.route('/order/<int:order_id>', methods=['GET'])
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
+def get_invoice_for_order_route(order_id):
+    """
+    Get invoice data for a specific order to populate factory processing modal.
+    """
+    success, response = get_invoice_for_order(order_id)
+    
+    if success:
+        return jsonify({"success": True, "invoice": response["invoice"]}), 200
+    else:
+        return jsonify({"success": False, "message": response.get("message", "No invoice found")}), 404
 
 @invoice_bp.route('/download', methods=['POST'])
 @login_required
