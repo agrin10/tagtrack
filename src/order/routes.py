@@ -13,6 +13,7 @@ from src.order.models import db, Order
 from flask_jwt_extended import jwt_required
 import traceback
 import os , logging
+from src.utils.pdf_generator import generate_order_pdf
 
 @order_bp.route('/')
 @login_required
@@ -376,3 +377,25 @@ def serve_order_file(file_id):
     if not file or not os.path.exists(file.file_path):
         return jsonify({"error": "File not found"}), 404
     return send_file(file.file_path, as_attachment=False)
+
+@order_bp.route('/<int:order_id>/download-pdf')
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , 'Designer')
+def download_order_pdf(order_id):
+    """
+    Generate and download a PDF report for a specific order.
+    """
+    try:
+        success, response = generate_order_pdf(order_id)
+        if success:
+            return send_file(
+                response['pdf_buffer'],
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=response['filename']
+            )
+        return jsonify({"error": response.get('error', 'Failed to generate PDF')}), 400
+    except Exception as e:
+        print(f"Error in download_order_pdf route: {str(e)}")
+        return jsonify({"error": "An error occurred while generating the PDF"}), 500

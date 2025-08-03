@@ -6,6 +6,7 @@ import { initExportExcel } from './orders/exportExcel.js';
 import { initFilters } from './orders/filters.js';
 import { initOrderDetails } from './orders/orderDetails.js';
 import { previewDetailImage, previewEditImage } from './orders/imagePreview.js';
+import { initDownloadPdf } from './orders/downloadPdf.js';
 
 // Initialize all modules on DOMContentLoaded
 
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDuplicateOrder();
   initExportExcel();
   initFilters();
+  initDownloadPdf();
   window.previewDetailImage = previewDetailImage;
   window.previewEditImage = previewEditImage;
 });

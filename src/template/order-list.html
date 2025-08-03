@@ -233,6 +233,9 @@
                                     <button type="button" class="btn btn-success duplicate-order-btn" title="کپی سفارش" data-order-id="{{ order.id }}">
                                         <i class="fas fa-copy"></i>
                                     </button>
+                                    <button type="button" class="btn btn-warning download-pdf-btn" title="دانلود PDF" data-order-id="{{ order.id }}">
+                                        <i class="fas fa-download"></i>
+                                    </button>
                                     <button type="button" 
                                             class="btn btn-danger delete-order-btn {% if order.status == 'Completed' %}disabled{% endif %}" 
                                             title="{% if order.status == 'Completed' %}امکان حذف سفارش تکمیل شده وجود ندارد{% else %}حذف{% endif %}" 
