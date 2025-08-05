@@ -542,6 +542,7 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
         peak_width = invoice_data.get('peak_width', 0.0)
         fee = invoice_data.get('Fee', 0.0)
+        row_number = invoice_data.get('row_number')
         notes = invoice_data.get('notes', '')
 
         # Ensure all numeric inputs are cast correctly
@@ -553,6 +554,7 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             fee = float(fee) if fee else 0.0
+            row_number = int(row_number) if row_number else None
         except (ValueError, TypeError) as e:
             return {"success": False, "message": f"Invalid numeric value: {e}"}
 
@@ -566,6 +568,7 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             existing_draft.peak_quantity = peak_quantity
             existing_draft.peak_width = peak_width
             existing_draft.Fee = fee
+            existing_draft.row_number = row_number
             existing_draft.notes = notes
             existing_draft.updated_at = datetime.now(timezone.utc)
             
@@ -588,6 +591,7 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
                 Fee=fee,
+                row_number=row_number,
                 notes=notes,
                 created_by=user_id
             )

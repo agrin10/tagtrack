@@ -77,6 +77,7 @@ class InvoiceDraft(db.Model):
     peak_quantity = db.Column(db.Float, nullable=True)
     peak_width = db.Column(db.Float, nullable=True)
     Fee = db.Column(db.Float, nullable=True)
+    row_number = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -97,6 +98,7 @@ class InvoiceDraft(db.Model):
             "peak_quantity": self.peak_quantity,
             "peak_width": self.peak_width,
             "Fee": self.Fee,
+            "row_number": self.row_number,
             "notes": self.notes,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,

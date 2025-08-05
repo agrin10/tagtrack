@@ -150,6 +150,7 @@ def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             Fee = float(Fee) if Fee else 0.0
+            row_number = int(row_number) if row_number else None
         except (ValueError, TypeError) as e:
             return False, {"message": f"Invalid numeric value: {e}"}
 
