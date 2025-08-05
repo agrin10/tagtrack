@@ -71,6 +71,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (orderId) {
                 await loadOrderDetails(orderId);
                 orderDetailModal.show();
+                
+                // Re-initialize JalaliDatePicker after modal is shown
+                setTimeout(() => {
+                    const dateInputs = document.querySelectorAll('input[data-jdp]');
+                    dateInputs.forEach(input => {
+                        if (input && !input.hasAttribute('data-jdp-initialized')) {
+                            input.setAttribute('data-jdp-initialized', 'true');
+                            // Trigger JalaliDatePicker initialization for this input
+                            if (window.jalaliDatepicker && window.jalaliDatepicker.startWatch) {
+                                window.jalaliDatepicker.startWatch();
+                            }
+                        }
+                    });
+                }, 200);
             }
         });
     });
@@ -281,6 +295,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+
+        // Re-initialize JalaliDatePicker for production step date inputs
+        setTimeout(() => {
+            const dateInputs = document.querySelectorAll('input[data-jdp]');
+            dateInputs.forEach(input => {
+                if (input && !input.hasAttribute('data-jdp-initialized')) {
+                    input.setAttribute('data-jdp-initialized', 'true');
+                    // Trigger JalaliDatePicker initialization for this input
+                    if (window.jalaliDatepicker && window.jalaliDatepicker.startWatch) {
+                        window.jalaliDatepicker.startWatch();
+                    }
+                }
+            });
+        }, 100);
     }
 
     async function updateProductionStatus(orderId, formData) {
@@ -588,6 +616,26 @@ function getStatusText(status) {
                         addMetricRowToModal();
                     }
                 }, 50);
+            });
+        }
+
+        // Add tab click handler for production steps to re-initialize datepicker
+        const productionStepsTab = document.getElementById('production-steps-tab');
+        if (productionStepsTab) {
+            productionStepsTab.addEventListener('click', function() {
+                // Re-initialize JalaliDatePicker for production step date inputs
+                setTimeout(() => {
+                    const dateInputs = document.querySelectorAll('input[data-jdp]');
+                    dateInputs.forEach(input => {
+                        if (input && !input.hasAttribute('data-jdp-initialized')) {
+                            input.setAttribute('data-jdp-initialized', 'true');
+                            // Trigger JalaliDatePicker initialization for this input
+                            if (window.jalaliDatepicker && window.jalaliDatepicker.startWatch) {
+                                window.jalaliDatepicker.startWatch();
+                            }
+                        }
+                    });
+                }, 100);
             });
         }
     });
