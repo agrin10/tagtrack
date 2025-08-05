@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const peakQuantityInput = document.getElementById('modalPeakQuantity');
             const peakWidthInput = document.getElementById('modalPeakWidth');
             const feeInput = document.getElementById('modalFee');
+            const rowNumberInput = document.getElementById('modalRowNumber');
             const notesInput = document.getElementById('modalNotes');
 
             if (creditCardInput) creditCardInput.value = invoice.credit_card || '';
@@ -196,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (peakQuantityInput) peakQuantityInput.value = invoice.peak_quantity || '';
             if (peakWidthInput) peakWidthInput.value = invoice.peak_width || '';
             if (feeInput) feeInput.value = invoice.Fee || '';
+            if (rowNumberInput) rowNumberInput.value = invoice.row_number || '';
             if (notesInput) notesInput.value = invoice.notes || '';
 
             // Add appropriate alert based on invoice type
@@ -434,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if any invoice fields have been filled
         const invoiceFields = [
             'credit_card', 'quantity', 'cutting_cost', 'number_of_cuts', 
-            'number_of_density', 'peak_quantity', 'peak_width', 'Fee', 'notes'
+            'number_of_density', 'peak_quantity', 'peak_width', 'Fee', 'row_number', 'notes'
         ];
 
         let hasInvoiceData = false;

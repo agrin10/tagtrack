@@ -18,6 +18,7 @@ class Payment(db.Model):
     peak_quantity = db.Column(db.Float , nullable=False)
     peak_width = db.Column(db.Integer)
     Fee  = db.Column(db.Integer)
+    row_number = db.Column(db.Integer, nullable=True)          # ردیف
 
     total_price = db.Column(db.Float, nullable=False)          # قیمت نهایی = (واحد × تعداد) + هزینه برش - تخفیف + مالیات
 
@@ -52,6 +53,7 @@ class Payment(db.Model):
             "peak_quantity": self.peak_quantity,
             "peak_width": self.peak_width,
             "Fee": self.Fee,
+            "row_number": self.row_number,
             "total_price": self.total_price,
             "status": self.status,
             "notes": self.notes,

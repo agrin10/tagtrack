@@ -107,7 +107,7 @@ def create_order():
             if success:
                 if is_ajax:
                     return jsonify(response), 201
-                flash('Order created successfully!', 'success')
+                flash('سفارش با موفقیت ساخته شد', 'success')
                 return redirect(url_for('order.order_list'))
             else:
                 error_response = {"error": response.get('error', 'Failed to create order')}

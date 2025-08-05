@@ -424,6 +424,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
         peak_width = invoice_data.get('peak_width', 0.0)
         fee = invoice_data.get('Fee', 0.0)
+        row_number = invoice_data.get('row_number')
         notes = invoice_data.get('notes', 'Generated from factory processing')
 
         # Validate required fields
@@ -461,6 +462,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             existing_invoice.peak_quantity = peak_quantity
             existing_invoice.peak_width = peak_width
             existing_invoice.Fee = fee
+            existing_invoice.row_number = row_number
             existing_invoice.total_price = total_price
             existing_invoice.notes = notes
             
@@ -496,6 +498,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
                 Fee=fee,
+                row_number=row_number,
                 total_price=total_price,
                 status='Generated',
                 notes=notes,

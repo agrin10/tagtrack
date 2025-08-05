@@ -54,12 +54,13 @@ def post_generate_invoice_file():
         peak_width = data.get('peak_width')
         Fee = data.get('Fee')
         notes = data.get('notes')
+        row_number = data.get('row_number')
 
         print(f'order_id {order_id}')
         success, message = generate_invoice_file(
             order_id, credit_card, quantity,
             cutting_cost, number_of_cuts, number_of_density,
-            peak_quantity, peak_width, Fee, notes
+            peak_quantity, peak_width, Fee, notes, row_number
         )
 
         if success:
@@ -98,11 +99,12 @@ def save_factory_invoice_route():
         peak_width = data.get('peak_width')
         Fee = data.get('Fee')
         notes = data.get('notes')
+        row_number = data.get('row_number')
 
         success, response = save_factory_invoice(
             order_id, credit_card, quantity,
             cutting_cost, number_of_cuts, number_of_density,
-            peak_quantity, peak_width, Fee, notes, current_user.id
+            peak_quantity, peak_width, Fee, notes, row_number, current_user.id
         )
 
         if success:

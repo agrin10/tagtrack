@@ -71,7 +71,7 @@ def invoice_list(page: int = 1, per_page: int = 10, search: str = None, status: 
 
 def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
                           number_of_cuts, number_of_density,
-                          peak_quantity, peak_width, Fee, notes):
+                          peak_quantity, peak_width, Fee, notes, row_number=None):
     order = db.session.query(Order).filter_by(id=order_id).first()
     if not order:
         return False , {"message": f"Order ID {order_id} does not exist."}
@@ -106,6 +106,7 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
             peak_quantity=peak_quantity,
             peak_width=peak_width,
             Fee=Fee,
+            row_number=row_number,
             total_price=total_price,
             status='Generated',
             notes=notes
@@ -121,7 +122,7 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
 
 def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
                         number_of_cuts, number_of_density,
-                        peak_quantity, peak_width, Fee, notes, created_by=None):
+                        peak_quantity, peak_width, Fee, notes, row_number=None, created_by=None):
     """
     Save invoice data from factory processing tab to payment table.
     This function is specifically designed for the factory processing workflow.
@@ -177,6 +178,7 @@ def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
             peak_quantity=peak_quantity,
             peak_width=peak_width,
             Fee=Fee,
+            row_number=row_number,
             total_price=total_price,
             status='Generated',
             notes=notes or "Generated from factory processing",
@@ -275,6 +277,7 @@ def download_invoice(invoice_id, file_type):
             (persian("قیمت واحد"), f"{invoice['unit_price']}"),
             (persian("تعداد تولیدی"), f"{invoice['quantity']}"),
             (persian("تعداد پیک"), f"{invoice['peak_quantity']}"),
+            (persian("ردیف"), f"{invoice.get('row_number', '---')}"),
         ]
         labels_right = [
             (persian("هزینه برش"), f"{invoice['cutting_cost']}"),
@@ -326,6 +329,7 @@ def download_invoice(invoice_id, file_type):
             "unit_price": "قیمت واحد",
             "quantity": "تعداد تولیدی",
             "peak_quantity": "تعداد پیک",
+            "row_number": "ردیف",
             "cutting_cost": "هزینه برش",
             "total_price": "قیمت کل",
             "status": "وضعیت",
@@ -403,6 +407,7 @@ def create_payment_for_order(order, payment_info):
         peak_quantity=peak_quantity,
         peak_width=peak_width,
         Fee=fee,
+        row_number=payment_info.get('row_number'),
         total_price=total_price,
         status='Generated',
         notes='Auto-generated when order marked as completed',
@@ -426,6 +431,7 @@ def export_all():
             "unit_price": "قیمت واحد",
             "quantity": "تعداد تولیدی",
             "peak_quantity": "تعداد پیک",
+            "row_number": "ردیف",
             "cutting_cost": "هزینه برش",
             "total_price": "قیمت کل",
             "status": "وضعیت",
