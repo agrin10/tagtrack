@@ -17,6 +17,10 @@ from typing import Tuple, Dict, Any
 from src.order.models import Order, OrderValue, OrderFile
 import traceback
 import os
+import jdatetime
+from datetime import datetime
+from dateutil import parser
+from reportlab.lib import colors
 
 # Register Persian font
 try:
@@ -43,15 +47,72 @@ def format_persian_text(text):
     if not text:
         return '-'
     try:
-        # Reshape Arabic/Persian text for proper display
-        reshaped_text = arabic_reshaper.reshape(str(text))
-        # Apply bidirectional algorithm for RTL text
-        bidi_text = get_display(reshaped_text)
-        return bidi_text
+        # Convert to string first
+        text_str = str(text)
+        
+        # Check if text contains Arabic/Persian characters
+        arabic_chars = any('\u0600' <= char <= '\u06FF' or '\u0750' <= char <= '\u077F' for char in text_str)
+        
+        if arabic_chars:
+            try:
+                # Try reshaping with arabic_reshaper
+                reshaped_text = arabic_reshaper.reshape(text_str)
+                # Apply bidirectional algorithm for RTL text
+                bidi_text = get_display(reshaped_text)
+                return bidi_text
+            except Exception as reshape_error:
+                print(f"Reshape error for text '{text_str}': {reshape_error}")
+                # If reshaping fails, try without reshaping
+                try:
+                    bidi_text = get_display(text_str)
+                    return bidi_text
+                except Exception as bidi_error:
+                    print(f"Bidi error for text '{text_str}': {bidi_error}")
+                    # Final fallback - return original text
+                    return text_str
+        else:
+            # For non-Arabic/Persian text, return as is
+            return text_str
     except Exception as e:
         print(f"Error formatting Persian text '{text}': {str(e)}")
         # Fallback to simple string conversion
         return str(text) if text else '-'
+
+def to_persian_date(value=None, fmt='%Y/%m/%d'):
+    """Convert date to Persian format for PDF"""
+    persian_weekdays = {
+        'Saturday': 'شنبه',
+        'Sunday': 'یکشنبه',
+        'Monday': 'دوشنبه',
+        'Tuesday': 'سه‌شنبه',
+        'Wednesday': 'چهارشنبه',
+        'Thursday': 'پنجشنبه',
+        'Friday': 'جمعه',
+    }
+
+    # If value is None, empty, or explicitly a null-like string
+    if not value or str(value).lower() in ('none', 'null', ''):
+        return '-'
+
+    try:
+        # Handle string input by parsing to datetime
+        if isinstance(value, str):
+            value = parser.parse(value)
+
+        if isinstance(value, datetime):
+            jalali = jdatetime.datetime.fromgregorian(datetime=value)
+            date_str = jalali.strftime(fmt)
+
+            # Replace English weekday with Persian
+            for en, fa in persian_weekdays.items():
+                date_str = date_str.replace(en, fa)
+
+            return date_str
+
+    except Exception as e:
+        print(f"[to_persian_date] Error: {e}")
+
+    return '-'
 
 def generate_order_pdf(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -161,7 +222,7 @@ def generate_page_one_content(order, machine_data):
     )
     
     form_number = str(order.form_number) if order.form_number else '...................'
-    form_date = str(order.created_at.date()) if order.created_at else '...................'
+    form_date = to_persian_date(order.created_at) if order.created_at else '...................'
     customer_name = order.customer_name if order.customer_name else '...................'
     
     # Use table layout for better spacing control - single row with three columns
@@ -185,11 +246,8 @@ def generate_page_one_content(order, machine_data):
     story.append(form_info_table)
     story.append(Spacer(1, 8))
 
-    # 3. Sketcher Name Line - Positioned a little in front and bit to center
-    designer = order.sketch_name or '-'
-    
-    # Create a table to control positioning - move it forward and center it
-    designer_data = [[format_persian_text(f"نام طرح: {designer}")]]
+    designer_raw = order.sketch_name if order.sketch_name else '-'
+    designer_data = [[format_persian_text(f"نام طرح: {designer_raw}")]]
     designer_table = Table(designer_data, colWidths=[12*cm])  # Reduced width to center it
     designer_table.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), 'Vazir'),
@@ -216,8 +274,8 @@ def generate_page_one_content(order, machine_data):
     # 4. Dual-Column Block (side-by-side)
     # Left block (≈8 cm wide): Exit dates
     exit_data = [
-        [format_persian_text("خروج از دفتر:"), str(order.exit_from_office_date or '-')],
-        [format_persian_text("خروج از کارخانه:"), str(order.exit_from_factory_date or '-')]
+        [format_persian_text(to_persian_date(order.exit_from_factory_date)), format_persian_text("خروج از کارخانه:")],
+        [format_persian_text(to_persian_date(order.exit_from_office_date)), format_persian_text("خروج از دفتر:")]
     ]
     exit_table = Table(exit_data, colWidths=[3*cm, 5*cm])
     exit_table.setStyle(TableStyle([
@@ -308,7 +366,7 @@ def generate_page_one_content(order, machine_data):
     story.append(Paragraph(format_persian_text("توضیحات مشتری به دفتر"), notes_title_style))
 
     # Full-width box (≈16 cm × 4 cm), single border, no shading
-    notes = order.customer_note_to_office or '-'
+    notes = format_persian_text(order.customer_note_to_office) if order.customer_note_to_office else '-'
     notes_table = Table([[notes]], colWidths=[16*cm], rowHeights=[4*cm])
     notes_table.setStyle(TableStyle([
         ('FONTNAME', (0,0), (0,0), 'Vazir'),
@@ -336,7 +394,7 @@ def generate_page_one_content(order, machine_data):
     order_values = []
     for i in range(1, 9):
         value = OrderValue.query.filter_by(order_id=order.id, value_index=i).first()
-        order_values.append(value.value if value else '-')
+        order_values.append(format_persian_text(value.value) if value and value.value else '-')
     values_data.append(order_values)
     
     values_table = Table(values_data, colWidths=[1.5*cm]*8)  # 8 equal columns, smaller
@@ -588,6 +646,9 @@ def generate_page_one_content(order, machine_data):
             spaceAfter=6
         )
         story.append(Paragraph(format_persian_text(f"مقادیر انتخاب شده: {selected_text}"), selected_style))
+        
+        # Add break line after مقادیر انتخاب شده
+        story.append(Spacer(1, 24))
 
     return story
 
@@ -779,15 +840,15 @@ def generate_page_two_content(order, job_metrics, production_steps):
         else:
             day_table_data.append(['-', '-', '-', '-', '-'])
     
-    day_table = Table(day_table_data, colWidths=[1.2*cm, 1.2*cm, 1.2*cm, 1.2*cm, 2*cm])
+    day_table = Table(day_table_data, colWidths=[1.3*cm, 1.3*cm, 1.3*cm, 1.3*cm, 2.2*cm])
     day_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), white),
         ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
         ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-        ('FONTSIZE', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('FONTSIZE', (0, 0), (-1, -1), 6.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
         ('GRID', (0, 0), (-1, -1), 0.5, black),
         ('DIRECTION', (0, 0), (-1, -1), 'RTL')
     ]))
@@ -807,15 +868,15 @@ def generate_page_two_content(order, job_metrics, production_steps):
         else:
             night_table_data.append(['-', '-', '-', '-', '-'])
     
-    night_table = Table(night_table_data, colWidths=[1.2*cm, 1.2*cm, 1.2*cm, 1.2*cm, 2*cm])
+    night_table = Table(night_table_data, colWidths=[1.3*cm, 1.3*cm, 1.3*cm, 1.3*cm, 2.2*cm])
     night_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), white),
         ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
         ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-        ('FONTSIZE', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('FONTSIZE', (0, 0), (-1, -1), 6.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+        ('TOPPADDING', (0, 0), (-1, -1), 2.5),
         ('GRID', (0, 0), (-1, -1), 0.5, black),
         ('DIRECTION', (0, 0), (-1, -1), 'RTL')
     ]))
@@ -884,9 +945,10 @@ def generate_page_two_content(order, job_metrics, production_steps):
         fontName='Vazir',
         fontSize=12,
         alignment=TA_RIGHT,
-        spaceAfter=4
+        spaceAfter=8
     ))
     story.append(invoice_title)
+    story.append(Spacer(1, 6))
     
     # Get actual invoice data from database
     from src.invoice.models import Payment
@@ -927,7 +989,7 @@ def generate_page_two_content(order, job_metrics, production_steps):
         # Add empty row if no payment data
         invoice_data.append(['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'])
     
-    invoice_table = Table(invoice_data, colWidths=[4*cm, 1.5*cm, 2*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.5*cm, 2.5*cm])
+    invoice_table = Table(invoice_data, colWidths=[3.5*cm, 1.3*cm, 1.8*cm, 1.3*cm, 1.3*cm, 1.3*cm, 1.3*cm, 1.3*cm, 1.3*cm, 2.2*cm])
     invoice_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), white),
@@ -951,50 +1013,61 @@ def generate_page_two_content(order, job_metrics, production_steps):
         spaceAfter=4
     ))
     story.append(production_steps_title)
-    
+
     # Get production step data from database
     production_steps = ProductionStepLog.query.filter_by(order_id=order.id).all()
-    
+
     # Map production steps to their Persian names
     step_mapping = {
         'mongane': 'منگنه',
-        'ahar': 'آهار', 
+        'ahar': 'آهار',
         'press': 'پرس',
         'bresh': 'برش'
     }
-    
-    # Create form-style production steps
-    production_steps_style = ParagraphStyle(
-        'ProductionSteps',
-        fontName='Vazir',
-        fontSize=10,
-        alignment=TA_RIGHT,
-        spaceAfter=6,
-        spaceBefore=6
-    )
-    
-    # Generate each production step line
+
+    # Table headers in Persian
+    table_data = [[
+        format_persian_text("امضاء"),
+        format_persian_text("تعداد"),
+        format_persian_text("تاریخ"),
+        format_persian_text("کارگر"),
+        format_persian_text("مرحله")
+    ]]
+
+    # Populate rows for each production step
     for step_name in ['mongane', 'ahar', 'press', 'bresh']:
         step_persian_name = step_mapping[step_name]
         
-        # Find matching production step
         step_data = next((step for step in production_steps if step.step_name.value == step_name), None)
         
-        if step_data:
-            # Fill with actual data
-            worker_name = step_data.worker_name or '..............'
-            date = str(step_data.date) if step_data.date else '..............'
-            quantity = str(step_data.member_count) if step_data.member_count else '..............'
-            signature = '✓' if step_data else '..............'
-        else:
-            # Empty dotted lines
-            worker_name = '..............'
-            date = '..............'
-            quantity = '..............'
-            signature = '..............'
+        worker_name = step_data.worker_name if step_data and step_data.worker_name else '..............'
+        date = str(step_data.date) if step_data and step_data.date else '..............'
+        quantity = str(step_data.member_count) if step_data and step_data.member_count else '..............'
+        signature = '✓' if step_data else '..............'
         
-        # Create the line text with better spacing between fields
-        step_line = f"{step_persian_name} : کارگر: {worker_name}                    تاریخ: {date}                    تعداد: {quantity}                    امضاء: {signature}"
-        story.append(Paragraph(format_persian_text(step_line), production_steps_style))
+        # Reverse the data order to match headers
+        table_data.append([
+            format_persian_text(signature),
+            format_persian_text(quantity),
+            format_persian_text(date),
+            format_persian_text(worker_name),
+            format_persian_text(step_persian_name)
+        ])
+    # Create and style the table
+    table = Table(table_data, colWidths=[60, 100, 100, 80, 60])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    # Add to story
+    story.append(table)
+
     
     return story
