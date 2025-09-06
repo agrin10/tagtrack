@@ -8,7 +8,7 @@ from src.utils.decorators import role_required
 @dashboard_bp.route('/')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer",  "InvoiceClerk" , "FactorySupervisor")
 def dashboard():
     data = get_dashboard_data()
     return render_template('dashboard.html', **data) 
