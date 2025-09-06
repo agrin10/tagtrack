@@ -84,7 +84,7 @@ class InvoiceDraft(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    order = db.relationship('Order', backref='invoice_drafts')
+    order = db.relationship("Order", backref=db.backref("invoice_drafts", cascade="all, delete-orphan"))
 
     def to_dict(self):
         return {
