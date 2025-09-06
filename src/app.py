@@ -4,6 +4,8 @@ from flask import render_template, redirect, url_for
 import jdatetime
 from datetime import datetime
 from dateutil import parser
+from flask_jwt_extended import verify_jwt_in_request
+
 
 app = create_app()
 
@@ -25,7 +27,11 @@ def invalid_token_callback(error):
 
 @app.route('/')
 def index():
-    return redirect(url_for('dashboard.dashboard'))
+    try:
+        verify_jwt_in_request()
+        return redirect(url_for('dashboard.dashboard'))
+    except Exception as e:
+        return redirect(url_for('auth.login'))
 
 @app.template_filter('iran_money')
 def iran_money(value):
@@ -78,7 +84,6 @@ def to_persian_date(value=None, fmt='%Y/%m/%d %A' , now=False):
         print(f"[to_persian_date] Error: {e}")
 
     return '-'  # fallback for invalid date
-
 
 
 if '__main__'== __name__:
