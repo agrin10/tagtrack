@@ -351,3 +351,9 @@ input[type="number"] {
 .d-flex.justify-content-between.align-items-center.mb-4 {
   gap: 12px;
 }
+
+
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+  margin-top: 0;
+}
