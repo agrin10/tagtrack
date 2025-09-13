@@ -7,10 +7,12 @@ import { initFilters } from './orders/filters.js';
 import { initOrderDetails } from './orders/orderDetails.js';
 import { previewDetailImage, previewEditImage } from './orders/imagePreview.js';
 import { initDownloadPdf } from './orders/downloadPdf.js';
+import { initAddOrder } from './orders/add-order.js';
 
 // Initialize all modules on DOMContentLoaded
 
 document.addEventListener('DOMContentLoaded', () => {
+  initAddOrder();
   initOrderDetails();
   initDeleteOrder();
   initEditOrder();
