@@ -94,8 +94,9 @@ export function initFilters() {
         let badgeClass, badgeText, statusDisplayText;
         switch(status.toLowerCase()) {
             case 'completed': badgeClass = 'bg-success'; badgeText = 'تکمیل شده'; statusDisplayText = 'تکمیل شده'; break;
-            case 'in progress': badgeClass = 'bg-warning'; badgeText = 'در حال انجام'; statusDisplayText = 'در حال انجام'; break;
-            case 'pending': badgeClass = 'bg-secondary'; badgeText = 'در انتظار'; statusDisplayText = 'در انتظار'; break;
+            case 'in progress': badgeClass = 'bg-warning'; badgeText = 'در حال تولید'; statusDisplayText = 'در حال تولید'; break;
+            case 'pending': badgeClass = 'bg-secondary'; badgeText = 'سفارش'; statusDisplayText = 'سفارش'; break;
+            case 'Design': badgeClass = 'bg-secondary'; badgeText = 'طراحی'; statusDisplayText = 'طراحی'; break;
             default: badgeClass = 'bg-secondary'; badgeText = 'همه'; statusDisplayText = 'همه وضعیت‌ها';
         }
         statusBadge.className = `badge rounded-pill ${badgeClass}`;
@@ -113,8 +114,9 @@ export function initFilters() {
     function mapStatusToPersian(statusKey) {
         const mapping = {
             'completed': 'تکمیل شده',
-            'in progress': 'در حال انجام',
-            'pending': 'در انتظار',
+            'in progress': 'در حال تولید',
+            'pending': 'سفارش',
+            'Design': 'طراحی',
             'all': 'all'
         };
         return mapping[statusKey.toLowerCase()] || statusKey;

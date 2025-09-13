@@ -27,17 +27,17 @@
                             <span class="badge bg-{{
                                 'success' if order.status in ['Completed', 'تکمیل شده', 'Finished', 'پایان یافته']
                                 else 'danger' if order.status in ['Cancelled', 'لغو شده']
-                                else 'warning' if order.status in ['In Progress', 'در حال انجام']
+                                else 'warning' if order.status in ['In Progress', 'در حال تولید']
                                 else 'info' if order.status in ['Design', 'طراحی']
                                 else 'primary' if order.status in ['Printing', 'چاپ']
-                                else 'secondary' if order.status in ['New', 'جدید', 'Pending', 'در انتظار']
+                                else 'secondary' if order.status in ['New', 'جدید', 'Pending', 'سفارش']
                                 else 'dark'
                             }}">
                                 {{
                                     'تکمیل شده' if order.status in ['Completed', 'Finished', 'تکمیل شده', 'پایان یافته']
                                     else 'لغو شده' if order.status in ['Cancelled', 'لغو شده']
-                                    else 'در حال انجام' if order.status in ['In Progress', 'در حال انجام']
-                                    else 'در انتظار' if order.status in ['Pending', 'در انتظار']
+                                    else 'در حال تولید' if order.status in ['In Progress', 'در حال تولید']
+                                    else 'سفارش' if order.status in ['Pending', 'سفارش']
                                     else 'طراحی' if order.status in ['Design', 'طراحی']
                                     else 'چاپ' if order.status in ['Printing', 'چاپ']
                                     else 'برش' if order.status in ['Cutting', 'برش']

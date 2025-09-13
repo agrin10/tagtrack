@@ -461,12 +461,13 @@ function getStatusBadgeClass(status) {
         'New': 'secondary',
         'Pending': 'secondary',
 
+
         
         // Persian statuses
         'تکمیل شده': 'success',
         'پایان یافته': 'success',
         'لغو شده': 'danger',
-        'در حال انجام': 'warning',
+        'در حال تولید': 'warning',
         'طراحی': 'info',
         'چاپ': 'primary',
         'برش': 'primary',
@@ -474,7 +475,7 @@ function getStatusBadgeClass(status) {
         'بسته‌بندی': 'info',
         'ارسال شده': 'success',
         'جدید': 'secondary',
-        'در انتظار': 'secondary'
+        'سفارش': 'secondary'
     };
     
     return statusClassMap[status] || 'secondary';
@@ -488,7 +489,7 @@ function getStatusText(status) {
         'Completed': 'تکمیل شده',
         'Finished': 'پایان یافته',
         'Cancelled': 'لغو شده',
-        'In Progress': 'در حال انجام',
+        'In Progress': 'در حال تولید',
         'Design': 'طراحی',
         'Printing': 'چاپ',
         'Cutting': 'برش',
@@ -496,14 +497,14 @@ function getStatusText(status) {
         'Quality Control': 'کنترل کیفیت',
         'Packaging': 'بسته‌بندی',
         'Shipped': 'ارسال شده',
-        'Pending': 'در انتظار',
+        'Pending': 'سفارش',
         
         // Persian to Persian (if already in Persian)
         'جدید': 'جدید',
         'تکمیل شده': 'تکمیل شده',
         'پایان یافته': 'پایان یافته',
         'لغو شده': 'لغو شده',
-        'در حال انجام': 'در حال انجام',
+        'در حال نولید': 'در حال تولید',
         'طراحی': 'طراحی',
         'چاپ': 'چاپ',
         'برش': 'برش',
@@ -511,7 +512,7 @@ function getStatusText(status) {
         'کنترل کیفیت': 'کنترل کیفیت',
         'بسته‌بندی': 'بسته‌بندی',
         'ارسال شده': 'ارسال شده',
-        ' در انتظار': ' در انتظار'
+        'سفارش': 'سفارش'
     };
     
     return statusMap[status] || status;
