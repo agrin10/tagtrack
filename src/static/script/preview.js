@@ -22,6 +22,8 @@ document.querySelectorAll('.preview-btn').forEach(btn => {
             .then(res => res.json())
             .then(data => {
                 const order = data.order;
+                console.log(order);
+                
                 if (!order) throw new Error('Order data not found');
 
                 // Images
@@ -44,36 +46,45 @@ document.querySelectorAll('.preview-btn').forEach(btn => {
                 if (order.order_files && order.order_files.length > 0) {
                     filesHtml = `<ul class="list-unstyled">` +
                         order.order_files.map(file => `
-                            <li>
+                            <li class="mb-1">
                                 <i class="fas fa-file me-1"></i>
-                                <span>${file.display_name || file.file_name}</span>
+                                <span class="fw-bold">${file.display_name ?? '-'}</span>
+                                <span class="text-muted">(${file.file_name ?? '-'})</span>
                             </li>
                         `).join('') +
                         `</ul>`;
                 } else {
                     filesHtml = `<div class="alert alert-secondary">فایلی ثبت نشده است.</div>`;
                 }
-
                 // Values
                 let valuesHtml = '';
                 if (order.values && Array.isArray(order.values)) {
-                    // Filter out empty strings, null, or undefined
-                    const filteredValues = order.values.filter(v => v && v.trim() !== '');
-                    if (filteredValues.length > 0) {
-                        valuesHtml = `<ul class="list-unstyled">` +
-                            filteredValues.map(val => `
-                                <li>
-                                    <span class="badge bg-light text-dark">${val}</span>
-                                </li>
-                            `).join('') +
-                            `</ul>`;
+                    const filteredValues = order.values
+                        .map(v => v && v.trim() !== '' ? v.trim() : null);
+
+                    // Label names for each index
+                    const valueLabels = [
+                        'نخ اول', 'نخ دوم', 'نخ سوم', 'نخ چهارم',
+                        'نخ پنجم', 'نخ ششم', 'نخ هفتم', 'نخ هشتم'
+                    ];
+
+                    const items = filteredValues
+                        .map((val, idx) => val ? `
+                            <li class="mb-1">
+                                <strong>${valueLabels[idx] ?? `مقدار ${idx + 1}`}:</strong>
+                                <span class="badge bg-light text-dark">${val}</span>
+                            </li>
+                        ` : '')
+                        .join('');
+
+                    if (items.trim() !== '') {
+                        valuesHtml = `<ul class="list-unstyled">${items}</ul>`;
                     } else {
-                        valuesHtml = `<div class="alert alert-secondary">مقادیری ثبت نشده</div>`;
+                        valuesHtml = `<div class="alert alert-secondary">مقداری ثبت نشده</div>`;
                     }
                 } else {
-                    valuesHtml = `<div class="alert alert-secondary">مقادیری ثبت نشده</div>`;
+                    valuesHtml = `<div class="alert alert-secondary">مقداری ثبت نشده</div>`;
                 }
-
                 previewContent.innerHTML = `
                     <h5 class="mb-2">${order.form_number ?? '-'}</h5>
                     <span class="badge bg-info mb-2">${order.status ?? '-'}</span>
@@ -121,6 +132,8 @@ document.querySelectorAll('.preview-btn').forEach(btn => {
                     <div class="mb-2"><strong>فایل‌ها:</strong> ${filesHtml}</div>
                     <div class="mb-2"><strong>تصاویر:</strong> ${imagesHtml}</div>
                 `;
+                console.log(valuesHtml);
+                
             })
             .catch(error => {
                 console.error('Preview panel error:', error); // <-- This logs the error to the console
