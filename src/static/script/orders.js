@@ -22,5 +22,38 @@ document.addEventListener('DOMContentLoaded', () => {
   initDownloadPdf();
   window.previewDetailImage = previewDetailImage;
   window.previewEditImage = previewEditImage;
+  
+  const colors = ["مشکی","میشی","سفید","قرمز","آبی","سبز","زرد","نقره‌ای","طلایی","بژ", "بنفش"];
+
+  document.querySelectorAll('.color-input').forEach(input => {
+      const suggestionBox = input.parentElement.querySelector('.suggestions');
+
+      input.addEventListener('input', () => {
+          const value = input.value.trim();
+          suggestionBox.innerHTML = '';
+          if (!value) {
+              suggestionBox.style.display = 'none';
+              return;
+          }
+          const matched = colors.filter(c => c.startsWith(value));
+          matched.forEach(c => {
+              const item = document.createElement('div');
+              item.textContent = c;
+              item.onclick = () => {
+                  input.value = c;
+                  suggestionBox.style.display = 'none';
+              };
+              suggestionBox.appendChild(item);
+          });
+          suggestionBox.style.display = matched.length ? 'block' : 'none';
+      });
+
+      document.addEventListener('click', e => {
+          if (!suggestionBox.contains(e.target) && e.target !== input) {
+              suggestionBox.style.display = 'none';
+          }
+      });
+  });
+
 });
 
