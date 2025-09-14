@@ -57,7 +57,8 @@
                                  aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                         <p class="card-text"><small class="text-muted">شروع: {{ order.order_date|to_persian_date if order.order_date else '-' }} | زمان تحویل: {{ order.delivery_date|to_persian_date if order.delivery_date else '-' }}</small></p>
-                        <button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">جزئیات</button>
+                        <button type="button" class="btn btn-sm btn-secondary float-end me-2 preview-btn" data-order-id="{{ order.id }}">پیش‌نمایش</button>
+<button type="button" class="btn btn-sm btn-primary float-end view-details-btn" data-order-id="{{ order.id }}">جزئیات</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -101,12 +102,24 @@
 
     {% include '_order_details_modal.html' %}
 
+    <div id="orderPreviewPanel" class="offcanvas offcanvas-end" tabindex="-1" aria-labelledby="orderPreviewPanelLabel">
+    <div class="offcanvas-header">
+        <h5 id="orderPreviewPanelLabel">پیش‌نمایش سفارش</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="بستن"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="orderPreviewContent">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.1.0/dist/jalaali.min.js"></script>
 <script src="{{ url_for('static', filename='script/factory_dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='script/preview.js') }}"></script>
 <script>
-setupTableSearch('#orderSearch', '.order-card');
 // اعمال درصد پیشرفت پس از بارگذاری DOM
 document.querySelectorAll('.progress-bar').forEach(bar => {
     const progress = bar.dataset.progress;

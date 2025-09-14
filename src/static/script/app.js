@@ -37,63 +37,138 @@ function setupTableSearch(inputSelector, rowSelector) {
 // Make it available globally if needed
 window.setupTableSearch = setupTableSearch;
 
-    function convertToJalali(gregorianDate) {
-        if (!gregorianDate) return '';
-        
-        const date = new Date(gregorianDate);
-        const gregorianYear = date.getFullYear();
-        const gregorianMonth = date.getMonth() + 1;
-        const gregorianDay = date.getDate();
-        
-        // Accurate Jalali calendar conversion
-        let jalaliYear = gregorianYear - 621;
-        let jalaliMonth = gregorianMonth + 2;
-        let jalaliDay = gregorianDay;
-        
-        // Adjust for leap years and month lengths
-        if (jalaliMonth > 12) {
-            jalaliMonth -= 12;
-            jalaliYear += 1;
-        }
-        
-        // Adjust days for month lengths
-        const jalaliMonthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30];
-        if (jalaliDay > jalaliMonthDays[jalaliMonth - 1]) {
-            jalaliDay = jalaliMonthDays[jalaliMonth - 1];
-        }
-        
-        return `${jalaliYear}/${jalaliMonth.toString().padStart(2, '0')}/${jalaliDay.toString().padStart(2, '0')}`;
+function gregorianToJalali(gy, gm, gd) {
+    const g_days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31];
+    const j_days_in_month = [31,31,31,31,31,31,30,30,30,30,30,29];
+
+    let gy2 = gy - 1600;
+    let gm2 = gm - 1;
+    let gd2 = gd - 1;
+
+    let g_day_no = 365*gy2 + Math.floor((gy2+3)/4) - Math.floor((gy2+99)/100) + Math.floor((gy2+399)/400);
+    for (let i = 0; i < gm2; ++i) g_day_no += g_days_in_month[i];
+    if (gm2 > 1 && ((gy%4===0 && gy%100!==0) || (gy%400===0))) g_day_no += 1; // leap day
+    g_day_no += gd2;
+
+    let j_day_no = g_day_no - 79;
+
+    let j_np = Math.floor(j_day_no / 12053);
+    j_day_no = j_day_no % 12053;
+
+    let jy = 979 + 33*j_np + 4*Math.floor(j_day_no/1461);
+    j_day_no %= 1461;
+
+    if (j_day_no >= 366) {
+        jy += Math.floor((j_day_no-366)/365);
+        j_day_no = (j_day_no-366) % 365;
     }
 
-    // Helper function to convert Jalali date to Gregorian format
-    function convertToGregorian(jalaliDate) {
-        if (!jalaliDate) return '';
-        
-        // Parse Jalali date (format: YYYY/MM/DD)
-        const parts = jalaliDate.split('/');
-        if (parts.length !== 3) return jalaliDate;
-        
-        const jalaliYear = parseInt(parts[0]);
-        const jalaliMonth = parseInt(parts[1]);
-        const jalaliDay = parseInt(parts[2]);
-        
-        // Accurate conversion back to Gregorian
-        let gregorianYear = jalaliYear + 621;
-        let gregorianMonth = jalaliMonth - 2;
-        let gregorianDay = jalaliDay;
-        
-        // Adjust for month boundaries
-        if (gregorianMonth <= 0) {
-            gregorianMonth += 12;
-            gregorianYear -= 1;
-        }
-        
-        // Adjust days for month lengths
-        const gregorianMonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        if (gregorianDay > gregorianMonthDays[gregorianMonth - 1]) {
-            gregorianDay = gregorianMonthDays[gregorianMonth - 1];
-        }
-        
-        const date = new Date(gregorianYear, gregorianMonth - 1, gregorianDay);
-        return date.toISOString().split('T')[0];
+    // compute month/day
+    let i = 0;
+    for (; i < 11 && j_day_no >= j_days_in_month[i]; ++i) {
+        j_day_no -= j_days_in_month[i];
     }
+    const jm = i + 1;
+    const jd = j_day_no + 1;
+
+    // *** fix: add +1 to jy to align with standard Jalali year numbering ***
+    return { jy: jy + 1, jm, jd };
+}
+
+function jalaliToGregorian(jy, jm, jd) {
+    const g_days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31];
+    const j_days_in_month = [31,31,31,31,31,31,30,30,30,30,30,29];
+
+    jy -= 979;
+    jm -= 1;
+    jd -= 1;
+
+    let j_day_no = 365*jy + Math.floor(jy/33)*8 + Math.floor((jy%33 +3)/4);
+    for (let i = 0; i < jm; ++i) j_day_no += j_days_in_month[i];
+    j_day_no += jd;
+
+    let g_day_no = j_day_no + 79;
+
+    let gy = 1600 + 400*Math.floor(g_day_no/146097);
+    g_day_no = g_day_no % 146097;
+
+    let leap = true;
+    if (g_day_no >= 36525) {
+        g_day_no--;
+        gy += 100*Math.floor(g_day_no/36524);
+        g_day_no = g_day_no % 36524;
+        if (g_day_no >= 365) g_day_no++;
+        else leap = false;
+    }
+
+    gy += 4*Math.floor(g_day_no/1461);
+    g_day_no %= 1461;
+
+    if (g_day_no >= 366) {
+        leap = false;
+        g_day_no--;
+        gy += Math.floor(g_day_no/365);
+        g_day_no = g_day_no % 365;
+    }
+
+    // declare i outside loop so it can be used to compute gm/gd afterwards
+    let i = 0;
+    for (; i < 12 && g_day_no >= g_days_in_month[i] + ((i === 1 && leap) ? 1 : 0); ++i) {
+        g_day_no -= g_days_in_month[i] + ((i === 1 && leap) ? 1 : 0);
+    }
+    const gm = i + 1;
+    const gd = g_day_no + 1;
+
+    return { gy, gm, gd };
+}
+
+// --- safe wrappers you can call from other code ---
+
+// convertToJalali: accepts "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS" or Date object
+function convertToJalali(input) {
+    if (!input) return '';
+    // handle Date object
+    if (input instanceof Date && !isNaN(input)) {
+        const gy = input.getFullYear();
+        const gm = input.getMonth() + 1;
+        const gd = input.getDate();
+        const j = gregorianToJalali(gy, gm, gd);
+        return `${j.jy}/${String(j.jm).padStart(2,'0')}/${String(j.jd).padStart(2,'0')}`;
+    }
+    // handle strings
+    const s = String(input);
+    const datePart = s.split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return input;
+    const gy = parseInt(parts[0],10);
+    const gm = parseInt(parts[1],10);
+    const gd = parseInt(parts[2],10);
+    if (!Number.isFinite(gy) || !Number.isFinite(gm) || !Number.isFinite(gd)) return input;
+    const j = gregorianToJalali(gy, gm, gd);
+    return `${j.jy}/${String(j.jm).padStart(2,'0')}/${String(j.jd).padStart(2,'0')}`;
+}
+
+// convertToGregorian: accepts "YYYY/MM/DD" (Jalali) and returns "YYYY-MM-DD" (Gregorian)
+function convertToGregorian(jalaliDate) {
+    if (!jalaliDate) return '';
+    const s = String(jalaliDate).trim();
+    const parts = s.split(/[\/\-]/); // accept "/" or "-"
+    if (parts.length !== 3) return jalaliDate;
+    const jy = parseInt(parts[0],10);
+    const jm = parseInt(parts[1],10);
+    const jd = parseInt(parts[2],10);
+    if (!Number.isFinite(jy) || !Number.isFinite(jm) || !Number.isFinite(jd)) return jalaliDate;
+    const g = jalaliToGregorian(jy, jm, jd);
+    // Return YYYY-MM-DD
+    return `${g.gy}-${String(g.gm).padStart(2,'0')}-${String(g.gd).padStart(2,'0')}`;
+}
+
+console.log(convertToJalali('2025-04-22'));            // check conversion
+console.log(convertToJalali('2025-09-14T06:29:11'));  // check with T
+console.log(convertToJalali('2025-09-14'));  // check with T
+console.log(convertToGregorian('1404/01/01'));        // reverse conversion
+console.log('*********************************************');
+console.log(convertToJalali('2025-03-21'));        // should print "1404/01/01"
+console.log(convertToJalali('2025-09-14'));        // should print "1404/06/23"
+console.log(convertToJalali('2025-04-22'));        // e.g. "1404/02/02"
+
