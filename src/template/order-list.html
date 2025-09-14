@@ -190,8 +190,8 @@
                             </td>
                             <td data-label="نام مشتری">{{ order.customer_name }}</td>
                             <td data-label="تعداد">{{ order.quantity or '-' }}</td>
-                            <td data-label="خروج از کارخانه">{{ order.exit_from_factory_date|to_persian_date or '-' }}</td>
                             <td data-label="خروج از دفتر">{{ order.exit_from_office_date|to_persian_date or '-' }}</td>
+                            <td data-label="خروج از کارخانه">{{ order.exit_from_factory_date|to_persian_date or '-' }}</td>
                             <td data-label="وضعیت" style="position:relative; height:70px;">
     {% if order.status == 'Completed' %}
         <div class="d-flex flex-column justify-content-center align-items-center h-100">
