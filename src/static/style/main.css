@@ -357,7 +357,7 @@ input[type="number"] {
   display: block;
   margin-top: 0;
 }
-#laminationDropdown {
+#laminationDropdown ,#editLaminationDropdown {
   height: 57px;
   font-size: 1rem;
   background-color: #fff !important;
@@ -365,20 +365,25 @@ input[type="number"] {
   border: 1px solid #ced4da;
   box-shadow: none;
   transition: none;
-    }
-#laminationDropdown:hover, #laminationDropdown:focus {
+}
+#laminationDropdown:hover, #laminationDropdown:focus, #editLaminationDropdown:hover, #editLaminationDropdown:focus{
     background-color: #fff !important;
     color: #212529 !important;
 }
-label[for="lamination_type"] {
+label[for="lamination_type"] ,label[for="edit_lamination_type"]  {
 padding: 0px 10px;
     font-size: 12px;
     color: #6b6b6b;
 }
-#laminationDropdown::after {
+label[for="lamination_type"], label[for="edit_lamination_type"]  {
+padding: 0px 10px;
+    font-size: 12px;
+    color: #6b6b6b;
+}
+#laminationDropdown::after ,#editLaminationDropdown::after {
   display: none !important;
 }
-#laminationDropdown:focus {
+#laminationDropdown:focus ,#editLaminationDropdown:focus {
     border-color: #0d6efd !important; /* Bootstrap primary */
     box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
 }

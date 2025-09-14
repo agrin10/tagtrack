@@ -79,24 +79,6 @@
                         <!-- Dimensions & Fabric Tab -->
                         <div class="tab-pane fade" id="edit-dimensions" role="tabpanel">
                             <div class="row g-4">
-                                <!-- Fabric Details -->
-                                <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">جزئیات پارچه</h6>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_quantity" name="quantity">
-                                                <label for="edit_quantity">تعداد</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
-                                                <label for="edit_total_length_meters">متر</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <!-- Dimensions -->
                                 <div class="col-12">
@@ -104,28 +86,60 @@
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_fabric_density" name="fabric_density">
-                                                <label for="edit_fabric_density">تراکم </label>
+                                                <select class="form-control" id="edit_fabric_density" name="fabric_density">
+                                                <label for="fabric_density">تراکم</label>
+                                                    <option value="40">40</option>
+                                                    <option value="50">50</option>
+                                                    <option value="60">60</option>
+                                                    <option value="70">70</option>
+                                                    <option value="80">80</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
-                                                <input type="number" step="0.01" class="form-control" id="edit_width" name="width">
-                                                <label for="edit_width">عرض</label>
+                                                <select step="0.01" class="form-control" id="edit_width" name="width">
+                                                <label for="width">عرض</label>
+                                                <option value="1.1">1.1</option>
+                                                <option value="1.25">1.25</option>
+                                                <option value="1.32">1.32</option>
+                                                <option value="1.42">1.42</option>
+                                                <option value="1.53">1.53</option>
+                                                <option value="1.63">1.63</option>
+                                                <option value="1.80">1.80</option>
+                                                <option value="2">2</option>
+                                                <option value="2.2">2.2</option>
+                                                <option value="2.5">2.5</option>
+                                                <option value="2.85">2.85</option>
+                                                <option value="3.3">3.3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                                <option value="7">7</option>
+                                                <option value="8">8</option>
+                                                <option value="10">10</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
-                                                <input type="number" step="0.01" class="form-control" id="edit_height" name="height">
-                                                <label for="edit_height">طول</label>
+                                                <select step="0.01" class="form-control" id="edit_height" name="height">
+                                                <label for="height">طول</label>
+                                                <option value="3.5">3.5</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                                <option value="7">7</option>
+                                                <option value="8">8</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
-                                                <input type="number" class="form-control" id="edit_fabric_cut" name="fabric_cut">
-                                                <label for="edit_fabric_cut">برش </label>
+                                                <input type="number" class="form-control form-control-sm cut-field " id="edit_fabric_cut" name="fabric_cut" readonly>
+                                                <label for="edit_fabric_cut">برش پارچه</label>
                                             </div>
-                                        </div>
+                                         </div>
 
                                     </div>
                                 </div>
@@ -203,7 +217,30 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addFileRowBtn">
+                                        <i class="fas fa-plus"></i> افزودن فایل
+                                    </button>
+
                                     <div id="edit-order-files-container"></div>
+                                    <!-- Fabric Details -->
+                                    <div class="col-12">
+                                        <h6 class="border-bottom pb-2 mb-3">جزئیات پارچه</h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" class="form-control" id="edit_quantity" name="quantity">
+                                                    <label for="edit_quantity">تعداد</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-floating">
+                                                    <input type="number" step="0.01" class="form-control" id="edit_total_length_meters" name="total_length_meters">
+                                                    <label for="edit_total_length_meters">متر</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -213,43 +250,63 @@
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select" id="edit_fusing_type" name="fusing_type">
+                                        <select class="form-select" id="edit_label_type" name="label_type">
                                             <option value="">انتخاب کنید...</option>
-                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
-                                            <option value="چسب حرارتی ">چسب حرارتی</option>
-                                            <option value="لائی">لائی</option>
+                                            <option value="نرم">نرم</option>
+                                            <option value="متوسط">متوسط</option>
+                                            <option value="خشک">خشک</option>
+                                            <option value="بدون آهار">بدون آهار</option>
                                         </select>
-                                        <label for="edit_fusing_type">نوع چسب</label>
+                                        <label for="label_type">نوع آهار</label>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="edit_lamination_type" name="lamination_type">
-                                            <option value="">انتخاب کنید...</option>
-                                            <option value="براق">براق</option>
-                                            <option value="مات">مات</option>
-                                        </select>
-                                        <label for="edit_lamination_type">نوع لمینیت</label>
-                                    </div>
-                                </div>
+
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_cut_type" name="cut_type">
                                             <option value="">انتخاب کنید...</option>
-                                            <option value="برش کامل">برش کامل</option>
-                                            <option value="نیم تیغ">نیم تیغ</option>
+                                            <option value="تاازبغل"> تاازبغل</option>
+                                            <option value="تا از وسط">تا از وسط</option>
+                                            <option value=" دانه">دانه‌ای</option>
+                                            <option value="لیزر"> لیزر</option>
+                                            <option value="برش یک طرف زیاد">برش یک طرف زیاد</option>
                                         </select>
-                                        <label for="edit_cut_type">نوع برش</label>
+                                        <label for="cut_type">نوع برش</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select class="form-select" id="edit_label_type" name="label_type">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-light border form-select dropdown-toggle w-100 text-start"
+                                                    type="button"
+                                                    id="editLaminationDropdown"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                انتخاب کنید...
+                                            </button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="editLaminationDropdown">
+                                                <li><a class="dropdown-item" href="#" data-value="براق">براق</a></li>
+                                                <li class="dropdown-submenu dropend">
+                                                    <a class="dropdown-item dropdown-toggle" href="#">برجسته و براق</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" data-value="قالب جدید">قالب جدید</a></li>
+                                                        <li><a class="dropdown-item" href="#" data-value="قالب تکراری">قالب تکراری</a></li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                            <input type="hidden" id="edit_lamination_type" name="lamination_type">
+                                        </div>
+                                        <label for="edit_lamination_type">نوع پرس</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_fusing_type" name="fusing_type">
                                             <option value="">انتخاب کنید...</option>
-                                            <option value="خشک">خشک</option>
-                                            <option value="متوسط">متوسط</option>
+                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
+                                            <option value="چسب حرارتی ">چسب حرارتی</option>
                                         </select>
-                                        <label for="edit_label_type">نوع لیبل</label>
+                                        <label for="fusing_type">چسب</label>
                                     </div>
                                 </div>
                             </div>
@@ -285,8 +342,9 @@
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <select class="form-select" id="edit_status" name="status">
-                                            <option value="Pending">در انتظار</option>
-                                            <option value="In Progress">در حال انجام</option>
+                                            <option value="Pending">سفارش</option>
+                                            <option value="Design">طراحی</option>
+                                            <option value="In Progress">در حال تولید</option>
                                             <option value="Completed">تکمیل شده</option>
                                         </select>
                                         <label for="edit_status">وضعیت</label>
@@ -304,22 +362,23 @@
                                         <label for="edit_design_specification">مشخصات طراحی</label>
                                     </div>
                                 </div>
+                                                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
+                                        <label for="edit_customer_note_to_office">توضیحات مشتری به دفتر</label>
+                                    </div>
+                                </div>
+
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_office_notes" name="office_notes" style="height: 100px"></textarea>
-                                        <label for="edit_office_notes">یادداشت‌های دفتر</label>
+                                        <label for="edit_office_notes">توضیحات دفتر</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <textarea class="form-control" id="edit_factory_notes" name="factory_notes" style="height: 100px"></textarea>
-                                        <label for="edit_factory_notes">یادداشت‌های کارخانه</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <textarea class="form-control" id="edit_customer_note_to_office" name="customer_note_to_office" style="height: 100px"></textarea>
-                                        <label for="edit_customer_note_to_office">یادداشت مشتری به دفتر</label>
+                                        <label for="edit_factory_notes">توضیحات کارخانه</label>
                                     </div>
                                 </div>
                             </div>
@@ -457,4 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize progress bar
     updateProgress();
 });
+function calculateCut() {
+        const height = parseFloat(document.getElementById('edit_height').value) || 0;
+        const cut = height + 1.6;
+        document.getElementById('edit_fabric_cut').value = cut.toFixed(2);
+    }
+    const heightInput = document.getElementById('edit_height');
+    if (heightInput) {
+        heightInput.addEventListener('change', calculateCut);
+        calculateCut();
+}
+
 </script>

@@ -148,13 +148,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Dropdown functionality for lamination
     const dropdownButton = document.getElementById("laminationDropdown");
     const hiddenInput = document.getElementById("lamination_type");
-    if (dropdownButton && hiddenInput) {
+    const editHiddenInput = document.getElementById("edit_lamination_type");
+    if (dropdownButton && hiddenInput || editHiddenInput) {
         document.querySelectorAll(".dropdown-item[data-value]").forEach(item => {
             item.addEventListener("click", function (e) {
                 e.preventDefault();
                 const value = this.getAttribute("data-value");
                 dropdownButton.textContent = value;
                 hiddenInput.value = value;
+                editHiddenInput.value = value;
             });
         });
     }
@@ -308,10 +310,11 @@ export function initAddOrder() {
     }
 
     // Dropdown functionality for lamination
-    const dropdownButton = document.getElementById("laminationDropdown");
-    const hiddenInput = document.getElementById("lamination_type");
+function setupDropdown(dropdownButtonId, hiddenInputId) {
+    const dropdownButton = document.getElementById(dropdownButtonId);
+    const hiddenInput = document.getElementById(hiddenInputId);
     if (dropdownButton && hiddenInput) {
-        document.querySelectorAll(".dropdown-item[data-value]").forEach(item => {
+        document.querySelectorAll(`.dropdown-menu[aria-labelledby='${dropdownButtonId}'] .dropdown-item[data-value]`).forEach(item => {
             item.addEventListener("click", function (e) {
                 e.preventDefault();
                 const value = this.getAttribute("data-value");
@@ -320,4 +323,11 @@ export function initAddOrder() {
             });
         });
     }
+}
+
+// Usage for Add Order Modal
+setupDropdown("laminationDropdown", "lamination_type");
+
+// Usage for Edit Order Modal
+setupDropdown("editLaminationDropdown", "edit_lamination_type");
 }

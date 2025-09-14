@@ -39,7 +39,7 @@ export function initEditOrder() {
                     document.getElementById('edit_quantity').value = order.quantity || '';
                     document.getElementById('edit_total_length_meters').value = order.total_length_meters || '';
                     document.getElementById('edit_fusing_type').value = order.fusing_type || '';
-                    document.getElementById('edit_lamination_type').value = order.lamination_type || '';
+                    setDropdownValue('editLaminationDropdown', 'edit_lamination_type', order.lamination_type);
                     document.getElementById('edit_cut_type').value = order.cut_type || '';
                     document.getElementById('edit_label_type').value = order.label_type || '';
                     document.getElementById('edit_delivery_date').value = convertToJalali(order.delivery_date) || '';
@@ -346,4 +346,13 @@ export function initEditOrder() {
             }
         });
     };
-} 
+
+    function setDropdownValue(dropdownBtnId, hiddenInputId, value) {
+        const btn = document.getElementById(dropdownBtnId);
+        const input = document.getElementById(hiddenInputId);
+        if (btn && input) {
+            btn.textContent = value || "انتخاب کنید...";
+            input.value = value || "";
+        }
+    }
+}
