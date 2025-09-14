@@ -70,34 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
         months: ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
     });
 
-    // Accurate Persian calendar conversion functions
-    function convertToJalali(gregorianDate) {
-        if (!gregorianDate) return '';
-        
-        const date = new Date(gregorianDate);
-        const gregorianYear = date.getFullYear();
-        const gregorianMonth = date.getMonth() + 1;
-        const gregorianDay = date.getDate();
-        
-        // Accurate Jalali calendar conversion
-        let jalaliYear = gregorianYear - 621;
-        let jalaliMonth = gregorianMonth + 2;
-        let jalaliDay = gregorianDay;
-        
-        // Adjust for leap years and month lengths
-        if (jalaliMonth > 12) {
-            jalaliMonth -= 12;
-            jalaliYear += 1;
-        }
-        
-        // Adjust days for month lengths
-        const jalaliMonthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30];
-        if (jalaliDay > jalaliMonthDays[jalaliMonth - 1]) {
-            jalaliDay = jalaliMonthDays[jalaliMonth - 1];
-        }
-        
-        return `${jalaliYear}/${jalaliMonth.toString().padStart(2, '0')}/${jalaliDay.toString().padStart(2, '0')}`;
-    }
 
     function convertToGregorian(jalaliDate) {
         if (!jalaliDate) return '';

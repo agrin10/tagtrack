@@ -163,12 +163,5 @@ function convertToGregorian(jalaliDate) {
     return `${g.gy}-${String(g.gm).padStart(2,'0')}-${String(g.gd).padStart(2,'0')}`;
 }
 
-console.log(convertToJalali('2025-04-22'));            // check conversion
-console.log(convertToJalali('2025-09-14T06:29:11'));  // check with T
-console.log(convertToJalali('2025-09-14'));  // check with T
-console.log(convertToGregorian('1404/01/01'));        // reverse conversion
-console.log('*********************************************');
-console.log(convertToJalali('2025-03-21'));        // should print "1404/01/01"
-console.log(convertToJalali('2025-09-14'));        // should print "1404/06/23"
-console.log(convertToJalali('2025-04-22'));        // e.g. "1404/02/02"
+
 

@@ -8,6 +8,7 @@
 
     <!-- css file  -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/jalalidatepicker.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style/main.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -107,8 +108,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <!-- JalaliDatePicker -->
-    <link rel="stylesheet" href="https://unpkg.com/jalalidatepicker@latest/dist/jalalidatepicker.min.css">
-    <script src="https://unpkg.com/jalalidatepicker@latest/dist/jalalidatepicker.min.js"></script>    
+    <script src="{{ url_for('static', filename='script/jalalidatepicker.min.js') }}"></script>
     {% block scripts %}{% endblock scripts %}
 </body>
 </html>

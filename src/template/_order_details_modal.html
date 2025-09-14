@@ -270,39 +270,6 @@
 <!-- JalaliDatePicker will be automatically initialized for all inputs with data-jdp attribute -->
 
 <script>
-// Helper function to convert Jalali date to Gregorian format
-function convertToGregorian(jalaliDate) {
-    if (!jalaliDate) return '';
-    
-    // Parse Jalali date (format: YYYY/MM/DD)
-    const parts = jalaliDate.split('/');
-    if (parts.length !== 3) return jalaliDate;
-    
-    const jalaliYear = parseInt(parts[0]);
-    const jalaliMonth = parseInt(parts[1]);
-    const jalaliDay = parseInt(parts[2]);
-    
-    // Accurate conversion back to Gregorian
-    let gregorianYear = jalaliYear + 621;
-    let gregorianMonth = jalaliMonth - 2;
-    let gregorianDay = jalaliDay;
-    
-    // Adjust for month boundaries
-    if (gregorianMonth <= 0) {
-        gregorianMonth += 12;
-        gregorianYear -= 1;
-    }
-    
-    // Adjust days for month lengths
-    const gregorianMonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    if (gregorianDay > gregorianMonthDays[gregorianMonth - 1]) {
-        gregorianDay = gregorianMonthDays[gregorianMonth - 1];
-    }
-    
-    const date = new Date(gregorianYear, gregorianMonth - 1, gregorianDay);
-    return date.toISOString().split('T')[0];
-}
-
 // Handle form submission to convert Jalali dates back to Gregorian
 document.addEventListener('submit', function(e) {
     const form = e.target;
