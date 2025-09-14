@@ -41,7 +41,7 @@ class Order(db.Model):
 
     customer_name = db.Column(db.String(100), nullable=False)
     fabric_density = db.Column(db.Integer)
-    fabric_cut = db.Column(db.Integer)
+    fabric_cut = db.Column(db.Float)
     width = db.Column(db.Float)
     height = db.Column(db.Float)
     quantity = db.Column(db.Integer)
