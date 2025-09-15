@@ -24,12 +24,12 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="dimensions-tab" data-bs-toggle="tab" data-bs-target="#dimensions" type="button" role="tab">
-                                <i class="fas fa-ruler-combined me-2"></i>ابعاد و پارچه
+                                <i class="fas fa-ruler-combined me-2"></i>مشخصات و پارچه
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="print-tab" data-bs-toggle="tab" data-bs-target="#print" type="button" role="tab">
-                                <i class="fas fa-print me-2"></i>چاپ و تکمیل
+                                <i class="fas fa-print me-2"></i>خدمات
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -39,7 +39,7 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
-                                <i class="fas fa-sticky-note me-2"></i>یادداشت‌ها
+                                <i class="fas fa-sticky-note me-2"></i>توضیحات
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -93,21 +93,20 @@
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <select class="form-control" id="fabric_density" name="fabric_density">
-                                                <label for="fabric_density">تراکم</label>
                                                     <option value="40">40</option>
                                                     <option value="50">50</option>
                                                     <option value="60">60</option>
                                                     <option value="70">70</option>
                                                     <option value="80">80</option>
                                                 </select>
+                                                <label for="fabric_density">تراکم</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <select step="0.01" class="form-control" id="width" name="width">
-                                                <label for="width">عرض</label>
-                                                <option value="1.1">1.1</option>
-                                                <option value="1.25">1.25</option>
+                                                    <option value="1.1">1.1</option>
+                                                    <option value="1.25">1.25</option>
                                                 <option value="1.32">1.32</option>
                                                 <option value="1.42">1.42</option>
                                                 <option value="1.53">1.53</option>
@@ -124,13 +123,13 @@
                                                 <option value="7">7</option>
                                                 <option value="8">8</option>
                                                 <option value="10">10</option>
-                                                </select>
+                                            </select>
+                                                <label for="width">عرض</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <select step="0.01" class="form-control" id="height" name="height">
-                                                <label for="height">طول</label>
                                                 <option value="3.5">3.5</option>
                                                 <option value="4">4</option>
                                                 <option value="5">5</option>
@@ -138,12 +137,13 @@
                                                 <option value="7">7</option>
                                                 <option value="8">8</option>
                                                 </select>
+                                                    <label for="height">طول</label>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="form-floating">
                                                 <input type="number" class="form-control form-control-sm cut-field " id="fabric_cut" name="fabric_cut" id="fabric_cut" readonly>
-                                                <label for="fabric_cut">برش پارچه</label>
+                                                <label for="fabric_cut">برش</label>
                                             </div>
                                         </div>
                                     </div>
@@ -163,49 +163,49 @@
                                                 <tr>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ اول">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ دوم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ سوم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ چهارم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ پنجم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ ششم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ هفتم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>
                                                     <td>
                                                     <div class="color-wrapper">
-                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]">
+                                                        <input type="text" class="form-control form-control-sm text-center color-input"  name="values[]" placeholder="نخ هشتم">
                                                         <div class="suggestions"></div>
                                                     </div>
                                                     </td>

@@ -145,21 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateCut();
     }
 
-    // Dropdown functionality for lamination
-    const dropdownButton = document.getElementById("laminationDropdown");
-    const hiddenInput = document.getElementById("lamination_type");
-    const editHiddenInput = document.getElementById("edit_lamination_type");
-    if (dropdownButton && hiddenInput || editHiddenInput) {
-        document.querySelectorAll(".dropdown-item[data-value]").forEach(item => {
-            item.addEventListener("click", function (e) {
-                e.preventDefault();
-                const value = this.getAttribute("data-value");
-                dropdownButton.textContent = value;
-                hiddenInput.value = value;
-                editHiddenInput.value = value;
-            });
-        });
-    }
+
 });
 
 export function initAddOrder() {
@@ -309,21 +295,37 @@ export function initAddOrder() {
         calculateCut();
     }
 
-    // Dropdown functionality for lamination
 function setupDropdown(dropdownButtonId, hiddenInputId) {
     const dropdownButton = document.getElementById(dropdownButtonId);
     const hiddenInput = document.getElementById(hiddenInputId);
+
     if (dropdownButton && hiddenInput) {
-        document.querySelectorAll(`.dropdown-menu[aria-labelledby='${dropdownButtonId}'] .dropdown-item[data-value]`).forEach(item => {
-            item.addEventListener("click", function (e) {
-                e.preventDefault();
-                const value = this.getAttribute("data-value");
-                dropdownButton.textContent = value;
-                hiddenInput.value = value;
+        document
+            .querySelectorAll(`.dropdown-menu[aria-labelledby='${dropdownButtonId}'] .dropdown-item[data-value]`)
+            .forEach(item => {
+                item.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    const value = this.getAttribute("data-value");
+
+                    // Check if this item is inside a submenu
+                    const parentSubmenu = this.closest(".dropdown-submenu");
+                    if (parentSubmenu) {
+                        // Get parent dropdown toggle text
+                        const parentToggle = parentSubmenu.querySelector(".dropdown-toggle");
+                        const parentValue = parentToggle ? parentToggle.textContent.trim() : "";
+
+                        const combined = `${parentValue} - ${value}`;
+                        dropdownButton.textContent = combined;
+                        hiddenInput.value = combined;
+                    } else {
+                        dropdownButton.textContent = value;
+                        hiddenInput.value = value;
+                    }
+                });
             });
-        });
     }
 }
+
 
 // Usage for Add Order Modal
 setupDropdown("laminationDropdown", "lamination_type");

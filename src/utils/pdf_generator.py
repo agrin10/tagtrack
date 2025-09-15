@@ -470,7 +470,7 @@ def generate_page_one_content(order, machine_data):
         alignment=TA_RIGHT,
         spaceAfter=6
     )
-    story.append(Paragraph(format_persian_text("چاپ و تکمیل"), completion_title_style))
+    story.append(Paragraph(format_persian_text("خدمات"), completion_title_style))
     
     # Create checkboxes and options in columns with database-driven selections
     # آهار (Finish/Sizing)

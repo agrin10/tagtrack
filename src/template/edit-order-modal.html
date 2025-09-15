@@ -23,12 +23,12 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-dimensions-tab" data-bs-toggle="tab" data-bs-target="#edit-dimensions" type="button" role="tab">
-                                <i class="fas fa-ruler-combined me-2"></i>ابعاد و پارچه
+                                <i class="fas fa-ruler-combined me-2"></i>ابعاد و مشخصات
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-print-tab" data-bs-toggle="tab" data-bs-target="#edit-print" type="button" role="tab">
-                                <i class="fas fa-print me-2"></i>چاپ و تکمیل
+                                <i class="fas fa-print me-2"></i>خدمات 
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -38,7 +38,7 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-notes-tab" data-bs-toggle="tab" data-bs-target="#edit-notes" type="button" role="tab">
-                                <i class="fas fa-sticky-note me-2"></i>یادداشت‌ها
+                                <i class="fas fa-sticky-note me-2"></i>توضیحات
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -82,7 +82,7 @@
 
                                 <!-- Dimensions -->
                                 <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3">ابعاد</h6>
+                                    <h6 class="border-bottom pb-2 mb-3"> و مشخصاتابعاد</h6>
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <div class="form-floating">
@@ -357,6 +357,17 @@
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="form-floating">
+                                        <select class="form-select" id="edit_status" name="status">
+                                            <option value="Pending">سفارش</option>
+                                            <option value="Design">طراحی</option>
+                                            <option value="In Progress">در حال تولید</option>
+                                            <option value="Completed">تکمیل شده</option>
+                                        </select>
+                                        <label for="edit_status">وضعیت</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
                                         <input type="text" class="form-control" id="edit_created_at" name="created_at" data-jdp>
                                         <label for="edit_created_at">تاریخ ثبت</label>
                                     </div>
@@ -377,17 +388,6 @@
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="edit_exit_from_factory_date" name="exit_from_factory_date" data-jdp>
                                         <label for="edit_exit_from_factory_date">تاریخ خروج از کارخانه</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="edit_status" name="status">
-                                            <option value="Pending">سفارش</option>
-                                            <option value="Design">طراحی</option>
-                                            <option value="In Progress">در حال تولید</option>
-                                            <option value="Completed">تکمیل شده</option>
-                                        </select>
-                                        <label for="edit_status">وضعیت</label>
                                     </div>
                                 </div>
                             </div>
