@@ -1,335 +1,438 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Add file row functionality for create order modal
-    const addFileRowBtn = document.getElementById('addFileRowBtn');
-    if (addFileRowBtn) {
-        addFileRowBtn.addEventListener('click', function() {
-            const tbody = document.getElementById('filesTableBody');
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
-            `;
-            tbody.appendChild(newRow);
-        });
-    }
-
-    // Tab navigation functionality
-    const nextTabBtn = document.getElementById('nextTab');
-    const prevTabBtn = document.getElementById('prevTab');
-    const tabButtons = document.querySelectorAll('#orderFormTabs .nav-link');
-    const tabPanes = document.querySelectorAll('.tab-pane');
-    const progressBar = document.getElementById('formProgress');
-
-    let currentTabIndex = 0;
-
-    // Function to update progress bar
-    function updateProgress() {
-        const progress = ((currentTabIndex + 1) / tabButtons.length) * 100;
-        progressBar.style.width = progress + '%';
-    }
-
-    // Function to show specific tab
-    function showTab(index) {
-        // Hide all tabs
-        tabPanes.forEach(pane => {
-            pane.classList.remove('show', 'active');
-        });
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        // Show specific tab
-        if (index >= 0 && index < tabButtons.length) {
-            tabPanes[index].classList.add('show', 'active');
-            tabButtons[index].classList.add('active');
-            currentTabIndex = index;
-            updateProgress();
-        }
-
-        // Update button states
-        prevTabBtn.disabled = currentTabIndex === 0;
-        nextTabBtn.disabled = currentTabIndex === tabButtons.length - 1;
-    }
-
-    // Next button click handler
-    if (nextTabBtn) {
-        nextTabBtn.addEventListener('click', function() {
-            if (currentTabIndex < tabButtons.length - 1) {
-                showTab(currentTabIndex + 1);
-            }
-        });
-    }
-
-    // Previous button click handler
-    if (prevTabBtn) {
-        prevTabBtn.addEventListener('click', function() {
-            if (currentTabIndex > 0) {
-                showTab(currentTabIndex - 1);
-            }
-        });
-    }
-
-    // Tab button click handlers
-    tabButtons.forEach((button, index) => {
-        button.addEventListener('click', function() {
-            showTab(index);
-        });
-    });
-
-    // Initialize progress bar
-    updateProgress();
-
-    // Populate form number and created date when modal opens
-    $('#createOrderModal').on('show.bs.modal', function() {
-        // Get current timestamp for created_at
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
-        
-        // Set the created_at field
-        document.getElementById('created_at').value = datetimeString;
-        
-        // Fetch preview form number from server
-        fetch('/orders/next-form-number')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('form_number').value = data.next_form_number;
-                } else {
-                    console.error('Failed to get next form number:', data.error);
-                    document.getElementById('form_number').value = '...';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching next form number:', error);
-                document.getElementById('form_number').value = '...';
-            });
-    });
-
-    // Handle form submission to ensure form number is not sent and convert Jalali dates
-    $('#createOrderForm').on('submit', function(e) {
-        // Remove the form_number from the form data since it should be generated server-side
-        const formNumberInput = document.getElementById('form_number');
-        if (formNumberInput) {
-            formNumberInput.disabled = true; // Disable to prevent it from being sent
-        }
-        
-        // Convert Jalali dates to Gregorian before submission
-        const dateInputs = this.querySelectorAll('input[data-jdp]');
-        dateInputs.forEach(input => {
-            if (input.value && input.value.includes('/')) {
-                // Store the Jalali value for potential restoration
-                input.setAttribute('data-jalali-value', input.value);
-                // This is a Jalali date, convert to Gregorian
-                const gregorianDate = convertToGregorian(input.value);
-                input.value = gregorianDate;
-            }
-        });
-    });
-
-    // JalaliDatePicker will be automatically initialized for all inputs with data-jdp attribute
-
-    // Calculate cut functionality
-    function calculateCut() {
-        const height = parseFloat(document.getElementById('height').value) || 0;
-        const cut = height + 1.6;
-        document.getElementById('fabric_cut').value = cut.toFixed(2);
-    }
-    const heightInput = document.getElementById('height');
-    if (heightInput) {
-        heightInput.addEventListener('change', calculateCut);
-        calculateCut();
-    }
-
-
-});
+// order-form.js
+// Unified and cleaned version of your add-order modal logic.
+// Exports initAddOrder() and also auto-initializes on DOMContentLoaded.
 
 export function initAddOrder() {
-    // Add file row functionality for create order modal
-    const addFileRowBtn = document.getElementById('addFileRowBtn');
-    if (addFileRowBtn) {
-        addFileRowBtn.addEventListener('click', function() {
-            const tbody = document.getElementById('filesTableBody');
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
-                <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
-            `;
-            tbody.appendChild(newRow);
-        });
-    }
+    // --- state ---
+    let serverNextFormNumber = null; // last preview fetched from server
 
-    // Tab navigation functionality
+    // --- helper DOM refs ---
+    const addFileRowBtn = document.getElementById('addFileRowBtn');
+    const filesTableBody = document.getElementById('filesTableBody');
     const nextTabBtn = document.getElementById('nextTab');
     const prevTabBtn = document.getElementById('prevTab');
     const tabButtons = document.querySelectorAll('#orderFormTabs .nav-link');
     const tabPanes = document.querySelectorAll('.tab-pane');
     const progressBar = document.getElementById('formProgress');
+    const formNumberInput = document.getElementById('form_number');
+    const startFormInput = document.getElementById('start_form_number');
+    const startFormWarning = document.getElementById('startFormWarning');
+    const startFormNote = document.getElementById('startFormNote');
+    const createOrderModalSelector = '#createOrderModal';
+    const createOrderFormSelector = '#createOrderForm';
+    const createdAtEl = document.getElementById('created_at');
 
+    // --- small safe utilities ---
+    function safeNumber(v) {
+        if (v === null || v === undefined || v === '') return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function setPreviewNumber(n) {
+        if (!formNumberInput) return;
+        // If n is null/undefined use '...' for clarity
+        formNumberInput.value = (n === null || n === undefined) ? '...' : String(n);
+    }
+
+    // --- add file row ---
+    if (addFileRowBtn && filesTableBody) {
+        addFileRowBtn.addEventListener('click', function () {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" class="form-control form-control-sm" name="file_display_names[]"></td>
+                <td><input type="text" class="form-control form-control-sm" name="order_files[]"></td>
+            `;
+            filesTableBody.appendChild(newRow);
+        });
+    }
+
+    // --- tabs / progress ---
     let currentTabIndex = 0;
-
-    // Function to update progress bar
     function updateProgress() {
+        if (!progressBar || tabButtons.length === 0) return;
         const progress = ((currentTabIndex + 1) / tabButtons.length) * 100;
         progressBar.style.width = progress + '%';
     }
-
-    // Function to show specific tab
     function showTab(index) {
-        // Hide all tabs
-        tabPanes.forEach(pane => {
-            pane.classList.remove('show', 'active');
-        });
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        // Show specific tab
+        if (!tabPanes || !tabButtons) return;
+        tabPanes.forEach(pane => pane.classList.remove('show', 'active'));
+        tabButtons.forEach(btn => btn.classList.remove('active'));
         if (index >= 0 && index < tabButtons.length) {
             tabPanes[index].classList.add('show', 'active');
             tabButtons[index].classList.add('active');
             currentTabIndex = index;
             updateProgress();
         }
-
-        // Update button states
-        prevTabBtn.disabled = currentTabIndex === 0;
-        nextTabBtn.disabled = currentTabIndex === tabButtons.length - 1;
+        if (prevTabBtn) prevTabBtn.disabled = currentTabIndex === 0;
+        if (nextTabBtn) nextTabBtn.disabled = currentTabIndex === tabButtons.length - 1;
     }
-
-    // Next button click handler
     if (nextTabBtn) {
-        nextTabBtn.addEventListener('click', function() {
-            if (currentTabIndex < tabButtons.length - 1) {
-                showTab(currentTabIndex + 1);
-            }
+        nextTabBtn.addEventListener('click', () => {
+            if (currentTabIndex < tabButtons.length - 1) showTab(currentTabIndex + 1);
         });
     }
-
-    // Previous button click handler
     if (prevTabBtn) {
-        prevTabBtn.addEventListener('click', function() {
-            if (currentTabIndex > 0) {
-                showTab(currentTabIndex - 1);
-            }
+        prevTabBtn.addEventListener('click', () => {
+            if (currentTabIndex > 0) showTab(currentTabIndex - 1);
         });
     }
-
-    // Tab button click handlers
     tabButtons.forEach((button, index) => {
-        button.addEventListener('click', function() {
-            showTab(index);
-        });
+        button.addEventListener('click', () => showTab(index));
     });
-
-    // Initialize progress bar
     updateProgress();
 
-    // Populate form number and created date when modal opens
-    $('#createOrderModal').on('show.bs.modal', function() {
-        // Get current timestamp for created_at
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
-        
-        // Set the created_at field
-        document.getElementById('created_at').value = datetimeString;
-        
-        // Fetch preview form number from server
-        fetch('/orders/next-form-number')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('form_number').value = data.next_form_number;
-                } else {
-                    console.error('Failed to get next form number:', data.error);
-                    document.getElementById('form_number').value = '...';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching next form number:', error);
-                document.getElementById('form_number').value = '...';
-            });
-    });
-
-    // Handle form submission to ensure form number is not sent and convert Jalali dates
-    $('#createOrderForm').on('submit', function(e) {
-        // Remove the form_number from the form data since it should be generated server-side
-        const formNumberInput = document.getElementById('form_number');
-        if (formNumberInput) {
-            formNumberInput.disabled = true; // Disable to prevent it from being sent
+    // --- fetch preview next-form-number ---
+    async function fetchNextFormNumberPreview() {
+        setPreviewNumber('...');
+        if (startFormWarning) {
+            startFormWarning.style.display = 'none';
+            startFormWarning.textContent = '';
         }
-        
-        // Convert Jalali dates to Gregorian before submission
-        const dateInputs = this.querySelectorAll('input[data-jdp]');
-        dateInputs.forEach(input => {
-            if (input.value && input.value.includes('/')) {
-                // Store the Jalali value for potential restoration
-                input.setAttribute('data-jalali-value', input.value);
-                // This is a Jalali date, convert to Gregorian
-                const gregorianDate = convertToGregorian(input.value);
-                input.value = gregorianDate;
+        try {
+            const res = await fetch('/orders/next-form-number');
+            if (!res.ok) {
+                // non-2xx response
+                serverNextFormNumber = null;
+                setPreviewNumber('...');
+                return;
+            }
+            const data = await res.json();
+            if (data && data.success) {
+                serverNextFormNumber = Number(data.next_form_number);
+                if (Number.isNaN(serverNextFormNumber)) {
+                    serverNextFormNumber = null;
+                    setPreviewNumber('...');
+                } else {
+                    setPreviewNumber(serverNextFormNumber);
+                    // show helpful note if element exists
+                    if (startFormNote) {
+                        const currentMax = serverNextFormNumber - 1;
+                        startFormNote.textContent = `بیشینه فعلی شماره‌ها: ${currentMax}. اگر شماره شروع درخواستی بزرگ‌تر از ${currentMax} باشد، پذیرفته می‌شود.`;
+                    }
+                }
+            } else {
+                serverNextFormNumber = null;
+                setPreviewNumber('...');
+            }
+        } catch (err) {
+            console.error('Error fetching next form number:', err);
+            serverNextFormNumber = null;
+            setPreviewNumber('...');
+        }
+    }
+
+    // --- modal show handler (uses jQuery bootstrap modal event) ---
+    if (typeof $ === 'function' && $(createOrderModalSelector).length) {
+        $(createOrderModalSelector).on('show.bs.modal', function () {
+            // Set created_at: prefer convertToJalali if available, else ISO-like local
+            try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+                if (createdAtEl) {
+                    if (typeof convertToJalali === 'function') {
+                        try {
+                            const jalali = convertToJalali(datetimeString);
+                            createdAtEl.value = jalali;
+                        } catch (err) {
+                            // fallback to ISO local-like string
+                            createdAtEl.value = datetimeString;
+                        }
+                    } else {
+                        createdAtEl.value = datetimeString;
+                    }
+                }
+            } catch (err) {
+                console.warn('Error setting created_at:', err);
+            }
+
+            // Reset start_form input & warning
+            if (startFormInput) {
+                startFormInput.value = '';
+                startFormInput.disabled = false;
+            }
+            if (startFormWarning) {
+                startFormWarning.style.display = 'none';
+                startFormWarning.textContent = '';
+            }
+
+            // Fetch preview from server
+            fetchNextFormNumberPreview();
+        });
+    } else {
+        // If jQuery/modal not available, still fetch preview when script runs
+        fetchNextFormNumberPreview();
+    }
+
+    // --- start_form input live behavior ---
+    if (startFormInput) {
+        startFormInput.addEventListener('input', function () {
+            const val = safeNumber(startFormInput.value);
+            if (!val || val <= 0) {
+                // invalid or empty: show server preview
+                setPreviewNumber(serverNextFormNumber);
+                if (startFormWarning) startFormWarning.style.display = 'none';
+                return;
+            }
+            if (serverNextFormNumber !== null && !isNaN(serverNextFormNumber)) {
+                const currentMax = serverNextFormNumber - 1;
+                if (val <= currentMax) {
+                    // warn user
+                    if (startFormWarning) {
+                        startFormWarning.style.display = 'block';
+                        startFormWarning.textContent = `توجه: شماره درخواستی (${val}) از یا برابر با بیشینه فعلی (${currentMax}) است. در این صورت سرور ممکن است آن را نادیده بگیرد.`;
+                    }
+                    setPreviewNumber(val);
+                } else {
+                    if (startFormWarning) startFormWarning.style.display = 'none';
+                    setPreviewNumber(val);
+                }
+            } else {
+                // unknown server value, show typed value
+                if (startFormWarning) startFormWarning.style.display = 'none';
+                setPreviewNumber(val);
             }
         });
-    });
-
-    // JalaliDatePicker will be automatically initialized for all inputs with data-jdp attribute
-
-    // Calculate cut functionality
-    function calculateCut() {
-        const height = parseFloat(document.getElementById('height').value) || 0;
-        const cut = height + 1.6;
-        document.getElementById('fabric_cut').value = cut.toFixed(2);
-    }
-    const heightInput = document.getElementById('height');
-    if (heightInput) {
-        heightInput.addEventListener('change', calculateCut);
-        calculateCut();
     }
 
-function setupDropdown(dropdownButtonId, hiddenInputId) {
-    const dropdownButton = document.getElementById(dropdownButtonId);
-    const hiddenInput = document.getElementById(hiddenInputId);
+    // --- form submit handling (jQuery) ---
+    if (typeof $ === 'function' && $(createOrderFormSelector).length) {
+        $(createOrderFormSelector).on('submit', function (e) {
+            // Ensure preview field isn't sent
+            if (formNumberInput) formNumberInput.disabled = true;
 
-    if (dropdownButton && hiddenInput) {
-        document
-            .querySelectorAll(`.dropdown-menu[aria-labelledby='${dropdownButtonId}'] .dropdown-item[data-value]`)
-            .forEach(item => {
-                item.addEventListener("click", function (e) {
-                    e.preventDefault();
-                    const value = this.getAttribute("data-value");
+            // If start_form_number is empty => disable so it's not submitted
+            if (startFormInput) {
+                if (!startFormInput.value || String(startFormInput.value).trim() === '') {
+                    startFormInput.disabled = true;
+                } else {
+                    startFormInput.disabled = false;
+                }
+            }
 
-                    // Check if this item is inside a submenu
-                    const parentSubmenu = this.closest(".dropdown-submenu");
-                    if (parentSubmenu) {
-                        // Get parent dropdown toggle text
-                        const parentToggle = parentSubmenu.querySelector(".dropdown-toggle");
-                        const parentValue = parentToggle ? parentToggle.textContent.trim() : "";
+            // Convert Jalali dates to Gregorian before submission if helper exists
+            try {
+                const formEl = this;
+                const dateInputs = formEl.querySelectorAll('input[data-jdp]');
+                dateInputs.forEach(input => {
+                    if (input.value && input.value.includes('/')) {
+                        input.setAttribute('data-jalali-value', input.value);
+                        if (typeof convertToGregorian === 'function') {
+                            try {
+                                const gregorianDate = convertToGregorian(input.value);
+                                input.value = gregorianDate;
+                            } catch (err) {
+                                // If conversion fails, leave value as-is
+                                console.warn('Jalali→Gregorian conversion failed for', input, err);
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.warn('Error during form submit preprocessing:', err);
+            }
 
-                        const combined = `${parentValue} - ${value}`;
-                        dropdownButton.textContent = combined;
-                        hiddenInput.value = combined;
+            // allow native submission to continue
+        });
+    } else {
+        // If jQuery not present, do a plain submit listener as fallback
+        const formEl = document.querySelector(createOrderFormSelector);
+        if (formEl) {
+            formEl.addEventListener('submit', function (e) {
+                if (formNumberInput) formNumberInput.disabled = true;
+                if (startFormInput) {
+                    if (!startFormInput.value || String(startFormInput.value).trim() === '') {
+                        startFormInput.disabled = true;
                     } else {
-                        dropdownButton.textContent = value;
-                        hiddenInput.value = value;
+                        startFormInput.disabled = false;
+                    }
+                }
+
+                // convert dates if needed
+                const dateInputs = this.querySelectorAll('input[data-jdp]');
+                dateInputs.forEach(input => {
+                    if (input.value && input.value.includes('/')) {
+                        input.setAttribute('data-jalali-value', input.value);
+                        if (typeof convertToGregorian === 'function') {
+                            try {
+                                const gregorianDate = convertToGregorian(input.value);
+                                input.value = gregorianDate;
+                            } catch (err) {
+                                console.warn('Jalali→Gregorian conversion failed for', input, err);
+                            }
+                        }
                     }
                 });
             });
+        }
+    }
+
+    // --- calculate cut logic ---
+    function calculateCut() {
+        const heightEl = document.getElementById('height');
+        const fabricCutEl = document.getElementById('fabric_cut');
+        if (!heightEl || !fabricCutEl) return;
+        const height = parseFloat(heightEl.value) || 0;
+        const cut = height + 1.6;
+        fabricCutEl.value = cut.toFixed(2);
+    }
+    const heightInput = document.getElementById('height');
+    if (heightInput) {
+        heightInput.addEventListener('change', calculateCut);
+        // initial calculation
+        calculateCut();
+    }
+
+    // --- dropdown setup helper (keeps existing behavior) ---
+    function setupDropdown(dropdownButtonId, hiddenInputId) {
+        const dropdownButton = document.getElementById(dropdownButtonId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+        if (!dropdownButton || !hiddenInput) return;
+        const selector = `.dropdown-menu[aria-labelledby='${dropdownButtonId}'] .dropdown-item[data-value]`;
+        document.querySelectorAll(selector).forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                const value = this.getAttribute('data-value') || this.textContent.trim();
+                const parentSubmenu = this.closest('.dropdown-submenu');
+                if (parentSubmenu) {
+                    const parentToggle = parentSubmenu.querySelector('.dropdown-toggle');
+                    const parentValue = parentToggle ? parentToggle.textContent.trim() : '';
+                    const combined = `${parentValue} - ${value}`;
+                    dropdownButton.textContent = combined;
+                    hiddenInput.value = combined;
+                } else {
+                    dropdownButton.textContent = value;
+                    hiddenInput.value = value;
+                }
+            });
+        });
+    }
+
+    // --- customer suggestions (keeps existing behavior) ---
+    function initCustomerSuggestions() {
+        const customerInput = document.getElementById('customer_name');
+        const suggestionList = document.getElementById('name_suggestions');
+        if (!customerInput || !suggestionList) return;
+
+        const customers = [
+            "حمید قصوری",
+            "کومار",
+            "هادی زاده",
+            "تولیدی مونته",
+            "تولیدی رومن",
+            "محمودی",
+            "تولیدی T&T",
+            "تولیدی زاروتی",
+            "تولیدی نولا",
+            "مصباح",
+            "بابک فرزانه",
+            "موسوی بهار",
+            "سعادتی",
+            "ارفعی",
+            "کفشگر",
+            "موسوی تیما",
+            "اندیشه",
+            "گلها",
+            "مهدی نوده",
+            "رحمانی"
+        ];
+        let currentIndex = -1;
+
+        function showSuggestions(value) {
+            const v = value.trim();
+            suggestionList.innerHTML = '';
+            currentIndex = -1;
+            if (v === '') {
+                suggestionList.style.display = 'none';
+                return;
+            }
+            const filtered = customers.filter(c => c.includes(v));
+            if (filtered.length === 0) {
+                suggestionList.style.display = 'none';
+                return;
+            }
+            filtered.forEach((name, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item list-group-item-action';
+                li.textContent = name;
+                li.tabIndex = 0;
+                li.addEventListener('click', () => {
+                    customerInput.value = name;
+                    suggestionList.style.display = 'none';
+                });
+                suggestionList.appendChild(li);
+            });
+            suggestionList.style.display = 'block';
+        }
+
+        function highlightItem(index) {
+            const items = suggestionList.querySelectorAll('li');
+            items.forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+                if (i === index) item.scrollIntoView({ block: 'nearest' });
+            });
+        }
+
+        customerInput.addEventListener('input', () => showSuggestions(customerInput.value));
+
+        customerInput.addEventListener('keydown', (e) => {
+            const items = suggestionList.querySelectorAll('li');
+            if (!items || items.length === 0) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (currentIndex < items.length - 1) currentIndex++;
+                highlightItem(currentIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (currentIndex > 0) currentIndex--;
+                highlightItem(currentIndex);
+            } else if (e.key === 'Enter') {
+                if (currentIndex >= 0 && currentIndex < items.length) {
+                    e.preventDefault();
+                    customerInput.value = items[currentIndex].textContent;
+                    suggestionList.style.display = 'none';
+                }
+            } else if (e.key === 'Escape') {
+                suggestionList.style.display = 'none';
+                currentIndex = -1;
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!suggestionList.contains(e.target) && e.target !== customerInput) {
+                suggestionList.style.display = 'none';
+            }
+        });
+
+        suggestionList.style.display = 'none';
+    }
+
+    // --- initialize dropdowns and suggestions used in your markup ---
+    try {
+        setupDropdown("laminationDropdown", "lamination_type");
+        setupDropdown("editLaminationDropdown", "edit_lamination_type");
+    } catch (err) {
+        console.warn('Dropdown setup error:', err);
+    }
+    try {
+        initCustomerSuggestions();
+    } catch (err) {
+        console.warn('Customer suggestions init error:', err);
     }
 }
 
-
-// Usage for Add Order Modal
-setupDropdown("laminationDropdown", "lamination_type");
-
-// Usage for Edit Order Modal
-setupDropdown("editLaminationDropdown", "edit_lamination_type");
+// Auto-run on DOMContentLoaded for convenience if this file is included directly
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAddOrder);
+    } else {
+        // already ready
+        initAddOrder();
+    }
 }

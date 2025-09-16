@@ -175,3 +175,8 @@ class OrderValue(db.Model):
             'value': self.value,
         }
     
+class FormNumberSequence(db.Model):
+    __tablename__ = 'form_number_sequence'
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, unique=True, nullable=False)
+    last_number = db.Column(db.Integer, nullable=False, default=0)

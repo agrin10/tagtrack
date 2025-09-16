@@ -1,5 +1,5 @@
 from src import db
-from src.order.models import Order, OrderImage, OrderValue , OrderFile
+from src.order.models import Order, OrderImage, OrderValue , OrderFile , FormNumberSequence
 from src.production.models import JobMetric, Machine, ProductionStepLog
 from flask_login import current_user
 from datetime import datetime, date
@@ -36,6 +36,42 @@ def _get_next_form_number_for_year() -> int:
 
     return (max_form_number or 0) + 1
 
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
+def allocate_form_number_for_year(start_from: int | None = None) -> int:
+    """
+    Atomically allocate the next form number for the current year.
+    If start_from is provided and greater than the stored last_number,
+    set and return start_from (so the first allocated number can start at this).
+    This function assumes it's called within an active db.session transaction.
+    """
+    current_year = datetime.now().year
+
+    # Lock the row for this year (for update)
+    seq = db.session.query(FormNumberSequence).filter_by(year=current_year).with_for_update().first()
+
+    if not seq:
+        # create a new sequence row
+        initial_last = 0
+        seq = FormNumberSequence(year=current_year, last_number=initial_last)
+        db.session.add(seq)
+        # flush so DB assigns id and the row exists for locking
+        db.session.flush()
+
+    # Now decide next number
+    if start_from and start_from > seq.last_number:
+        next_number = start_from
+        seq.last_number = start_from  # set the last_number to start_from (first allocated)
+    else:
+        seq.last_number = seq.last_number + 1
+        next_number = seq.last_number
+
+    # flush to persist updated last_number (but do NOT commit here; commit will happen in caller)
+    db.session.flush()
+    return next_number
+
+
 def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     try:
         # Debug print the incoming data
@@ -53,8 +89,21 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             return False, {"error": "Customer name is required"}
 
         # Auto-generate form_number with yearly reset (only when actually creating)
-        form_number = _get_next_form_number_for_year()
-
+        requested_start = None
+        if form_data.get('start_form_number'):
+            try:
+                requested_start = int(str(form_data.get('start_form_number')).strip())
+                if requested_start <= 0:
+                    requested_start = None
+            except ValueError:
+                requested_start = None
+        try:
+            form_number = allocate_form_number_for_year(start_from=requested_start)
+        except SQLAlchemyError as e:
+            # fallback: try the simple function, or return error
+            db.session.rollback()
+            # optionally log e
+            return False, {"error": "Failed to allocate form number due to DB error."}
         # Parse dates if provided (supports both Jalali and Gregorian formats)
         delivery_date = parse_date_input(form_data.get('delivery_date'))
         if form_data.get('delivery_date') and delivery_date is None:

@@ -56,9 +56,23 @@
                             <div class="row g-4">
                                 <div class="col-md-3">
                                     <div class="form-floating">
+                                        <!-- Preview only: disabled, not submitted -->
                                         <input type="number" class="form-control" id="form_number" disabled>
                                         <label for="form_number">شماره فرم (پیش‌نمایش)</label>
                                     </div>
+                                    </div>
+
+                                <!-- Optional: let the user request a starting number -->
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <!-- This WILL be submitted if filled -->
+                                        <input type="number" min="1" class="form-control" id="start_form_number" name="start_form_number" placeholder="اختیاری: شروع از شماره ...">
+                                        <label for="start_form_number">شروع شماره (اختیاری)</label>
+                                </div>
+                                <small id="startFormNote" class="form-text text-muted">
+                                    اگر این شماره بزرگ‌تر از بیشینه فعلی باشد، دنباله از آن شروع خواهد شد.
+                                </small>
+                                <div id="startFormWarning" class="text-danger small mt-1" style="display:none;"></div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-floating">
@@ -72,11 +86,15 @@
                                         <label for="sketch_name">نام طرح <span class="text-danger">*</span></label>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-3 position-relative">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                                        <input type="text" class="form-control" id="customer_name" name="customer_name" autocomplete="off" required>
                                         <label for="customer_name">نام مشتری <span class="text-danger">*</span></label>
                                     </div>
+                                    <ul id="name_suggestions"
+                                        class="list-group position-absolute w-100"
+                                        style="z-index:1000; top:100%; display:none; max-height:150px; overflow-y:auto;">
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -454,3 +472,6 @@
 </div>
 <!-- End of Create Order Modal -->
 
+{% block scripts %}
+
+{% endblock scripts%}
