@@ -3,7 +3,7 @@ import traceback
 from datetime import datetime, date, timezone
 
 from src import db
-from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum
+from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum  ,JobMetricPackageGroup , JobMetricSize ,JobMetricSizePackageGroup
 from src.order.models import Order
 from src.invoice.models import Payment, InvoiceDraft
 from src.utils import parse_date_input
@@ -169,13 +169,13 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
 
 def get_job_metrics_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
-    Get all job metrics for a specific order.
+    Get all job metrics for a specific order (returns nested sizes and package groups).
     """
     try:
         metrics = JobMetric.query.filter_by(order_id=order_id).all()
         if not metrics:
             return True, {"message": "No job metrics found for this order", "metrics": []}
-        
+
         return True, {
             "message": "Job metrics retrieved successfully",
             "metrics": [metric.to_dict() for metric in metrics]
@@ -187,46 +187,128 @@ def get_job_metrics_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
 
 def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
-    Save or update job metrics for an order. This will delete existing metrics and add new ones.
+    Save or update job metrics for an order. Deletes existing metrics and adds new ones,
+    supporting both 'single' and 'sizes' modes.
     """
     try:
-        # Verify order exists
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
 
-        # Delete existing metrics for this order
-        JobMetric.query.filter_by(order_id=order_id).delete()
-        db.session.flush() # Ensure deletions are processed before adding new ones
+        # Fetch existing metrics and delete (to ensure cascade relationships removed)
+        existing_metrics = JobMetric.query.filter_by(order_id=order_id).all()
+        for m in existing_metrics:
+            db.session.delete(m)
+        db.session.flush()
 
         added_metrics = []
-        for data in metrics_data:
-            # Validate data before casting
-            try:
-                package_count = int(data.get('package_count', 0))
-                package_value = float(data.get('package_value', 0))
-                roll_count = int(data.get('roll_count', 0))
-                meterage = float(data.get('meterage', 0))
-            except ValueError:
-                return False, {"error": "Invalid numeric data for job metrics"}
+        for idx, data in enumerate(metrics_data or []):
+            # default mode
+            mode = str(data.get('mode', 'single')).strip()
 
             metric = JobMetric(
                 order_id=order_id,
-                package_count=package_count,
-                package_value=package_value,
-                roll_count=roll_count,
-                meterage=meterage,
+                mode=mode,
                 created_by=user_id
             )
             db.session.add(metric)
+            db.session.flush()  # to get metric.id for child rows
+
+            # --- SINGLE (no sizes) mode ---
+            if mode == 'single':
+                # package_groups: list of {pack_size, count}
+                pkg_groups = data.get('package_groups', [])
+                total_package_count = 0
+                for g in pkg_groups:
+                    try:
+                        pack_size = int(g.get('pack_size'))
+                        count = int(g.get('count'))
+                    except Exception:
+                        db.session.rollback()
+                        return False, {"error": f"Invalid package group numeric values in metric {idx}"}
+                    pg = JobMetricPackageGroup(
+                        job_metric_id=metric.id,
+                        pack_size=pack_size,
+                        count=count
+                    )
+                    db.session.add(pg)
+                    total_package_count += count
+
+                # optional legacy/aggregate fields (if provided)
+                try:
+                    metric.package_count = int(data.get('package_count')) if data.get('package_count') is not None else (total_package_count or None)
+                except Exception:
+                    metric.package_count = total_package_count or None
+
+                try:
+                    metric.package_value = float(data.get('package_value')) if data.get('package_value') is not None else None
+                except Exception:
+                    metric.package_value = None
+
+                # roll_count and meterage at row-level
+                try:
+                    metric.roll_count = int(data.get('roll_count')) if data.get('roll_count') is not None else None
+                except Exception:
+                    metric.roll_count = None
+                try:
+                    metric.meterage = float(data.get('meterage')) if data.get('meterage') is not None else None
+                except Exception:
+                    metric.meterage = None
+
+            # --- SIZES mode ---
+            elif mode == 'sizes':
+                sizes_in = data.get('sizes', [])
+                for s_idx, s in enumerate(sizes_in):
+                    name = s.get('name')
+                    try:
+                        size_roll = int(s.get('roll_count')) if s.get('roll_count') is not None else None
+                    except Exception:
+                        db.session.rollback()
+                        return False, {"error": f"Invalid roll_count for size {s_idx} in metric {idx}"}
+                    try:
+                        size_meter = float(s.get('meterage')) if s.get('meterage') is not None else None
+                    except Exception:
+                        db.session.rollback()
+                        return False, {"error": f"Invalid meterage for size {s_idx} in metric {idx}"}
+
+                    size_row = JobMetricSize(
+                        job_metric_id=metric.id,
+                        name=name,
+                        roll_count=size_roll,
+                        meterage=size_meter
+                    )
+                    db.session.add(size_row)
+                    db.session.flush()
+
+                    # package_groups inside size
+                    for pg_idx, pg in enumerate(s.get('package_groups', [])):
+                        try:
+                            pg_pack_size = int(pg.get('pack_size'))
+                            pg_count = int(pg.get('count'))
+                        except Exception:
+                            db.session.rollback()
+                            return False, {"error": f"Invalid package group numbers for size {s_idx}, group {pg_idx} in metric {idx}"}
+
+                        size_pg = JobMetricSizePackageGroup(
+                            size_id=size_row.id,
+                            pack_size=pg_pack_size,
+                            count=pg_count
+                        )
+                        db.session.add(size_pg)
+
+                # In sizes mode, we keep metric.roll_count and meterage None (or you can compute aggregates if needed)
+                metric.roll_count = None
+                metric.meterage = None
+
+            else:
+                db.session.rollback()
+                return False, {"error": f"Unknown metric mode '{mode}' in metric index {idx}"}
+
+            db.session.flush()
             added_metrics.append(metric.to_dict())
 
         db.session.commit()
-        
-        return True, {
-            "message": "Job metrics saved successfully",
-            "metrics": added_metrics
-        }
+        return True, {"message": "Job metrics saved successfully", "metrics": added_metrics}
 
     except ValueError as e:
         db.session.rollback()

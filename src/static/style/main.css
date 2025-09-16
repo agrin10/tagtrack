@@ -423,3 +423,15 @@ padding: 0px 10px;
 /* .values_table{
   height: 120px;
 } */
+
+
+.metric-row {
+    transition: 0.2s ease-in-out;
+}
+.metric-row:hover {
+    background-color: #f8f9fa;
+}
+.size-list .d-flex {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
+}

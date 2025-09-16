@@ -50,10 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label small text-muted">ارزش بسته</label>
-                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
-            </div>
-            <div class="col-md-3">
                 <label class="form-label small text-muted">تعداد رول</label>
                 <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
             </div>
@@ -99,6 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function populateModal(order) {
+        console.log(order);
+        
         document.getElementById('modal-form-number').textContent = order.form_number;
         document.getElementById('modal-customer-details').textContent = `${order.customer_name} • ${order.quantity || 0} عدد`;
         
@@ -319,26 +317,111 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function collectJobMetricsFromModal() {
-        const metrics = [];
-        document.querySelectorAll('#modal-job-metrics-container .row').forEach(row => {
-            const package_count = row.querySelector('input[name*="[package_count]"]')?.value || 0;
-            const package_value = row.querySelector('input[name*="[package_value]"]')?.value || 0;
-            const roll_count = row.querySelector('input[name*="[roll_count]"]')?.value || 0;
-            const meterage = row.querySelector('input[name*="[meterage]"]')?.value || 0;
-            
-            // Only add if at least one field has a value
-            if (package_count || package_value || roll_count || meterage) {
-                metrics.push({
-                    package_count: package_count,
-                    package_value: package_value,
-                    roll_count: roll_count,
-                    meterage: meterage
-                });
-            }
-        });
-        return metrics;
+function collectJobMetricsFromModal() {
+    // helpers: parse ints/floats but return null if empty/invalid
+    function parseIntSafe(v) {
+        if (v === undefined || v === null) return null;
+        const s = String(v).trim();
+        if (s === '') return null;
+        const n = parseInt(s, 10);
+        return Number.isNaN(n) ? null : n;
     }
+    function parseFloatSafe(v) {
+        if (v === undefined || v === null) return null;
+        const s = String(v).trim();
+        if (s === '') return null;
+        const n = parseFloat(s);
+        return Number.isNaN(n) ? null : n;
+    }
+
+    const metrics = [];
+
+    // Each metric row has class .metric-row
+    document.querySelectorAll('#modal-job-metrics-container .metric-row').forEach((row) => {
+        const metric = {};
+        const modeSelect = row.querySelector('.size-toggle');
+        const mode = modeSelect ? (modeSelect.value || 'single') : 'single';
+        metric.mode = mode;
+
+        if (mode === 'single') {
+            // collect package groups for single mode
+            metric.package_groups = [];
+            const groups = row.querySelectorAll('.packages-groups .package-group');
+            groups.forEach(pg => {
+                // find numeric inputs inside the package-group (pack_size then count)
+                const numberInputs = pg.querySelectorAll('input[type="number"]');
+                const packSize = parseIntSafe(numberInputs[0]?.value);
+                const count = parseIntSafe(numberInputs[1]?.value);
+                if (packSize !== null && count !== null) {
+                    metric.package_groups.push({ pack_size: packSize, count: count });
+                }
+            });
+
+            // compute aggregate package_count if available (sum of counts)
+            const totalPackages = metric.package_groups.reduce((s, g) => s + (g.count || 0), 0);
+            metric.package_count = totalPackages || parseIntSafe(row.querySelector('input[name*="[package_count]"]')?.value) || 0;
+
+            // optional package_value field (if present in UI)
+            const pv = parseFloatSafe(row.querySelector('input[name*="[package_value]"]')?.value);
+            if (pv !== null) metric.package_value = pv;
+
+            // roll and meter are row-level in single mode
+            const rc = parseIntSafe(row.querySelector('input[name*="[roll_count]"]')?.value);
+            const mtr = parseFloatSafe(row.querySelector('input[name*="[meterage]"]')?.value);
+            if (rc !== null) metric.roll_count = rc;
+            if (mtr !== null) metric.meterage = mtr;
+
+            // Only push metric if there is meaningful data
+            const hasData = metric.package_groups.length || metric.roll_count != null || metric.meterage != null || metric.package_value != null;
+            if (hasData) metrics.push(metric);
+
+        } else if (mode === 'sizes') {
+            // sizes mode: collect sizes list (each with name, package_groups, roll_count, meterage)
+            metric.sizes = [];
+
+            // Each .size-item is one size block
+            row.querySelectorAll('.size-list .size-item').forEach(sizeItem => {
+                const sizeObj = {};
+
+                // size name: prefer explicit name input
+                const nameInput = sizeItem.querySelector('input[type="text"], input[name*="[name]"]');
+                sizeObj.name = nameInput ? (nameInput.value || '').trim() : '';
+
+                // collect package groups inside this size
+                sizeObj.package_groups = [];
+                sizeItem.querySelectorAll('.package-group-in-size').forEach(pg => {
+                    // for package-group-in-size, choose numeric inputs only (pack_size then count)
+                    const numIns = pg.querySelectorAll('input[type="number"]');
+                    // If the structure contains a text input inside pg, the numeric inputs will follow it
+                    const packSize = parseIntSafe(numIns[0]?.value);
+                    const count = parseIntSafe(numIns[1]?.value);
+                    if (packSize !== null && count !== null) {
+                        sizeObj.package_groups.push({ pack_size: packSize, count: count });
+                    }
+                });
+
+                // per-size roll_count and meterage - look for inputs with classes we added
+                const rcInput = sizeItem.querySelector('.size-roll-count') || sizeItem.querySelector('input[name*="[roll_count]"]');
+                const mtrInput = sizeItem.querySelector('.size-meterage') || sizeItem.querySelector('input[name*="[meterage]"]');
+                const rc = parseIntSafe(rcInput?.value);
+                const mtr = parseFloatSafe(mtrInput?.value);
+                if (rc !== null) sizeObj.roll_count = rc;
+                if (mtr !== null) sizeObj.meterage = mtr;
+
+                // Only include the size if it has useful data (name or package_groups or roll/meter)
+                const hasSizeData = (sizeObj.name && sizeObj.name.length) || sizeObj.package_groups.length || sizeObj.roll_count != null || sizeObj.meterage != null;
+                if (hasSizeData) {
+                    metric.sizes.push(sizeObj);
+                }
+            });
+
+            // if there are any sizes, push the metric
+            if (metric.sizes.length) metrics.push(metric);
+        }
+    });
+
+    return metrics;
+}
 
     function collectMachineDataFromModal() {
         const machineData = [];
@@ -772,37 +855,398 @@ function populateMachineData(order) {
 }
 
 
-    // Modify addMetricRowToModal to include a delete button for job metrics
-    function addMetricRowToModal(metric = null) {
-        const container = document.getElementById('modal-job-metrics-container');
-        const existingRows = container.querySelectorAll('.row');
-        const index = existingRows.length;
-        
-        const newMetricRow = document.createElement('div');
-        newMetricRow.className = 'row g-2 mb-2 align-items-end';
-        newMetricRow.innerHTML = `
+// === Replacement: support per-size roll_count and meterage ===
+
+function addMetricRowToModal(metric = null) {
+    const container = document.getElementById('modal-job-metrics-container');
+    const existingRows = container.querySelectorAll('.metric-row');
+    const index = existingRows.length;
+
+    const newMetricRow = document.createElement('div');
+    newMetricRow.className = 'metric-row border rounded p-3 mb-3 bg-light';
+
+    newMetricRow.innerHTML = `
+        <!-- Top: mode select (moved above the row header) -->
+        <div class="row g-2 mb-2">
             <div class="col-md-3">
-                <label class="form-label small text-muted">تعداد بسته</label>
-                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][package_count]" value="${metric ? metric.package_count : ''}">
+                <label class="form-label small text-muted">نوع ورودی</label>
+                <select class="form-select form-select-sm size-toggle" name="job_metrics[${index}][mode]">
+                    <option value="single">بدون سایز</option>
+                    <option value="sizes">با سایز</option>
+                </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small text-muted">ارزش بسته</label>
-                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][package_value]" value="${metric ? metric.package_value : ''}">
+        </div>
+
+        <!-- Row header and remove button -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="text-primary mb-0">ردیف شاخص #${index + 1}</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+                <i class="fas fa-trash-alt me-1"></i> حذف ردیف
+            </button>
+        </div>
+
+        <div class="row g-2 align-items-end mb-3">
+            <!-- single (no-size) mode: package groups (like 4 packages of 100) -->
+            <div class="col-md-9 single-quantity">
+                <label class="form-label small text-muted">گروه‌های بسته (مثلاً 4 بسته 100تایی)</label>
+                <div class="packages-groups mb-2">
+                    <div class="package-group d-flex gap-2 mb-2">
+                        <input type="number" min="1" class="form-control form-control-sm w-50"
+                            name="job_metrics[${index}][package_groups][0][pack_size]" placeholder="تعداد در هر بسته (مثلاً 100)"
+                            value="${metric && metric.package_groups && metric.package_groups[0] ? metric.package_groups[0].pack_size || '' : ''}">
+                        <input type="number" min="1" class="form-control form-control-sm w-25"
+                            name="job_metrics[${index}][package_groups][0][count]" placeholder="تعداد بسته‌ها"
+                            value="${metric && metric.package_groups && metric.package_groups[0] ? metric.package_groups[0].count || '' : ''}">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-package-group">&times;</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary add-package-group">
+                    <i class="fas fa-plus-circle me-1"></i> افزودن گروه بسته
+                </button>
+
+                <!-- Roll and meter for single/no-size mode -->
+                <div class="mt-3 d-flex gap-2 single-roll-meter">
+                    <div class="w-25">
+                        <label class="form-label small text-muted">تعداد رول</label>
+                        <input type="number" class="form-control form-control-sm"
+                            name="job_metrics[${index}][roll_count]"
+                            value="${metric && !metric.sizes ? metric.roll_count || '' : ''}">
+                    </div>
+                    <div class="w-25">
+                        <label class="form-label small text-muted">متراژ</label>
+                        <input type="number" step="0.01" class="form-control form-control-sm"
+                            name="job_metrics[${index}][meterage]"
+                            value="${metric && !metric.sizes ? metric.meterage || '' : ''}">
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small text-muted">تعداد رول</label>
-                <input type="number" class="form-control form-control-sm" name="job_metrics[${index}][roll_count]" value="${metric ? metric.roll_count : ''}">
+
+            <!-- sizes mode: each size has its own package-groups list + roll/meter -->
+            <div class="col-12 size-quantities d-none">
+                <label class="form-label small text-muted d-block">تعداد بسته بر اساس سایز</label>
+                <div class="size-list border rounded bg-white p-2 mb-2"></div>
+                <button type="button" class="btn btn-sm btn-outline-primary add-size-btn">
+                    <i class="fas fa-plus-circle me-1"></i> افزودن سایز
+                </button>
             </div>
-            <div class="col-md-2">
-                <label class="form-label small text-muted">متراژ</label>
-                <input type="number" step="0.01" class="form-control form-control-sm" name="job_metrics[${index}][meterage]" value="${metric ? metric.meterage : ''}">
+        </div>
+    `;
+
+    container.appendChild(newMetricRow);
+
+    // If metric object passed, prefill data:
+    if (metric) {
+        // Fill package-groups for single mode (if present)
+        if (metric.package_groups && metric.package_groups.length) {
+            const groupsContainer = newMetricRow.querySelector('.packages-groups');
+            groupsContainer.innerHTML = '';
+            metric.package_groups.forEach((g, gi) => {
+                const group = document.createElement('div');
+                group.className = 'package-group d-flex gap-2 mb-2';
+                group.innerHTML = `
+                    <input type="number" min="1" class="form-control form-control-sm w-50"
+                        name="job_metrics[${index}][package_groups][${gi}][pack_size]" placeholder="تعداد در هر بسته (مثلاً 100)"
+                        value="${g.pack_size || ''}">
+                    <input type="number" min="1" class="form-control form-control-sm w-25"
+                        name="job_metrics[${index}][package_groups][${gi}][count]" placeholder="تعداد بسته‌ها"
+                        value="${g.count || ''}">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-package-group">&times;</button>
+                `;
+                groupsContainer.appendChild(group);
+            });
+        }
+
+        // If metric has sizes, enable sizes mode and populate sizes
+        if (metric.sizes && metric.sizes.length) {
+            const row = newMetricRow;
+            const toggle = row.querySelector('.size-toggle');
+            toggle.value = 'sizes';
+            row.querySelector('.single-quantity').classList.add('d-none');
+            row.querySelector('.size-quantities').classList.remove('d-none');
+
+            const sizeList = row.querySelector('.size-list');
+            sizeList.innerHTML = '';
+
+            metric.sizes.forEach((s, si) => {
+                const sizeItem = document.createElement('div');
+                sizeItem.className = 'size-item border rounded p-2 mb-2';
+
+                // Build package groups HTML for this size
+                let pkgGroupsHtml = '<div class="package-groups-for-size">';
+                if (s.package_groups && s.package_groups.length) {
+                    s.package_groups.forEach((pg, pgi) => {
+                        pkgGroupsHtml += `
+                            <div class="d-flex gap-2 mb-2 package-group-in-size">
+                                <input type="text" class="form-control form-control-sm w-25"
+                                    name="job_metrics[${index}][sizes][${si}][name]" value="${s.name || ''}" placeholder="سایز">
+                                <input type="number" min="1" class="form-control form-control-sm w-25"
+                                    name="job_metrics[${index}][sizes][${si}][package_groups][${pgi}][pack_size]" placeholder="تعداد در هر بسته"
+                                    value="${pg.pack_size || ''}">
+                                <input type="number" min="1" class="form-control form-control-sm w-25"
+                                    name="job_metrics[${index}][sizes][${si}][package_groups][${pgi}][count]" placeholder="تعداد بسته‌ها"
+                                    value="${pg.count || ''}">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-package-group-in-size">&times;</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    pkgGroupsHtml += `
+                        <div class="d-flex gap-2 mb-2 package-group-in-size">
+                            <input type="text" class="form-control form-control-sm w-25"
+                                name="job_metrics[${index}][sizes][${si}][name]" value="${s.name || ''}" placeholder="سایز">
+                            <input type="number" min="1" class="form-control form-control-sm w-25"
+                                name="job_metrics[${index}][sizes][${si}][package_groups][0][pack_size]" placeholder="تعداد در هر بسته">
+                            <input type="number" min="1" class="form-control form-control-sm w-25"
+                                name="job_metrics[${index}][sizes][${si}][package_groups][0][count]" placeholder="تعداد بسته‌ها">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-package-group-in-size">&times;</button>
+                        </div>
+                    `;
+                }
+                pkgGroupsHtml += '</div>';
+
+                // Add roll and meter inputs per-size
+                const rollMeterHtml = `
+                    <div class="d-flex gap-2 mt-2 align-items-center">
+                        <div class="w-25">
+                            <label class="form-label small text-muted">تعداد رول (برای این سایز)</label>
+                            <input type="number" class="form-control form-control-sm size-roll-count"
+                                value="${s.roll_count || ''}">
+                        </div>
+                        <div class="w-25">
+                            <label class="form-label small text-muted">متراژ (برای این سایز)</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm size-meterage"
+                                value="${s.meterage || ''}">
+                        </div>
+                    </div>
+                `;
+
+                sizeItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="size-title">${s.name || 'سایز'}</strong>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-package-in-size">افزودن گروه بسته</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-size">حذف سایز</button>
+                        </div>
+                    </div>
+                    ${pkgGroupsHtml}
+                    ${rollMeterHtml}
+                `;
+                sizeList.appendChild(sizeItem);
+            });
+        } else {
+            // If single (no sizes) and metric has roll_count/meterage, fill them
+            if (!metric.sizes || metric.sizes.length === 0) {
+                const rollInSingle = newMetricRow.querySelector(`input[name="job_metrics[${index}][roll_count]"]`);
+                const meterInSingle = newMetricRow.querySelector(`input[name="job_metrics[${index}][meterage]"]`);
+
+                if (rollInSingle) rollInSingle.value = metric.roll_count ?? '';
+                if (meterInSingle) meterInSingle.value = metric.meterage ?? '';
+            }
+        }
+    }
+
+    // Ensure indexes & names updated after adding
+    reindexMetricRows();
+}
+
+// Reindex names for all dynamic fields including per-size roll/meter
+function reindexMetricRows() {
+    const rows = document.querySelectorAll('.metric-row');
+    rows.forEach((row, rIndex) => {
+        // update header number
+        const header = row.querySelector('h6');
+        if (header) header.textContent = `ردیف شاخص #${rIndex + 1}`;
+
+        // mode select name
+        const modeSelect = row.querySelector('.size-toggle');
+        if (modeSelect) modeSelect.name = `job_metrics[${rIndex}][mode]`;
+
+        // package groups (single/no-size)
+        const packageGroups = row.querySelectorAll('.packages-groups .package-group');
+        packageGroups.forEach((pg, pgIndex) => {
+            const packSize = pg.querySelector('input[placeholder*="تعداد در هر بسته"]');
+            const count = pg.querySelector('input[placeholder*="تعداد بسته‌ها"]');
+            if (packSize) packSize.name = `job_metrics[${rIndex}][package_groups][${pgIndex}][pack_size]`;
+            if (count) count.name = `job_metrics[${rIndex}][package_groups][${pgIndex}][count]`;
+        });
+
+        // For single (no-size) mode - ensure roll/meter inputs names are row-level
+        const singleRoll = row.querySelector('.single-quantity input[name*="[roll_count]"]');
+        const singleMeter = row.querySelector('.single-quantity input[name*="[meterage]"]');
+        if (singleRoll) singleRoll.name = `job_metrics[${rIndex}][roll_count]`;
+        if (singleMeter) singleMeter.name = `job_metrics[${rIndex}][meterage]`;
+
+        // sizes and their inner package-groups + per-size roll/meter
+        const sizeItems = row.querySelectorAll('.size-list .size-item');
+        sizeItems.forEach((sizeItem, sIndex) => {
+            // update size name input
+            const sizeNameInput = sizeItem.querySelector('input[type="text"], input[placeholder*="سایز"]');
+            if (sizeNameInput) sizeNameInput.name = `job_metrics[${rIndex}][sizes][${sIndex}][name]`;
+
+            // package-groups inside size
+            const pgInSize = sizeItem.querySelectorAll('.package-group-in-size');
+            pgInSize.forEach((pgis, pgisIndex) => {
+                const packSizeInput = pgis.querySelector('input[name*="[pack_size]"]');
+                const countInput = pgis.querySelector('input[name*="[count]"]');
+                if (packSizeInput) packSizeInput.name = `job_metrics[${rIndex}][sizes][${sIndex}][package_groups][${pgisIndex}][pack_size]`;
+                if (countInput) countInput.name = `job_metrics[${rIndex}][sizes][${sIndex}][package_groups][${pgisIndex}][count]`;
+            });
+
+            // per-size roll and meter inputs
+            const sizeRoll = sizeItem.querySelector('.size-roll-count');
+            const sizeMeter = sizeItem.querySelector('.size-meterage');
+            if (sizeRoll) sizeRoll.name = `job_metrics[${rIndex}][sizes][${sIndex}][roll_count]`;
+            if (sizeMeter) sizeMeter.name = `job_metrics[${rIndex}][sizes][${sIndex}][meterage]`;
+
+            // update visible title to match name input if available
+            const title = sizeItem.querySelector('.size-title');
+            if (title) {
+                const nameVal = (sizeItem.querySelector(`input[name^="job_metrics[${rIndex}][sizes][${sIndex}][name]"]`) || {}).value || `سایز ${sIndex+1}`;
+                title.textContent = nameVal;
+            }
+        });
+    });
+}
+
+// event delegation for clicks and changes
+document.addEventListener('click', function (e) {
+    // add package group in single/no-size mode
+    if (e.target.classList.contains('add-package-group')) {
+        const row = e.target.closest('.metric-row');
+        const groups = row.querySelector('.packages-groups');
+        const rowIndex = Array.from(document.querySelectorAll('.metric-row')).indexOf(row);
+        const groupIndex = groups.children.length;
+        const group = document.createElement('div');
+        group.className = 'package-group d-flex gap-2 mb-2';
+        group.innerHTML = `
+            <input type="number" min="1" class="form-control form-control-sm w-50"
+                name="job_metrics[${rowIndex}][package_groups][${groupIndex}][pack_size]" placeholder="تعداد در هر بسته (مثلاً 100)">
+            <input type="number" min="1" class="form-control form-control-sm w-25"
+                name="job_metrics[${rowIndex}][package_groups][${groupIndex}][count]" placeholder="تعداد بسته‌ها">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-package-group">&times;</button>
+        `;
+        groups.appendChild(group);
+        reindexMetricRows();
+    }
+
+    // remove package group in single mode
+    if (e.target.classList.contains('remove-package-group')) {
+        e.target.closest('.package-group').remove();
+        reindexMetricRows();
+    }
+
+    // add a size to a metric-row (creates per-size package-group + roll/meter area)
+    if (e.target.classList.contains('add-size-btn')) {
+        const row = e.target.closest('.metric-row');
+        const sizeList = row.querySelector('.size-list');
+        const rowIndex = Array.from(document.querySelectorAll('.metric-row')).indexOf(row);
+        const sizeIndex = sizeList.children.length;
+
+        const sizeItem = document.createElement('div');
+        sizeItem.className = 'size-item border rounded p-2 mb-2';
+        sizeItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="size-title">سایز ${sizeIndex + 1}</strong>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary add-package-in-size">افزودن گروه بسته</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-size">حذف سایز</button>
+                </div>
             </div>
-            <div class="col-md-1">
-                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove()"><i class="fas fa-times"></i></button>
+            <div class="d-flex gap-2 mb-2 package-group-in-size">
+                <input type="text" class="form-control form-control-sm w-25"
+                    name="job_metrics[${rowIndex}][sizes][${sizeIndex}][name]" placeholder="سایز (مثلا XL)">
+                <input type="number" min="1" class="form-control form-control-sm w-25"
+                    name="job_metrics[${rowIndex}][sizes][${sizeIndex}][package_groups][0][pack_size]" placeholder="تعداد در هر بسته">
+                <input type="number" min="1" class="form-control form-control-sm w-25"
+                    name="job_metrics[${rowIndex}][sizes][${sizeIndex}][package_groups][0][count]" placeholder="تعداد بسته‌ها">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-package-group-in-size">&times;</button>
+            </div>
+            <div class="d-flex gap-2 mt-2 align-items-center">
+                <div class="w-25">
+                    <label class="form-label small text-muted">تعداد رول (برای این سایز)</label>
+                    <input type="number" class="form-control form-control-sm size-roll-count" value="">
+                </div>
+                <div class="w-25">
+                    <label class="form-label small text-muted">متراژ (برای این سایز)</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm size-meterage" value="">
+                </div>
             </div>
         `;
-        container.appendChild(newMetricRow);
+        sizeList.appendChild(sizeItem);
+        reindexMetricRows();
     }
+
+    // remove entire size
+    if (e.target.classList.contains('remove-size')) {
+        e.target.closest('.size-item').remove();
+        reindexMetricRows();
+    }
+
+    // add package group inside a size
+    if (e.target.classList.contains('add-package-in-size')) {
+        const sizeItem = e.target.closest('.size-item');
+        const row = e.target.closest('.metric-row');
+        const rowIndex = Array.from(document.querySelectorAll('.metric-row')).indexOf(row);
+        const sizeList = row.querySelectorAll('.size-item');
+        const sizeIndex = Array.from(sizeList).indexOf(sizeItem);
+        const groupIndex = sizeItem.querySelectorAll('.package-group-in-size').length;
+
+        const group = document.createElement('div');
+        group.className = 'd-flex gap-2 mb-2 package-group-in-size';
+        group.innerHTML = `
+            <input type="text" class="form-control form-control-sm w-25"
+                name="job_metrics[${rowIndex}][sizes][${sizeIndex}][name]" placeholder="سایز (مثلا XL)">
+            <input type="number" min="1" class="form-control form-control-sm w-25"
+                name="job_metrics[${rowIndex}][sizes][${sizeIndex}][package_groups][${groupIndex}][pack_size]" placeholder="تعداد در هر بسته">
+            <input type="number" min="1" class="form-control form-control-sm w-25"
+                name="job_metrics[${rowIndex}][sizes][${sizeIndex}][package_groups][${groupIndex}][count]" placeholder="تعداد بسته‌ها">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-package-group-in-size">&times;</button>
+        `;
+        const pgContainer = sizeItem.querySelector('.package-groups-for-size') || sizeItem;
+        pgContainer.appendChild(group);
+        reindexMetricRows();
+    }
+
+    // remove package group inside size
+    if (e.target.classList.contains('remove-package-group-in-size')) {
+        e.target.closest('.package-group-in-size').remove();
+        reindexMetricRows();
+    }
+
+    // remove the whole metric-row
+    if (e.target.classList.contains('remove-row')) {
+        e.target.closest('.metric-row').remove();
+        reindexMetricRows();
+    }
+});
+
+// toggle single/sizes view and reindex names correctly
+document.addEventListener('change', function (e) {
+    if (e.target.classList.contains('size-toggle')) {
+        const row = e.target.closest('.metric-row');
+        const single = row.querySelector('.single-quantity');
+        const sizes = row.querySelector('.size-quantities');
+        if (e.target.value === 'sizes') {
+            single.classList.add('d-none');
+            sizes.classList.remove('d-none');
+        } else {
+            single.classList.remove('d-none');
+            sizes.classList.add('d-none');
+        }
+        reindexMetricRows();
+    }
+
+    // update visible size title when name edited
+    if (e.target.matches('.size-item input[type="text"], .size-item input[placeholder*="سایز"]')) {
+        const sizeItem = e.target.closest('.size-item');
+        const title = sizeItem.querySelector('.size-title');
+        if (title) title.textContent = e.target.value || title.textContent;
+        reindexMetricRows();
+    }
+});
+
+// ensure correct indexing after page load or server-fill
+reindexMetricRows();
 
     // Helper function to format date for input fields (if needed)
     function formatDateForInput(isoString) {
@@ -817,6 +1261,8 @@ function populateMachineData(order) {
         const date = new Date(isoString);
         return date.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
     }
+
+  
 
     // Make these functions globally accessible if they are called from inline HTML
     window.addProductionRow = addProductionRow;
