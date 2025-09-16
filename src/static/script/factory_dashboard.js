@@ -633,126 +633,144 @@ function getStatusText(status) {
 
         // Remove the separate invoice form submission handler since it's now integrated into production status update
     });
+// --- Calculate total production duration ---
+function calculateProductionDuration() {
+    let totalMinutes = 0;
 
-    function addProductionRow() {
-        const tableBody = document.getElementById('production-table-body');
-        const newRow = tableBody.insertRow();
-        const rowIndex = tableBody.rows.length;
-        newRow.setAttribute('data-row-index', rowIndex);
+    document.querySelectorAll('#production-table-body tr').forEach(row => {
+        const startTime = row.querySelector('input[name$="[start_time]"]')?.value;
+        const endTime = row.querySelector('input[name$="[end_time]"]')?.value;
 
-        newRow.innerHTML = `
-            <td class="py-2 px-3">
-                <select class="form-select form-select-sm" name="machine_data[${rowIndex}][shift_type]">
-                    <option value="day">روز</option>
-                    <option value="night">شب</option>
-                </select>
-            </td>
-            <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
-            <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
-            <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
-            <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][starting_quantity]" placeholder="تعداد شروع"></td>
-            <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
-            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
-        `;
-    }
+        if (startTime && endTime) {
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
 
-    // Function to populate machine data when modal is opened
-    function populateMachineData(order) {
-        const tableBody = document.getElementById('production-table-body');
-        tableBody.innerHTML = ''; // Clear existing rows
+            let durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
 
-        const machineData = order.machine_data || [];
+            // If end time is after midnight (e.g., 23:00 to 02:00)
+            if (durationMinutes < 0) {
+                durationMinutes += 24 * 60;
+            }
 
-        if (machineData && machineData.length > 0) {
-            // Sort by shift type if needed, e.g., day first then night
-            machineData.sort((a, b) => a.shift_type.localeCompare(b.shift_type));
-
-            machineData.forEach((data, index) => {
-                const newRow = tableBody.insertRow();
-                newRow.setAttribute('data-row-index', index);
-                newRow.innerHTML = `
-                    <td class="py-2 px-3">
-                        <select class="form-select form-select-sm" name="machine_data[${index}][shift_type]">
-                            <option value="day" ${data.shift_type === 'day' ? 'selected' : ''}>روز</option>
-                            <option value="night" ${data.shift_type === 'night' ? 'selected' : ''}>شب</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-3"><input type="text" class="form-control form-control-sm" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
-                    <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
-                    <td class="py-2 px-3"><input type="time" class="form-control form-control-sm" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
-                    <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][starting_quantity]" placeholder="تعداد شروع" value="${data.starting_quantity || ''}"></td>
-                    <td class="py-2 px-3"><input type="number" class="form-control form-control-sm" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
-                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">حذف</button></td>
-                `;
-            });
-        } else {
-            // Add an empty row if no data exists, for the first shift
-            addProductionRow();
+            totalMinutes += durationMinutes;
         }
+    });
 
-        // Populate production duration
-        document.getElementById('production-duration-input').value = order.production_duration || '';
-    }
-    setupTableSearch('#searchInput', '#ordersTable tbody tr');
-        function addProductionRow() {
-        const tableBody = document.getElementById('production-table-body');
-        const newRow = tableBody.insertRow();
-        const rowIndex = tableBody.rows.length;
-        newRow.setAttribute('data-row-index', rowIndex);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
 
-        newRow.innerHTML = `
-            <td class="py-2 px-3">
-                <select class="form-select" name="machine_data[${rowIndex}][shift_type]">
-                    <option value="day">روز</option>
-                    <option value="night">شب</option>
-                </select>
-            </td>
-            <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر"></td>
-            <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][start_time]" placeholder="ساعت شروع"></td>
-            <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${rowIndex}][end_time]" placeholder="ساعت اتمام"></td>
-            <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${rowIndex}][starting_quantity]" placeholder="تعداد شروع"></td>
-            <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده"></td>
-            <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
-        `;
-    }
+    document.getElementById('production-duration-input').value =
+        `${hours} ساعت و ${minutes} دقیقه`;
+}
+// --- Add a new row ---
+function addProductionRow() {
+    const tableBody = document.getElementById('production-table-body');
+    const newRow = tableBody.insertRow();
+    const rowIndex = tableBody.rows.length - 1;
 
-    // Function to populate machine data when modal is opened
-    function populateMachineData(order) {
-        const tableBody = document.getElementById('production-table-body');
-        tableBody.innerHTML = ''; // Clear existing rows
+    newRow.innerHTML = `
+        <td class="py-2 px-3">
+            <select class="form-select" name="machine_data[${rowIndex}][shift_type]">
+                <option value="day">روز</option>
+                <option value="night">شب</option>
+            </select>
+        </td>
+        <td class="py-2 px-3">
+            <input type="text" class="form-control" name="machine_data[${rowIndex}][worker_name]" placeholder="نام کارگر">
+        </td>
+        <td class="py-2 px-3">
+            <input type="time" class="form-control" name="machine_data[${rowIndex}][start_time]">
+        </td>
+        <td class="py-2 px-3">
+            <input type="time" class="form-control" name="machine_data[${rowIndex}][end_time]">
+        </td>
+        <td class="py-2 px-3">
+            <input type="number" class="form-control" name="machine_data[${rowIndex}][starting_quantity]" placeholder="تعداد شروع">
+        </td>
+        <td class="py-2 px-3">
+            <input type="number" class="form-control" name="machine_data[${rowIndex}][remaining_quantity]" placeholder="تعداد مانده">
+        </td>
+        <td class="py-2 px-3">
+            <button type="button" class="btn btn-danger btn-sm">حذف</button>
+        </td>
+    `;
 
-        const machineData = order.machine_data || [];
+    const startInput = newRow.querySelector(`input[name$="[start_time]"]`);
+    const endInput = newRow.querySelector(`input[name$="[end_time]"]`);
 
-        if (machineData && machineData.length > 0) {
-            // Sort by shift type if needed, e.g., day first then night
-            machineData.sort((a, b) => a.shift_type.localeCompare(b.shift_type));
+    startInput.addEventListener('input', calculateProductionDuration);
+    endInput.addEventListener('input', calculateProductionDuration);
 
-            machineData.forEach((data, index) => {
-                const newRow = tableBody.insertRow();
-                newRow.setAttribute('data-row-index', index);
-                newRow.innerHTML = `
-                    <td class="py-2 px-3">
-                        <select class="form-select" name="machine_data[${index}][shift_type]">
-                            <option value="day" ${data.shift_type === 'day' ? 'selected' : ''}>روز</option>
-                            <option value="night" ${data.shift_type === 'night' ? 'selected' : ''}>شب</option>
-                        </select>
-                    </td>
-                    <td class="py-2 px-3"><input type="text" class="form-control" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}"></td>
-                    <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][start_time]" placeholder="ساعت شروع" value="${data.start_time ? data.start_time.substring(11, 16) : ''}"></td>
-                    <td class="py-2 px-3"><input type="time" class="form-control" name="machine_data[${index}][end_time]" placeholder="ساعت اتمام" value="${data.end_time ? data.end_time.substring(11, 16) : ''}"></td>
-                    <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${index}][starting_quantity]" placeholder="تعداد شروع" value="${data.starting_quantity || ''}"></td>
-                    <td class="py-2 px-3"><input type="number" class="form-control" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}"></td>
-                    <td class="py-2 px-3"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();">X</button></td>
-                `;
+    newRow.querySelector('button').addEventListener('click', () => {
+        newRow.remove();
+        calculateProductionDuration();
+    });
+
+    calculateProductionDuration();
+}
+
+// --- Populate table with existing data ---
+function populateMachineData(order) {
+    const tableBody = document.getElementById('production-table-body');
+    tableBody.innerHTML = ''; // clear current rows
+
+    const machineData = order.machine_data || [];
+
+    if (machineData.length > 0) {
+        machineData.sort((a, b) => a.shift_type.localeCompare(b.shift_type));
+
+        machineData.forEach((data, index) => {
+            const newRow = tableBody.insertRow();
+            newRow.setAttribute('data-row-index', index);
+
+            newRow.innerHTML = `
+                <td class="py-2 px-3">
+                    <select class="form-select" name="machine_data[${index}][shift_type]">
+                        <option value="day" ${data.shift_type === 'day' ? 'selected' : ''}>روز</option>
+                        <option value="night" ${data.shift_type === 'night' ? 'selected' : ''}>شب</option>
+                    </select>
+                </td>
+                <td class="py-2 px-3">
+                    <input type="text" class="form-control" name="machine_data[${index}][worker_name]" placeholder="نام کارگر" value="${data.worker_name || ''}">
+                </td>
+                <td class="py-2 px-3">
+                    <input type="time" class="form-control" name="machine_data[${index}][start_time]" value="${data.start_time ? data.start_time.substring(11, 16) : ''}">
+                </td>
+                <td class="py-2 px-3">
+                    <input type="time" class="form-control" name="machine_data[${index}][end_time]" value="${data.end_time ? data.end_time.substring(11, 16) : ''}">
+                </td>
+                <td class="py-2 px-3">
+                    <input type="number" class="form-control" name="machine_data[${index}][starting_quantity]" placeholder="تعداد شروع" value="${data.starting_quantity || ''}">
+                </td>
+                <td class="py-2 px-3">
+                    <input type="number" class="form-control" name="machine_data[${index}][remaining_quantity]" placeholder="تعداد مانده" value="${data.remaining_quantity || ''}">
+                </td>
+                <td class="py-2 px-3">
+                    <button type="button" class="btn btn-danger btn-sm">حذف</button>
+                </td>
+            `;
+
+            const startInput = newRow.querySelector(`input[name$="[start_time]"]`);
+            const endInput = newRow.querySelector(`input[name$="[end_time]"]`);
+
+            startInput.addEventListener('input', calculateProductionDuration);
+            endInput.addEventListener('input', calculateProductionDuration);
+
+            newRow.querySelector('button').addEventListener('click', () => {
+                newRow.remove();
+                calculateProductionDuration();
             });
-        } else {
-            // Add an empty row if no data exists, for the first shift
-            addProductionRow();
-        }
-
-        // Populate production duration
-        document.getElementById('production-duration-input').value = order.production_duration || '';
+        });
+    } else {
+        addProductionRow();
     }
+
+    // Optional: set saved duration if exists
+    document.getElementById('production-duration-input').value = order.production_duration || '';
+
+    calculateProductionDuration();
+}
+
 
     // Modify addMetricRowToModal to include a delete button for job metrics
     function addMetricRowToModal(metric = null) {
@@ -806,5 +824,6 @@ function getStatusText(status) {
     window.addMetricRowToModal = addMetricRowToModal;
     window.formatDateForInput = formatDateForInput;
     window.formatTimeForInput = formatTimeForInput;
+    setupTableSearch('#searchInput', '#ordersTable tbody tr');
 
 });
