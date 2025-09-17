@@ -446,7 +446,7 @@ def duplicate_order(order_id):
             'file_name': original_order.get('file_name'),
             'status': 'Pending',
             'design_specification': original_order.get('design_specification'),
-            'office_notes': original_order.get('office_notes'),
+            'office_notes': "برابر تولیدات قبل",
             'factory_notes': original_order.get('factory_notes'),
             'customer_note_to_office': original_order.get('customer_note_to_office')
         }
