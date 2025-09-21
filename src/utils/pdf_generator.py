@@ -974,12 +974,10 @@ def generate_page_two_content(order, job_metrics, production_steps):
     if payments:
         payment = payments[0]  # Use the first payment
         invoice_data.append([
-            format_persian_text(payment.credit_card or '-'),
             str(payment.quantity) if payment.quantity else '-',
             str(payment.unit_price) if payment.unit_price else '-',
             str(payment.cutting_cost) if payment.cutting_cost else '-',
             str(payment.number_of_cuts) if payment.number_of_cuts else '-',
-            str(payment.number_of_density) if payment.number_of_density else '-',
             str(payment.peak_quantity) if payment.peak_quantity else '-',
             str(payment.peak_width) if payment.peak_width else '-',
             str(payment.Fee) if payment.Fee else '-',

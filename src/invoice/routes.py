@@ -45,11 +45,9 @@ def post_generate_invoice_file():
 
     try:
         order_id = int(data.get('order_id'))
-        credit_card = data.get('credit_card')
         quantity = data.get('quantity')
         cutting_cost = data.get('cutting_cost')
         number_of_cuts = data.get('number_of_cuts')
-        number_of_density = data.get('number_of_density')
         peak_quantity = data.get('peak_quantity')
         peak_width = data.get('peak_width')
         Fee = data.get('Fee')
@@ -58,8 +56,8 @@ def post_generate_invoice_file():
 
         print(f'order_id {order_id}')
         success, message = generate_invoice_file(
-            order_id, credit_card, quantity,
-            cutting_cost, number_of_cuts, number_of_density,
+            order_id, quantity,
+            cutting_cost, number_of_cuts,
             peak_quantity, peak_width, Fee, notes, row_number
         )
 
@@ -90,11 +88,9 @@ def save_factory_invoice_route():
 
     try:
         order_id = int(data.get('order_id'))
-        credit_card = data.get('credit_card')
         quantity = data.get('quantity')
         cutting_cost = data.get('cutting_cost')
         number_of_cuts = data.get('number_of_cuts')
-        number_of_density = data.get('number_of_density')
         peak_quantity = data.get('peak_quantity')
         peak_width = data.get('peak_width')
         Fee = data.get('Fee')
@@ -102,8 +98,8 @@ def save_factory_invoice_route():
         row_number = data.get('row_number')
 
         success, response = save_factory_invoice(
-            order_id, credit_card, quantity,
-            cutting_cost, number_of_cuts, number_of_density,
+            order_id, quantity,
+            cutting_cost, number_of_cuts,
             peak_quantity, peak_width, Fee, notes, row_number, current_user.id
         )
 

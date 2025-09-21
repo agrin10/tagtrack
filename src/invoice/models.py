@@ -8,19 +8,17 @@ class Payment(db.Model):
 
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     
-    invoice_number = db.Column(db.String(50), unique=True, nullable=False)  # شماره فاکتور
-    credit_card = db.Column(db.String(50), nullable=False)
-    unit_price = db.Column(db.Float, nullable=False)           # قیمت واحد
+    invoice_number = db.Column(db.String(50), unique=True, nullable=False)  
+    unit_price = db.Column(db.Float, nullable=False)          
     quantity = db.Column(db.Integer, nullable=False)
     cutting_cost = db.Column(db.Float, default=0.0)  
     number_of_cuts = db.Column(db.Integer)
-    number_of_density = db.Column(db.Integer)
     peak_quantity = db.Column(db.Float , nullable=False)
     peak_width = db.Column(db.Integer)
     Fee  = db.Column(db.Integer)
-    row_number = db.Column(db.Integer, nullable=True)          # ردیف
+    row_number = db.Column(db.Integer, nullable=True)         
 
-    total_price = db.Column(db.Float, nullable=False)          # قیمت نهایی = (واحد × تعداد) + هزینه برش - تخفیف + مالیات
+    total_price = db.Column(db.Float, nullable=False)        
 
     status = db.Column(
         db.Enum('pending', 'paid', 'failed', 'cancelled', 'Generated', 'Sent', name='payment_status_enum'),
@@ -42,14 +40,12 @@ class Payment(db.Model):
             "id": self.id,
             "order_id": self.order_id,
             "form_number": self.order.form_number if self.order else None,
-            "customer_name": self.order.customer_name if self.order else None,
+            "customer_name": self.order.customer.name if self.order else None,
             "invoice_number": self.invoice_number,
-            "credit_card": self.credit_card,
             "unit_price": self.unit_price,
             "quantity": self.quantity,
             "cutting_cost": self.cutting_cost,
             "number_of_cuts": self.number_of_cuts,
-            "number_of_density": self.number_of_density,
             "peak_quantity": self.peak_quantity,
             "peak_width": self.peak_width,
             "Fee": self.Fee,
@@ -69,11 +65,9 @@ class InvoiceDraft(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     
-    credit_card = db.Column(db.String(50), nullable=True)
     quantity = db.Column(db.Integer, nullable=True)
     cutting_cost = db.Column(db.Float, default=0.0)
     number_of_cuts = db.Column(db.Integer, nullable=True)
-    number_of_density = db.Column(db.Integer, nullable=True)
     peak_quantity = db.Column(db.Float, nullable=True)
     peak_width = db.Column(db.Float, nullable=True)
     Fee = db.Column(db.Float, nullable=True)
@@ -90,11 +84,9 @@ class InvoiceDraft(db.Model):
         return {
             "id": self.id,
             "order_id": self.order_id,
-            "credit_card": self.credit_card,
             "quantity": self.quantity,
             "cutting_cost": self.cutting_cost,
             "number_of_cuts": self.number_of_cuts,
-            "number_of_density": self.number_of_density,
             "peak_quantity": self.peak_quantity,
             "peak_width": self.peak_width,
             "Fee": self.Fee,

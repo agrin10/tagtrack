@@ -69,8 +69,8 @@ def invoice_list(page: int = 1, per_page: int = 10, search: str = None, status: 
 
 
 
-def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
-                          number_of_cuts, number_of_density,
+def generate_invoice_file(order_id, quantity, cutting_cost,
+                          number_of_cuts,
                           peak_quantity, peak_width, Fee, notes, row_number=None):
     order = db.session.query(Order).filter_by(id=order_id).first()
     if not order:
@@ -81,7 +81,6 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
         quantity = int(quantity)
         cutting_cost = float(cutting_cost)
         number_of_cuts = int(number_of_cuts)
-        number_of_density = int(number_of_density)
         peak_quantity = float(peak_quantity)
         peak_width = float(peak_width)
         Fee = float(Fee)
@@ -96,13 +95,11 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
 
         new_invoice = Payment(
             order_id=order_id,
-            credit_card=credit_card,
             invoice_number=invoice_number,
             unit_price=unit_price,
             quantity=quantity,
             cutting_cost=cutting_cost,
             number_of_cuts=number_of_cuts,
-            number_of_density=number_of_density,
             peak_quantity=peak_quantity,
             peak_width=peak_width,
             Fee=Fee,
@@ -120,8 +117,8 @@ def generate_invoice_file(order_id, credit_card, quantity, cutting_cost,
     except Exception as e:
         return False, f"Something went wrong: {e}"
 
-def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
-                        number_of_cuts, number_of_density,
+def save_factory_invoice(order_id, quantity, cutting_cost,
+                        number_of_cuts,
                         peak_quantity, peak_width, Fee, notes, row_number=None, created_by=None):
     """
     Save invoice data from factory processing tab to payment table.
@@ -146,7 +143,6 @@ def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
             quantity = int(quantity) if quantity else 0
             cutting_cost = float(cutting_cost) if cutting_cost else 0.0
             number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
-            number_of_density = int(number_of_density) if number_of_density else 0
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             Fee = float(Fee) if Fee else 0.0
@@ -169,13 +165,11 @@ def save_factory_invoice(order_id, credit_card, quantity, cutting_cost,
 
         new_invoice = Payment(
             order_id=order_id,
-            credit_card=credit_card or "N/A",
             invoice_number=invoice_number,
             unit_price=unit_price,
             quantity=quantity,
             cutting_cost=cutting_cost,
             number_of_cuts=number_of_cuts,
-            number_of_density=number_of_density,
             peak_quantity=peak_quantity,
             peak_width=peak_width,
             Fee=Fee,
@@ -274,7 +268,6 @@ def download_invoice(invoice_id, file_type):
         y_start = height - 180
         line_height = 20
         labels_left = [
-            (persian("شماره کارت"), invoice['credit_card']),
             (persian("قیمت واحد"), f"{invoice['unit_price']}"),
             (persian("تعداد تولیدی"), f"{invoice['quantity']}"),
             (persian("تعداد پیک"), f"{invoice['peak_quantity']}"),
@@ -326,7 +319,6 @@ def download_invoice(invoice_id, file_type):
             "invoice_number": "شماره فاکتور",
             "issue_date": "تاریخ صدور",
             "form_number": "شماره فرم",
-            "credit_card": "شماره کارت",
             "unit_price": "قیمت واحد",
             "quantity": "تعداد تولیدی",
             "peak_quantity": "تعداد پیک",
@@ -399,12 +391,10 @@ def create_payment_for_order(order, payment_info):
     payment = Payment(
         order_id=order.id,
         invoice_number=invoice_number,
-        credit_card=payment_info.get('credit_card', 'N/A'),
         unit_price=unit_price,
         quantity=quantity,
         cutting_cost=cutting_cost,
         number_of_cuts=payment_info.get('number_of_cuts'),
-        number_of_density=payment_info.get('number_of_density'),
         peak_quantity=peak_quantity,
         peak_width=peak_width,
         Fee=fee,
@@ -428,7 +418,6 @@ def export_all():
             "invoice_number": "شماره فاکتور",
             "issue_date": "تاریخ صدور",
             "form_number": "شماره فرم",
-            "credit_card": "شماره کارت",
             "unit_price": "قیمت واحد",
             "quantity": "تعداد تولیدی",
             "peak_quantity": "تعداد پیک",
