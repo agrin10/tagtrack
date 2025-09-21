@@ -38,6 +38,7 @@ export function initEditOrder() {
                     document.getElementById('edit_height').value = order.height || '';
                     document.getElementById('edit_quantity').value = order.quantity || '';
                     document.getElementById('edit_total_length_meters').value = order.total_length_meters || '';
+                    document.getElementById('edit_peak_quantity').value = order.peak_quantity || '';
                     document.getElementById('edit_fusing_type').value = order.fusing_type || '';
                     setDropdownValue('editLaminationDropdown', 'edit_lamination_type', order.lamination_type);
                     document.getElementById('edit_cut_type').value = order.cut_type || '';

@@ -39,6 +39,19 @@
                             <div class="col-md-6 text-end d-flex align-items-center justify-content-end">
                                 <span class="badge fs-6 px-4 py-2" id="modal-status-badge"></span>
                             </div>
+                            <!-- Quantity -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <label for="modalQuantityStatus" class="form-label text-muted">مقدار تولیدی</label>
+                                    <input type="number" class="form-control" id="modalQuantityStatus" name="produced_quantity" required min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <label for="modalPeakQuantityStatus" class="form-label text-muted"> تعداد پیک</label>
+                                    <input type="number" class="form-control" id="modalPeakQuantityStatus" name="peak_quantity" required min="1">
+                                </div>
+                            </div>
                         </div>
 
                         <hr class="my-4">
@@ -187,17 +200,10 @@
                             <input type="hidden" id="modalOrderId" name="order_id">
                             
                             <div class="row g-3">
-                                <!-- Credit Card -->
-                                <div class="col-md-6">
-                                    <label for="modalCreditCard" class="form-label text-muted">کارت اعتباری</label>
-                                    <input type="text" class="form-control" id="modalCreditCard" placeholder="XXXX.XXXX.XXXX.XXXX" name="credit_card" required maxlength="19">
-                                </div>
-
-                                <!-- Quantity -->
-                                <div class="col-md-6">
-                                    <label for="modalQuantity" class="form-label text-muted">مقدار تولیدی <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="modalQuantity" name="quantity" required min="1">
-                                </div>
+                            <div class="col-md-6">
+                                <label for="modalQuantity" class="form-label text-muted">مقدار تولیدی <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="modalQuantity" name="quantity" required min="1">
+                            </div>
 
                                 <!-- Cutting Cost -->
                                 <div class="col-md-6">
@@ -209,12 +215,6 @@
                                 <div class="col-md-6">
                                     <label for="modalNumberOfCuts" class="form-label text-muted">تعداد برش‌ها</label>
                                     <input type="number" class="form-control" id="modalNumberOfCuts" name="number_of_cuts" min="0">
-                                </div>
-
-                                <!-- Number of Density -->
-                                <div class="col-md-6">
-                                    <label for="modalNumberOfDensity" class="form-label text-muted">تعداد اهار</label>
-                                    <input type="number" class="form-control" id="modalNumberOfDensity" name="number_of_density" min="0">
                                 </div>
 
                                 <!-- Peak Quantity -->

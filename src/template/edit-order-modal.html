@@ -32,6 +32,11 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edit-design-tab" data-bs-toggle="tab" data-bs-target="#edit-design" type="button" role="tab">
+                                <i class="fas fa-paint-brush me-2"></i>طراحی
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edit-dates-tab" data-bs-toggle="tab" data-bs-target="#edit-dates" type="button" role="tab">
                                 <i class="fas fa-calendar-alt me-2"></i>تاریخ‌ها و وضعیت
                             </button>
@@ -141,6 +146,84 @@
                                             </div>
                                          </div>
 
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Print & Finishing Tab -->
+                        <div class="tab-pane fade" id="edit-print" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_label_type" name="label_type">
+                                            <option value="">انتخاب کنید...</option>
+                                            <option value="نرم">نرم</option>
+                                            <option value="متوسط">متوسط</option>
+                                            <option value="خشک">خشک</option>
+                                            <option value="بدون آهار">بدون آهار</option>
+                                        </select>
+                                        <label for="label_type">نوع آهار</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_cut_type" name="cut_type">
+                                            <option value="">انتخاب کنید...</option>
+                                            <option value="تاازبغل"> تاازبغل</option>
+                                            <option value="تا از وسط">تا از وسط</option>
+                                            <option value=" دانه">دانه‌ای</option>
+                                            <option value="لیزر"> لیزر</option>
+                                            <option value="برش یک طرف زیاد">برش یک طرف زیاد</option>
+                                        </select>
+                                        <label for="cut_type">نوع برش</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <div class="dropdown w-100">
+                                            <button class="btn btn-light border form-select dropdown-toggle w-100 text-start"
+                                                    type="button"
+                                                    id="editLaminationDropdown"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                انتخاب کنید...
+                                            </button>
+                                            <ul class="dropdown-menu w-100" aria-labelledby="editLaminationDropdown">
+                                                <li><a class="dropdown-item" href="#" data-value="براق">براق</a></li>
+                                                <li class="dropdown-submenu dropend">
+                                                    <a class="dropdown-item dropdown-toggle" href="#">برجسته و براق</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" data-value="قالب جدید">قالب جدید</a></li>
+                                                        <li><a class="dropdown-item" href="#" data-value="قالب تکراری">قالب تکراری</a></li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                            <input type="hidden" id="edit_lamination_type" name="lamination_type">
+                                        </div>
+                                        <label for="edit_lamination_type">نوع پرس</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="edit_fusing_type" name="fusing_type">
+                                            <option value="">انتخاب کنید...</option>
+                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
+                                            <option value="چسب حرارتی ">چسب حرارتی</option>
+                                        </select>
+                                        <label for="fusing_type">چسب</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="edit-print" role="tabpanel">
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control form-control-sm cut-field" id="edit_peak_quantity" name="peak_quantity" placeholder="تعداد پیک">
+                                        <label for="edit_peak_quantity"> تعداد پیک</label>
                                     </div>
                                 </div>
 
@@ -281,73 +364,6 @@
                                         </div>
                                     </div>
 
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Print & Finishing Tab -->
-                        <div class="tab-pane fade" id="edit-print" role="tabpanel">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="edit_label_type" name="label_type">
-                                            <option value="">انتخاب کنید...</option>
-                                            <option value="نرم">نرم</option>
-                                            <option value="متوسط">متوسط</option>
-                                            <option value="خشک">خشک</option>
-                                            <option value="بدون آهار">بدون آهار</option>
-                                        </select>
-                                        <label for="label_type">نوع آهار</label>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="edit_cut_type" name="cut_type">
-                                            <option value="">انتخاب کنید...</option>
-                                            <option value="تاازبغل"> تاازبغل</option>
-                                            <option value="تا از وسط">تا از وسط</option>
-                                            <option value=" دانه">دانه‌ای</option>
-                                            <option value="لیزر"> لیزر</option>
-                                            <option value="برش یک طرف زیاد">برش یک طرف زیاد</option>
-                                        </select>
-                                        <label for="cut_type">نوع برش</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <div class="dropdown w-100">
-                                            <button class="btn btn-light border form-select dropdown-toggle w-100 text-start"
-                                                    type="button"
-                                                    id="editLaminationDropdown"
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false">
-                                                انتخاب کنید...
-                                            </button>
-                                            <ul class="dropdown-menu w-100" aria-labelledby="editLaminationDropdown">
-                                                <li><a class="dropdown-item" href="#" data-value="براق">براق</a></li>
-                                                <li class="dropdown-submenu dropend">
-                                                    <a class="dropdown-item dropdown-toggle" href="#">برجسته و براق</a>
-                                                    <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="#" data-value="قالب جدید">قالب جدید</a></li>
-                                                        <li><a class="dropdown-item" href="#" data-value="قالب تکراری">قالب تکراری</a></li>
-                                                    </ul>
-                                                </li>
-                                            </ul>
-                                            <input type="hidden" id="edit_lamination_type" name="lamination_type">
-                                        </div>
-                                        <label for="edit_lamination_type">نوع پرس</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="edit_fusing_type" name="fusing_type">
-                                            <option value="">انتخاب کنید...</option>
-                                            <option value="چسب دوطرفه">چسب دوطرفه</option>
-                                            <option value="چسب حرارتی ">چسب حرارتی</option>
-                                        </select>
-                                        <label for="fusing_type">چسب</label>
-                                    </div>
                                 </div>
                             </div>
                         </div>

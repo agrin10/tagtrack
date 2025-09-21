@@ -1,5 +1,5 @@
 from src import db
-from src.order.models import Order, OrderImage, OrderValue , OrderFile , FormNumberSequence
+from src.order.models import Order, OrderImage, OrderValue , OrderFile , FormNumberSequence , Customer
 from src.production.models import JobMetric, Machine, ProductionStepLog
 from flask_login import current_user
 from datetime import datetime, date
@@ -85,8 +85,17 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         print("Processed form data:", form_data)
 
         # Customer name is required
-        if not form_data.get('customer_name'):
+        customer_name = form_data.get('customer_name')
+        if not customer_name:
             return False, {"error": "Customer name is required"}
+
+        # Find existing customer or create new one
+        customer = Customer.query.filter_by(name=customer_name).first()
+        if not customer:
+            customer = Customer(name=customer_name , fee=form_data.get('customer_fee'))
+            
+            db.session.add(customer)
+            db.session.flush()  # assign ID before order is created
 
         # Auto-generate form_number with yearly reset (only when actually creating)
         requested_start = None
@@ -124,19 +133,21 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             height = float(form_data['height']) if form_data.get('height') else None
             quantity = int(form_data['quantity']) if form_data.get('quantity') else None
             total_length_meters = float(form_data['total_length_meters']) if form_data.get('total_length_meters') else None
+            peak_quantity = int(form_data['peak_quantity']) if form_data.get('peak_quantity') else None
         except ValueError as e:
             return False, {"error": f"Invalid numeric value: {str(e)}"}
 
         # Create new order
         new_order = Order(
             form_number=form_number, # Use the auto-generated form number
-            customer_name=form_data['customer_name'],
+            customer_id=customer.id,   # ✅ use customer_id instead of customer_name
             fabric_density=form_data.get('fabric_density'),
             fabric_cut=form_data.get('fabric_cut'),
             width=width,
             height=height,
             quantity=quantity,
             total_length_meters=total_length_meters,
+            peak_quantity=peak_quantity,
             delivery_date=delivery_date,
             exit_from_office_date=exit_from_office_date,
             exit_from_factory_date=exit_from_factory_date,
@@ -225,14 +236,14 @@ def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: st
     Returns a tuple of (success, response) where response contains either the orders list or an error message.
     """
     try:
-        query = Order.query
+        query = Order.query.join(Customer)  # ✅ join with customer so we can filter by name
 
         # Apply search filter
         if search:
             query = query.filter(
                 db.or_(
-                    Order.customer_name.ilike(f'%{search}%'),
-                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')
+                    Customer.name.ilike(f'%{search}%'),                 # ✅ search customer name
+                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')  # ✅ search form number
                 )
             )
         
@@ -253,7 +264,7 @@ def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: st
             "message": "Orders retrieved successfully",
             "orders": orders_list,
             "total": pagination.total,
-            "pagination": pagination
+            "pagination":pagination
         }
         
     except Exception as e:
@@ -302,40 +313,48 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
 def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     """
     Update an existing order with the provided form data.
+    Handles customer_name -> customer_id resolution.
     """
     try:
-        
         order = Order.query.get(order_id)
         if not order:
             print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
-        
-        # Update fields from form_data
+
+        # --- Handle customer_name separately ---
+        if form_data.get('customer_name'):
+            customer_name = form_data['customer_name'].strip()
+            customer = Customer.query.filter_by(name=customer_name).first()
+            if not customer:
+                customer = Customer(name=customer_name)
+                db.session.add(customer)
+                db.session.flush()  # Ensure customer.id is available
+            order.customer_id = customer.id
+
+        # --- Update other fields ---
         for key, value in form_data.items():
+            if key == 'customer_name':  # Already handled above
+                continue
             if hasattr(order, key):
                 if key == 'created_at' and value:
-                    # Parse date (supports both Jalali and Gregorian formats)
                     parsed_date = parse_date_input(value)
                     if parsed_date is None:
-                        return False, {"error": f"Invalid created_at format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
-                    # Convert date to datetime for created_at field
+                        return False, {"error": f"Invalid created_at format: {value}. Use YYYY-MM-DD or YYYY/MM/DD"}
                     value = datetime.combine(parsed_date, datetime.min.time())
                 elif key == 'delivery_date' and value:
-                    # Parse date (supports both Jalali and Gregorian formats)
                     parsed_date = parse_date_input(value)
                     if parsed_date is None:
-                        return False, {"error": f"Invalid delivery_date format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
+                        return False, {"error": f"Invalid delivery_date format: {value}. Use YYYY-MM-DD or YYYY/MM/DD"}
                     value = parsed_date
                 elif key in ['exit_from_office_date', 'exit_from_factory_date'] and value:
-                    # Parse date (supports both Jalali and Gregorian formats)
                     parsed_date = parse_date_input(value)
                     if parsed_date is None:
-                        return False, {"error": f"Invalid {key} format: {value}. Use YYYY-MM-DD or YYYY/MM/DD format"}
+                        return False, {"error": f"Invalid {key} format: {value}. Use YYYY-MM-DD or YYYY/MM/DD"}
                     value = parsed_date
                 setattr(order, key, value)
             else:
                 print(f"Field {key} not found in Order model")
-        
+
         # --- PATCH-like update for Order Values ---
         values = (
             form_data.get('edit-values[]')
@@ -357,7 +376,7 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 else:
                     db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
 
-        # Normalize file lists properly
+        # --- Normalize file lists ---
         if hasattr(form_data, 'getlist'):
             file_display_names = form_data.getlist('edit-file_display_names[]')
             file_names = form_data.getlist('edit-file_names[]')
@@ -373,10 +392,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 file_names = [file_names]
             if isinstance(existing_file_ids, str):
                 existing_file_ids = [existing_file_ids]
-            
-        # Logging to debug incoming file data from frontend
 
-        # Align all lists to the same length
+        # Align lengths
         max_len = max(len(file_display_names), len(file_names), len(existing_file_ids))
         file_display_names += [""] * (max_len - len(file_display_names))
         file_names += [""] * (max_len - len(file_names))
@@ -399,8 +416,10 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     )
                     db.session.add(new_file)
 
+        # --- Finalize ---
         order.updated_at = datetime.utcnow()
         db.session.commit()
+
         return True, {
             "message": "Order updated successfully",
             "order": order.to_dict()
@@ -428,13 +447,14 @@ def duplicate_order(order_id):
         # Step 2: Create new order with copied values
         new_order_data = {
             'form_number': form_number,
-            'customer_name': original_order.get('customer_name'),
+            'customer_id': original_order.get('customer_id'),  # ✅ use customer_id
             'fabric_density': original_order.get('fabric_density'),
             'fabric_cut': original_order.get('fabric_cut'),
             'width': original_order.get('width'),
             'height': original_order.get('height'),
             'quantity': original_order.get('quantity'),
             'total_length_meters': original_order.get('total_length_meters'),
+            'peak_quantity':original_order.get('peak_quantity'),
             'fusing_type': original_order.get('fusing_type'),
             'lamination_type': original_order.get('lamination_type'),
             'cut_type': original_order.get('cut_type'),
@@ -574,6 +594,7 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
                 order.sketch_name,
                 order.quantity,
                 order.total_length_meters,
+                order.peak_quantity,
                 order.exit_from_office_date,
                 order.exit_from_factory_date,
                 order.delivery_date,

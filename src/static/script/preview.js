@@ -103,6 +103,7 @@ document.querySelectorAll('.preview-btn').forEach(btn => {
                     </div>
                     <div class="row mb-2">
                         <div class="col-6"><strong>تعداد:</strong> ${order.quantity ?? '-'}</div>
+                        <div class="col-6"><strong>تعداد پیک:</strong> ${order.peak_quantity ?? '-'}</div>
                         <div class="col-6"><strong>متر کل:</strong> ${order.total_length_meters ? order.total_length_meters + ' m' : '-'}</div>
                     </div>
                     <div class="row mb-2">

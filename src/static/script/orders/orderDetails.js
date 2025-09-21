@@ -57,6 +57,7 @@ export function initOrderDetails() {
                     setTextContent('detail-height', order.height ? `${order.height} cm` : null);
                     setTextContent('detail-quantity', order.quantity);
                     setTextContent('detail-total-length-meters', order.total_length_meters ? `${order.total_length_meters} m` : null);
+                    setTextContent('detail-peak-quantity', order.peak_quantity ? `${order.peak_quantity} m` : null);
                     setTextContent('detail-fusing-type', order.fusing_type);
                     setTextContent('detail-lamination-type', order.lamination_type);
                     setTextContent('detail-cut-type', order.cut_type);

@@ -39,14 +39,16 @@ class Order(db.Model):
     form_number = db.Column(db.Integer, nullable=False, unique=True)
     order_date = db.Column(db.Date, default=date.today)
 
-    customer_name = db.Column(db.String(100), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+
     fabric_density = db.Column(db.Integer)
     fabric_cut = db.Column(db.Float)
     width = db.Column(db.Float)
     height = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     total_length_meters = db.Column(db.Float)
-
+    peak_quantity  = db.Column(db.Integer)
+    
     delivery_date = db.Column(db.Date, nullable=True)
     design_specification = db.Column(db.Text)
     office_notes = db.Column(db.Text)
@@ -68,11 +70,15 @@ class Order(db.Model):
     customer_note_to_office = db.Column(db.Text)
     production_duration = db.Column(db.String(256), nullable=True)
     invoiced = db.Column(db.Boolean, default=False)
+    produced_quantity = db.Column(db.Float, nullable=True, default=0.0)
 
 
     created_by_user = db.relationship('User', backref='orders_created')
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     
+        # relationship to access customer details directly
+    customer = db.relationship("Customer", back_populates="orders")
+
     job_metrics = db.relationship('JobMetric', backref='order', cascade='all, delete-orphan', lazy=True)
 
     machine_logs = db.relationship('Machine', backref='order', lazy=True, cascade="all, delete-orphan")
@@ -97,13 +103,17 @@ class Order(db.Model):
         return {
             "id": self.id,
             "form_number": self.form_number,
-            "customer_name": self.customer_name,
+            "form_number": self.form_number,
+            "customer_id": self.customer_id,
+            "customer_name": self.customer.name if self.customer else None,
+            "customer_fee": self.customer.fee if self.customer else None,
             "fabric_density": self.fabric_density,
             "fabric_cut": self.fabric_cut,
             "width": self.width,
             "height": self.height,
             "quantity": self.quantity,
             "total_length_meters": self.total_length_meters,
+            "peak_quantity": self.peak_quantity,
             "delivery_date": self.delivery_date.isoformat() if self.delivery_date else None,
             "design_specification": self.design_specification,
             "office_notes": self.office_notes,
@@ -129,6 +139,7 @@ class Order(db.Model):
             "job_metrics": [metric.to_dict() for metric in self.job_metrics] if self.job_metrics else [],
             "production_steps": {log.step_name.value: log.to_dict() for log in self.production_step_logs} if self.production_step_logs else {},
             "invoiced": self.invoiced,
+            "produced_quantity":self.produced_quantity,
             "values": values_list,
             "order_files": [f.to_dict() for f in self.files] if self.files else [],
         }
@@ -180,3 +191,24 @@ class FormNumberSequence(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, unique=True, nullable=False)
     last_number = db.Column(db.Integer, nullable=False, default=0)
+
+
+class Customer(db.Model):
+    __tablename__ = 'customers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    fee = db.Column(db.Float, nullable=False, default=0.0)
+
+    # reverse relationship
+    orders = db.relationship("Order", back_populates="customer", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Customer {self.name}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "fee": self.fee
+        }
