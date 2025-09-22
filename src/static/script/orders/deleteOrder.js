@@ -17,9 +17,19 @@ export function initDeleteOrder() {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' }
         })
-        .then(response => {
+        .then(async response => {
             if (!response.ok) {
-                return response.json().then(data => { throw new Error(data.error || 'Failed to delete order'); });
+                // Handle 403 specifically with a localized message
+                if (response.status === 403) {
+                    throw new Error('شما دسترسی لازم را ندارید');
+                }
+                // Try to extract server message; fallback to generic
+                try {
+                    const data = await response.json();
+                    throw new Error(data.error || data.message || 'Failed to delete order');
+                } catch (_) {
+                    throw new Error('Failed to delete order');
+                }
             }
             return response.json();
         })

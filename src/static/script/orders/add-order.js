@@ -21,6 +21,65 @@ export function initAddOrder() {
     const createOrderModalSelector = '#createOrderModal';
     const createOrderFormSelector = '#createOrderForm';
     const createdAtEl = document.getElementById('created_at');
+    const createOrderForm = document.querySelector('#createOrderForm');
+
+    // --- permissions ---
+    async function fetchPermissions() {
+        try {
+            const res = await fetch('/orders/permissions', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (e) {
+            console.warn('permissions fetch failed', e);
+            return null;
+        }
+    }
+
+    function markReadonly(el) {
+        if (!el) return;
+        const tag = el.tagName.toLowerCase();
+        // Use disabled for form fields that shouldn't be submitted
+        if (tag === 'select' || tag === 'input' || tag === 'textarea') {
+            el.disabled = true;
+        }
+        el.classList.add('bg-light');
+        el.setAttribute('title', 'You do not have permission to edit this field');
+    }
+
+    function applyPermissionsToAddForm(perms) {
+        if (!createOrderForm || !perms) return;
+        const editable = perms.editable_fields;
+        const all = editable === 'ALL';
+
+        // Scalar fields: disable those not in editable when not ALL
+        if (!all) {
+            const inputs = createOrderForm.querySelectorAll('input[name]:not([name$="[]"]), select[name]:not([name$="[]"]), textarea[name]:not([name$="[]"])');
+            inputs.forEach(el => {
+                const name = el.getAttribute('name');
+                if (!editable.includes(name)) {
+                    markReadonly(el);
+                }
+            });
+        }
+
+        // Specials
+        // values[] (coloring)
+        if (!perms.specials.values) {
+            createOrderForm.querySelectorAll('input[name="values[]"]').forEach(el => markReadonly(el));
+        }
+        // files
+        if (!perms.specials.files) {
+            if (addFileRowBtn) addFileRowBtn.style.display = 'none';
+            createOrderForm.querySelectorAll('input[name="order_files[]"], input[name="file_display_names[]"]').forEach(el => markReadonly(el));
+        }
+        // images: hide any add-image controls if present
+        if (!perms.specials.images) {
+            const imageInputs = createOrderForm.querySelectorAll('input[type="file"][name="orderImages"], input[type="file"][id*="OrderImages"]');
+            imageInputs.forEach(el => { el.disabled = true; el.style.display = 'none'; });
+            const imageButtons = createOrderForm.querySelectorAll('[data-role="add-image"], .add-image-btn');
+            imageButtons.forEach(btn => btn.style.display = 'none');
+        }
+    }
 
     // --- small safe utilities ---
     function safeNumber(v) {
@@ -164,10 +223,14 @@ export function initAddOrder() {
 
             // Fetch preview from server
             fetchNextFormNumberPreview();
+
+            // Fetch and apply permissions
+            fetchPermissions().then(perms => applyPermissionsToAddForm(perms));
         });
     } else {
         // If jQuery/modal not available, still fetch preview when script runs
         fetchNextFormNumberPreview();
+        fetchPermissions().then(perms => applyPermissionsToAddForm(perms));
     }
 
     // --- start_form input live behavior ---

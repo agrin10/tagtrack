@@ -448,6 +448,7 @@ def duplicate_order(order_id):
         new_order_data = {
             'form_number': form_number,
             'customer_id': original_order.get('customer_id'),  # ✅ use customer_id
+            'customer_name': original_order.get('customer_name'),  # ensure add_order passes customer validation
             'fabric_density': original_order.get('fabric_density'),
             'fabric_cut': original_order.get('fabric_cut'),
             'width': original_order.get('width'),
@@ -588,9 +589,10 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
 
         # Add order data
         for row_idx, order in enumerate(orders, 2):
+            customer_name = order.customer.name if getattr(order, 'customer', None) else None
             values = [
                 order.form_number,
-                order.customer_name,
+                customer_name,
                 order.sketch_name,
                 order.quantity,
                 order.total_length_meters,

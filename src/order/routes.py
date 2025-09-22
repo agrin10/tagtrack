@@ -14,11 +14,13 @@ from flask_jwt_extended import jwt_required
 import traceback
 import os , logging
 from src.utils.pdf_generator import generate_order_pdf
+from werkzeug.exceptions import Forbidden
+from src.policies.order_policy import OrderPolicy
 
 @order_bp.route('/')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager", 'Designer')
+@role_required('Admin', "OrderManager", 'Designer', 'FactorySupervisor', 'InvoiceClerk')
 def order_list():
     # Get pagination parameters from URL
     page = request.args.get('page', 1, type=int)
@@ -41,15 +43,26 @@ def order_list():
         # Pass an empty pagination object to avoid template errors
         return render_template('order-list.html', orders=[], total=0, pagination=None)
     
+    # Build permission context for templates (for both add/edit forms in UI)
+    policy = OrderPolicy(current_user)
+    editable_fields = policy.editable_fields()
+    can_edit_images = policy.allows_special("__images__")
+    can_edit_files = policy.allows_special("__files__")
+    can_edit_values = policy.allows_special("__values__")
+
     return render_template('order-list.html', 
                          orders=response['orders'], 
                          total=response['total'],
-                         pagination=response['pagination'])
+                         pagination=response['pagination'],
+                         editable_fields=editable_fields,
+                         can_edit_images=can_edit_images,
+                         can_edit_files=can_edit_files,
+                         can_edit_values=can_edit_values)
 
 @order_bp.route('/', methods=['GET', 'POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" , 'FactorySupervisor')
 def create_order():
     if request.method == 'POST':
         try:
@@ -95,9 +108,25 @@ def create_order():
             if not form_data.get('customer_name'):
                 return jsonify({"error": "Customer name is required"}), 400
             
+            # Enforce field-level permissions
+            policy = OrderPolicy(current_user)
+            
+            # Filter scalar fields according to policy
+            scalar_form = {k: v for k, v in form_data.items() if not k.endswith('[]')}
+            filtered_scalars = policy.filter_payload(scalar_form)
+            
+            # Handle special operations - only include if allowed
+            if policy.allows_special("__values__") and form_data.get('values[]'):
+                filtered_scalars['values[]'] = form_data.get('values[]')
+            if policy.allows_special("__files__"):
+                if form_data.get('order_files[]'):
+                    filtered_scalars['order_files[]'] = form_data.get('order_files[]')
+                if form_data.get('file_display_names[]'):
+                    filtered_scalars['file_display_names[]'] = form_data.get('file_display_names[]')
+
             # Add order with files
             try:
-                success, response = add_order(form_data, files)
+                success, response = add_order(filtered_scalars, files)
                 print("Add order response:", success, response)
             except Exception as e:
                 print("Error in add_order:", str(e))
@@ -135,7 +164,7 @@ def create_order():
 @order_bp.route('/next-form-number')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , 'Designer') 
+@role_required('Admin', "OrderManager" , 'Designer' , 'FactorySupervisor') 
 def get_next_form_number():
     """
     Get the next available form number for preview.
@@ -152,10 +181,26 @@ def get_next_form_number():
             "error": f"Failed to get next form number: {str(e)}"
         }), 500
 
+@order_bp.route('/permissions')
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" , 'Designer', 'FactorySupervisor', 'InvoiceClerk')
+def get_permissions():
+    policy = OrderPolicy(current_user)
+    editable_fields = policy.editable_fields()
+    return jsonify({
+        "editable_fields": list(editable_fields) if isinstance(editable_fields, set) else editable_fields,
+        "specials": {
+            "images": policy.allows_special("__images__"),
+            "files": policy.allows_special("__files__"),
+            "values": policy.allows_special("__values__"),
+        }
+    })
+
 @order_bp.route('/<id>')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , 'Designer') 
+@role_required('Admin', "OrderManager" , 'Designer' , 'FactorySupervisor','InvoiceClerk') 
 def get_order_id(id):
     """
     Get a specific order by its ID.
@@ -193,10 +238,25 @@ def delete_order(id):
             "success": False,
             "error": "An error occurred while deleting the order"
         }), 500
+
+# --- Handle 403 for this blueprint: show flash on forbidden when not JSON ---
+@order_bp.errorhandler(Forbidden)
+def handle_forbidden_error(e):
+    """Return JSON for API/AJAX and flash+redirect for normal requests on 403."""
+    try:
+        wants_json = request.is_json or request.headers.get('Accept', '').startswith('application/json') or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    except Exception:
+        wants_json = False
+
+    if wants_json:
+        return jsonify({"success": False, "error": "اجازه انجام این عملیات را ندارید."}), 403
+
+    flash('اجازه انجام این عملیات را ندارید.', 'danger')
+    return redirect(url_for('order.order_list'))
 @order_bp.route('/<id>', methods=['PUT', 'PATCH'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" , 'FactorySupervisor')
 def update_order(id):
     """
     Update an existing order with the provided form data.
@@ -215,7 +275,25 @@ def update_order(id):
             form_data['edit-values[]'] = request.form.getlist('edit-values[]')
             form_data['edit-file_names[]'] = request.form.getlist('edit-file_names[]')
         files = request.files if not request.is_json else None
-        success, response = update_order_id(id, form_data, files)
+
+        # Enforce field-level permissions
+        policy = OrderPolicy(current_user)
+        
+        scalar_form = {k: v for k, v in form_data.items() if not k.endswith('[]')}
+        filtered_scalars = policy.filter_payload(scalar_form)
+        
+        # Handle special operations - only include if allowed
+        if policy.allows_special("__values__") and form_data.get('edit-values[]'):
+            filtered_scalars['edit-values[]'] = form_data.get('edit-values[]')
+        if policy.allows_special("__files__"):
+            if form_data.get('edit-file_display_names[]'):
+                filtered_scalars['edit-file_display_names[]'] = form_data.get('edit-file_display_names[]')
+            if form_data.get('existing_file_ids[]'):
+                filtered_scalars['existing_file_ids[]'] = form_data.get('existing_file_ids[]')
+            if form_data.get('edit-file_names[]'):
+                filtered_scalars['edit-file_names[]'] = form_data.get('edit-file_names[]')
+
+        success, response = update_order_id(id, filtered_scalars, files)
         
         if success:
             return jsonify(response), 200
@@ -227,7 +305,7 @@ def update_order(id):
 @order_bp.route('/<id>/duplicate', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" , 'FactorySupervisor')
 def duplicate_order_route(id):
     """
     Duplicate an existing order with a new ID.
@@ -254,7 +332,7 @@ def duplicate_order_route(id):
 @order_bp.route('/export/excel')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" , 'FactorySupervisor', 'InvoiceClerk')
 def export_orders_excel():
     """
     Export orders to an Excel file.
@@ -281,12 +359,17 @@ def export_orders_excel():
 @order_bp.route('/<int:order_id>/images', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" )
 def upload_image(order_id):
     """
     Upload an image for an order.
     """
     try:
+        # Permission check for image operations
+        policy = OrderPolicy(current_user)
+        if not policy.allows_special("__images__"):
+            return jsonify({"error": "Not allowed to upload images"}), 403
+
         if 'file' not in request.files:
             return jsonify({"error": "No file part"}), 400
         
@@ -306,7 +389,7 @@ def upload_image(order_id):
 @order_bp.route('/<int:order_id>/images', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , "Designer")
+@role_required('Admin', "OrderManager" , "Designer" , 'FactorySupervisor')
 def get_images(order_id):
     """
     Get all images for an order.
@@ -330,6 +413,11 @@ def delete_image(image_id):
     Delete an order image.
     """
     try:
+        # Permission check for image operations
+        policy = OrderPolicy(current_user)
+        if not policy.allows_special("__images__"):
+            return jsonify({"error": "Not allowed to delete images"}), 403
+
         success, response = delete_order_image(image_id)
         if success:
             return jsonify(response)
@@ -342,7 +430,7 @@ def delete_image(image_id):
 @order_bp.route('/images/<int:image_id>', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , 'Designer')
+@role_required('Admin', "OrderManager" , 'Designer', 'FactorySupervisor','InvoiceClerk')
 def serve_image(image_id):
     """
     Serve an order image.
@@ -381,7 +469,7 @@ def serve_order_file(file_id):
 @order_bp.route('/<int:order_id>/download-pdf')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" , 'Designer')
+@role_required('Admin', "OrderManager" , 'Designer' , 'FactorySupervisor','InvoiceClerk')
 def download_order_pdf(order_id):
     """
     Generate and download a PDF report for a specific order.

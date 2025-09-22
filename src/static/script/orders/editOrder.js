@@ -9,6 +9,56 @@ export function initEditOrder() {
     let currentOrderId = null;
     let editSelectedImages = [];
 
+    // --- permissions ---
+    async function fetchPermissions() {
+        try {
+            const res = await fetch('/orders/permissions', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (e) {
+            console.warn('permissions fetch failed', e);
+            return null;
+        }
+    }
+
+    function markReadonly(el) {
+        if (!el) return;
+        const tag = el.tagName.toLowerCase();
+        // Use disabled for form fields that shouldn't be submitted
+        if (tag === 'select' || tag === 'input' || tag === 'textarea') {
+            el.disabled = true;
+        }
+        el.classList.add('bg-light');
+        el.setAttribute('title', 'You do not have permission to edit this field');
+    }
+
+    function applyPermissionsToEditForm(perms) {
+        const form = document.getElementById('editOrderForm');
+        if (!form || !perms) return;
+        const editable = perms.editable_fields;
+        const all = editable === 'ALL';
+
+        if (!all) {
+            const inputs = form.querySelectorAll('input[name]:not([name$="[]"]), select[name]:not([name$="[]"]), textarea[name]:not([name$="[]"])');
+            inputs.forEach(el => {
+                const name = el.getAttribute('name');
+                if (!editable.includes(name)) markReadonly(el);
+            });
+        }
+
+        // Specials
+        if (!perms.specials.values) {
+            form.querySelectorAll('input[name="edit-values[]"]').forEach(el => markReadonly(el));
+        }
+        if (!perms.specials.files) {
+            form.querySelectorAll('input[name="edit-file_display_names[]"], input[name="edit-file_names[]"], input[name="existing_file_ids[]"]').forEach(el => markReadonly(el));
+        }
+        if (!perms.specials.images) {
+            const imageInputs = form.querySelectorAll('input[type="file"][id="editOrderImages"], #editImagePreviewContainer .btn-primary, #editImagePreviewContainer .btn-danger');
+            imageInputs.forEach(el => { if (el.tagName === 'INPUT') { el.disabled = true; el.style.display = 'none'; } else { el.style.display = 'none'; } });
+        }
+    }
+
     // Handle edit button click
     document.querySelectorAll('.edit-order-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -117,7 +167,9 @@ export function initEditOrder() {
                         }
                     }
                     editForm.action = `/orders/${currentOrderId}`;
-                    editModal.show();
+            // Fetch permissions and apply before showing modal
+            fetchPermissions().then(perms => applyPermissionsToEditForm(perms));
+            editModal.show();
                 })
                 .catch(error => {
                     showAlert('danger', `Error loading order details: ${error.message}`, document.querySelector('.container-fluid'));
