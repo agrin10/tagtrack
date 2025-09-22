@@ -223,7 +223,11 @@ def generate_page_one_content(order, machine_data):
     
     form_number = str(order.form_number) if order.form_number else '...................'
     form_date = to_persian_date(order.created_at) if order.created_at else '...................'
-    customer_name = order.customer_name if order.customer_name else '...................'
+    # Safely resolve customer name from relationship (Order has customer_id)
+    try:
+        customer_name = order.customer.name if getattr(order, 'customer', None) and getattr(order.customer, 'name', None) else '...................'
+    except Exception:
+        customer_name = '...................'
     
     # Use table layout for better spacing control - single row with three columns
     form_info_data = [
