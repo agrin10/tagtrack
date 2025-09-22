@@ -64,14 +64,35 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
                 "has_actual_invoice": False,
                 "has_draft": True
             }
-        
-        # No invoice or draft found
-        return True, {
-            "message": "No invoice or draft found for this order", 
-            "invoice": {},
-            "has_actual_invoice": False,
-            "has_draft": False
+
+        # No invoice or draft found -> auto-generate a draft from order static data via helper
+        order = Order.query.get(order_id)
+        if not order:
+            return False, {"error": "Order not found to auto-generate draft"}
+
+        defaults = {
+            'quantity': order.quantity or 0,
+            'cutting_cost': 0.0,
+            'number_of_cuts': 0,
+            'number_of_density': 0,
+            'peak_quantity': getattr(order, 'peak_quantity', None),
+            'peak_width': getattr(order, 'width', None),
+            'Fee': (order.customer.fee if getattr(order, 'customer', None) else None),
+            'row_number': None,
+            'notes': 'Auto-generated draft from order data'
         }
+
+        result = save_invoice_draft(order_id, defaults, order.created_by)
+        if result.get('success'):
+            draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+            return True, {
+                "message": "Invoice draft auto-generated from order data",
+                "invoice": draft.to_dict() if draft else {},
+                "has_actual_invoice": False,
+                "has_draft": True
+            }
+        else:
+            return False, {"error": result.get('message', 'Failed to auto-generate invoice draft')}
         
     except Exception as e:
         print(f"Error retrieving invoice for order {order_id}: {str(e)}")
@@ -132,10 +153,10 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         # Save production step logs
         save_production_step_logs_for_order(order_id, production_steps_data, user_id)
 
-        # Handle invoice data - only generate actual invoice when status is "Completed"
+        # Handle invoice data - generate actual invoice when status is "Completed"
         invoice_result = None
         is_completed = str(current_stage).strip() in ['Completed', 'تکمیل شده']
-        
+
         if should_save_invoice and invoice_data:
             if is_completed:
                 # Generate actual invoice when order is completed
@@ -143,6 +164,37 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
             else:
                 # Save invoice data as draft/placeholder for later completion
                 invoice_result = save_invoice_draft(order_id, invoice_data, user_id)
+        elif is_completed:
+            # If order is completed but no invoice_data flag provided, attempt to
+            # promote draft to invoice, or generate from order defaults.
+            existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+            if existing_draft:
+                draft_data = {
+                    'quantity': existing_draft.quantity or (order.quantity or 0),
+                    'cutting_cost': existing_draft.cutting_cost or 0.0,
+                    'number_of_cuts': existing_draft.number_of_cuts or 0,
+                    'peak_quantity': existing_draft.peak_quantity or getattr(order, 'peak_quantity', 0.0) or 0.0,
+                    'peak_width': existing_draft.peak_width or getattr(order, 'width', 0.0) or 0.0,
+                    'Fee': existing_draft.Fee or (getattr(order.customer, 'fee', 0.0) if getattr(order, 'customer', None) else 0.0),
+                    'row_number': existing_draft.row_number,
+                    'notes': existing_draft.notes or 'Generated from completed order'
+                }
+                invoice_result = save_invoice_from_factory(order_id, draft_data, user_id)
+            else:
+                # Build sensible defaults from order
+                defaults = {
+                    'quantity': order.quantity or 0,
+                    'cutting_cost': 0.0,
+                    'number_of_cuts': 0,
+                    'peak_quantity': getattr(order, 'peak_quantity', 0.0) or 0.0,
+                    'peak_width': getattr(order, 'width', 0.0) or 0.0,
+                    'Fee': (getattr(order.customer, 'fee', 0.0) if getattr(order, 'customer', None) else 0.0),
+                    'row_number': None,
+                    'notes': 'Generated from completed order'
+                }
+                # Only attempt creation if required values are positive
+                if defaults['quantity'] > 0 and defaults['peak_quantity'] > 0 and defaults['peak_width'] > 0 and defaults['Fee'] > 0:
+                    invoice_result = save_invoice_from_factory(order_id, defaults, user_id)
 
         order.updated_at = datetime.now(timezone.utc)
         db.session.commit()
@@ -497,12 +549,10 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         # Check for existing draft
         existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         
-        # Extract invoice data
-        credit_card = invoice_data.get('credit_card', 'N/A')
+        # Extract invoice data (only fields supported by models)
         quantity = invoice_data.get('quantity', 0)
         cutting_cost = invoice_data.get('cutting_cost', 0.0)
         number_of_cuts = invoice_data.get('number_of_cuts', 0)
-        number_of_density = invoice_data.get('number_of_density', 0)
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
         peak_width = invoice_data.get('peak_width', 0.0)
         fee = invoice_data.get('Fee', 0.0)
@@ -518,7 +568,6 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             quantity = int(quantity) if quantity else 0
             cutting_cost = float(cutting_cost) if cutting_cost else 0.0
             number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
-            number_of_density = int(number_of_density) if number_of_density else 0
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             fee = float(fee) if fee else 0.0
@@ -535,12 +584,10 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
 
         if existing_invoice:
             # Update existing invoice
-            existing_invoice.credit_card = credit_card
             existing_invoice.unit_price = unit_price
             existing_invoice.quantity = quantity
             existing_invoice.cutting_cost = cutting_cost
             existing_invoice.number_of_cuts = number_of_cuts
-            existing_invoice.number_of_density = number_of_density
             existing_invoice.peak_quantity = peak_quantity
             existing_invoice.peak_width = peak_width
             existing_invoice.Fee = fee
@@ -554,6 +601,14 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             
             db.session.commit()
             
+            # Ensure order is marked invoiced
+            try:
+                order_row = Order.query.get(order_id)
+                if order_row:
+                    order_row.invoiced = True
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
             return {
                 "success": True,
                 "message": "Invoice updated successfully from factory processing",
@@ -570,13 +625,11 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
 
             new_invoice = Payment(
                 order_id=order_id,
-                credit_card=credit_card,
                 invoice_number=invoice_number,
                 unit_price=unit_price,
                 quantity=quantity,
                 cutting_cost=cutting_cost,
                 number_of_cuts=number_of_cuts,
-                number_of_density=number_of_density,
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
                 Fee=fee,
@@ -593,6 +646,14 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             if existing_draft:
                 db.session.delete(existing_draft)
             
+            # Mark order as invoiced
+            try:
+                order_row = Order.query.get(order_id)
+                if order_row:
+                    order_row.invoiced = True
+            except Exception:
+                pass
+
             db.session.commit()
             
             return {
@@ -615,12 +676,10 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
         # Check if draft already exists for this order
         existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         
-        # Extract invoice data
-        credit_card = invoice_data.get('credit_card', '')
+        # Extract invoice data (only fields supported by models)
         quantity = invoice_data.get('quantity', 0)
         cutting_cost = invoice_data.get('cutting_cost', 0.0)
         number_of_cuts = invoice_data.get('number_of_cuts', 0)
-        number_of_density = invoice_data.get('number_of_density', 0)
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
         peak_width = invoice_data.get('peak_width', 0.0)
         fee = invoice_data.get('Fee', 0.0)
@@ -632,7 +691,6 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             quantity = int(quantity) if quantity else 0
             cutting_cost = float(cutting_cost) if cutting_cost else 0.0
             number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
-            number_of_density = int(number_of_density) if number_of_density else 0
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             fee = float(fee) if fee else 0.0
@@ -642,11 +700,9 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
 
         if existing_draft:
             # Update existing draft
-            existing_draft.credit_card = credit_card
             existing_draft.quantity = quantity
             existing_draft.cutting_cost = cutting_cost
             existing_draft.number_of_cuts = number_of_cuts
-            existing_draft.number_of_density = number_of_density
             existing_draft.peak_quantity = peak_quantity
             existing_draft.peak_width = peak_width
             existing_draft.Fee = fee
@@ -665,11 +721,9 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             # Create new draft
             new_draft = InvoiceDraft(
                 order_id=order_id,
-                credit_card=credit_card,
                 quantity=quantity,
                 cutting_cost=cutting_cost,
                 number_of_cuts=number_of_cuts,
-                number_of_density=number_of_density,
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
                 Fee=fee,
