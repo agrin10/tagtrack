@@ -7,10 +7,44 @@ from src.production.models import JobMetric
 from flask_jwt_extended import jwt_required
 from src.production.controller import get_job_metrics_for_order, save_job_metrics_for_order, get_order_details_for_modal, update_order_production_status
 
+
+def _compute_factory_permissions(role_name: str) -> dict:
+    """Return field-level factory permissions based on role name."""
+    role = (role_name or '').strip()
+    # Default: read-only everywhere
+    perms = {
+        "can_edit_job_metrics": False,
+        "can_edit_machine_data": False,
+        "can_edit_production_steps": False,
+        "can_edit_invoice": False,
+        "can_edit_status": False,
+    }
+
+    if role.lower() == 'admin':
+        for k in list(perms.keys()):
+            perms[k] = True
+    elif role.lower() == 'ordermanager':
+        perms["can_edit_status"] = True
+    elif role.lower() == 'factorysupervisor':
+        perms.update({
+            "can_edit_job_metrics": True,
+            "can_edit_machine_data": True,
+            "can_edit_production_steps": True,
+            "can_edit_status": True,
+            # cannot edit invoice
+        })
+    elif role.lower() == 'designer':
+        # read-only
+        pass
+    elif role.lower() == 'invoiceclerk':
+        perms["can_edit_invoice"] = True
+
+    return perms
+
 @production_bp.route('/')
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" ,'Designer' , "FactorySupervisor")
+@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor", "InvoiceClerk")
 def factory_processing():
     """
     Render the factory processing dashboard.
@@ -46,7 +80,7 @@ def factory_processing():
 @production_bp.route('/orders/<int:order_id>/details', methods=['GET'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager","Designer", "FactorySupervisor")
+@role_required('Admin', "OrderManager","Designer", "FactorySupervisor", "InvoiceClerk")
 def get_order_details_api(order_id):
     """
     API endpoint to get detailed information for a single order for the modal.
@@ -59,7 +93,7 @@ def get_order_details_api(order_id):
 @production_bp.route('/orders/<int:order_id>/update-production-status', methods=['POST'])
 @login_required
 @jwt_required()
-@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor")
+@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor", "InvoiceClerk")
 def update_production_status_api(order_id):
     """
     API endpoint to update an order's production status (stage, progress, notes).
@@ -67,8 +101,30 @@ def update_production_status_api(order_id):
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
     
-    
     form_data = request.get_json()
+
+    # Enforce field-level permissions on incoming payload
+    role_name = getattr(getattr(current_user, 'role', None), 'name', '')
+    perms = _compute_factory_permissions(role_name)
+
+    # If user has no edit permission at all, block
+    if not any(perms.values()):
+        return jsonify({"error": "You do not have permission to update this order."}), 403
+
+    # Drop disallowed fields from payload
+    if not perms.get('can_edit_status', False):
+        for k in ['current_stage', 'progress_percentage', 'factory_notes']:
+            form_data.pop(k, None)
+    if not perms.get('can_edit_job_metrics', False):
+        form_data.pop('job_metrics', None)
+    if not perms.get('can_edit_machine_data', False):
+        form_data.pop('machine_data', None)
+        form_data.pop('production_duration', None)
+    if not perms.get('can_edit_production_steps', False):
+        form_data.pop('production_steps', None)
+    if not perms.get('can_edit_invoice', False):
+        form_data.pop('invoice_data', None)
+
     success, response = update_order_production_status(order_id, form_data, current_user.id)
 
     if success:
@@ -115,3 +171,13 @@ def save_job_metrics():
         flash(f'Error processing job metrics: {str(e)}', 'error')
     
     return redirect(url_for('production.factory_processing'))
+
+
+@production_bp.route('/permissions', methods=['GET'])
+@login_required
+@jwt_required()
+@role_required('Admin', "OrderManager" ,"Designer" , "FactorySupervisor", "InvoiceClerk")
+def get_factory_permissions():
+    """Return field-level factory permissions for the current user."""
+    role_name = getattr(getattr(current_user, 'role', None), 'name', '')
+    return jsonify(_compute_factory_permissions(role_name))

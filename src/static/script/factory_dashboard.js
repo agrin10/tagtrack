@@ -1,4 +1,117 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Fetch and apply factory permissions ---
+    let factoryPerms = {
+        can_edit_job_metrics: false,
+        can_edit_machine_data: false,
+        can_edit_production_steps: false,
+        can_edit_invoice: false,
+        can_edit_status: false
+    };
+    let factoryPermsLoaded = false;
+
+    function markReadonly(el) {
+        if (!el) return;
+        const tag = el.tagName?.toLowerCase();
+        if (tag === 'select' || tag === 'input' || tag === 'textarea' || el.hasAttribute('contenteditable')) {
+            el.disabled = true;
+        }
+        el.classList?.add('bg-light');
+        el.setAttribute?.('title', 'شما اجازه ویرایش این بخش را ندارید');
+    }
+
+    function hideElement(el) {
+        if (!el) return;
+        el.style.display = 'none';
+    }
+
+    async function fetchFactoryPermissions() {
+        try {
+            const res = await fetch('/factory/permissions', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return;
+            const data = await res.json();
+            factoryPerms = Object.assign(factoryPerms, data || {});
+            factoryPermsLoaded = true;
+            applyPermissionsToFactoryUI(factoryPerms);
+        } catch (e) {
+            console.warn('Failed to fetch factory permissions', e);
+            factoryPermsLoaded = true; // avoid blocking submit if fetch failed
+        }
+    }
+
+    function applyPermissionsToFactoryUI(perms) {
+        // 1) Job Metrics
+        if (!perms.can_edit_job_metrics) {
+            const container = document.getElementById('modal-job-metrics-container');
+            if (container) {
+                container.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    if (el.classList.contains('add-package-group') ||
+                        el.classList.contains('remove-package-group') ||
+                        el.classList.contains('add-size-btn') ||
+                        el.classList.contains('add-package-in-size') ||
+                        el.classList.contains('remove-package-group-in-size') ||
+                        el.classList.contains('remove-row')) {
+                        hideElement(el);
+                    } else {
+                        markReadonly(el);
+                    }
+                });
+            }
+        }
+
+        // 2) Machine Data
+        if (!perms.can_edit_machine_data) {
+            const tableBody = document.getElementById('production-table-body');
+            if (tableBody) {
+                tableBody.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        hideElement(el);
+                    } else {
+                        markReadonly(el);
+                    }
+                });
+            }
+            const addRowButtons = document.querySelectorAll('[data-role="add-production-row"], .add-production-row');
+            addRowButtons.forEach(hideElement);
+        }
+
+        // 3) Production Steps
+        if (!perms.can_edit_production_steps) {
+            const stepInputs = document.querySelectorAll('input[name^="production_steps["]');
+            stepInputs.forEach(markReadonly);
+        }
+
+        // 4) Invoice section
+        if (!perms.can_edit_invoice) {
+            const invoiceForm = document.getElementById('factoryInvoiceForm');
+            if (invoiceForm) {
+                invoiceForm.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        hideElement(el);
+                    } else {
+                        markReadonly(el);
+                    }
+                });
+            }
+        }
+
+        // 5) Status/progress update controls
+        if (!perms.can_edit_status) {
+            const statusSelect = document.getElementById('modal-update-stage');
+            const progressInput = document.getElementById('modal-progress-percentage');
+            const notesInput = document.getElementById('modal-factory-notes');
+            [statusSelect, progressInput, notesInput].forEach(markReadonly);
+
+            const canEditAnything = perms.can_edit_job_metrics || perms.can_edit_machine_data || perms.can_edit_production_steps || perms.can_edit_invoice || perms.can_edit_status;
+            if (!canEditAnything) {
+                const saveBtn = document.querySelector('button[form="updateProductionStatusForm"], #updateProductionStatusForm button[type="submit"], #updateProductionStatusForm .btn-primary');
+                if (saveBtn) hideElement(saveBtn);
+            }
+        }
+    }
+
+    // Kick off permissions fetch early
+    fetchFactoryPermissions();
+
     // Helper function to convert Gregorian date to Jalali format
 
     const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
@@ -276,11 +389,25 @@ document.addEventListener('DOMContentLoaded', function() {
             // Collect invoice data from the modal
             payload.invoice_data = collectInvoiceDataFromModal();
 
+            // Also capture status-tab quantities as a fallback for invoice draft
+            const qtyStatusEl = document.getElementById('modalQuantityStatus');
+            const peakQtyStatusEl = document.getElementById('modalPeakQuantityStatus');
+            if (qtyStatusEl || peakQtyStatusEl) {
+                payload.invoice_data = payload.invoice_data || {};
+                if (qtyStatusEl && qtyStatusEl.value) {
+                    payload.invoice_data.quantity = payload.invoice_data.quantity || qtyStatusEl.value;
+                }
+                if (peakQtyStatusEl && peakQtyStatusEl.value) {
+                    payload.invoice_data.peak_quantity = payload.invoice_data.peak_quantity || peakQtyStatusEl.value;
+                }
+            }
+
             const response = await fetch(`/factory/orders/${orderId}/update-production-status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(payload)
             });
 
