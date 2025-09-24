@@ -81,6 +81,7 @@ export function initEditOrder() {
                     const order = data.order;                    document.getElementById('edit-form-number').textContent = `#${order.form_number}`;
                     document.getElementById('edit_form_number').value = order.form_number || '';
                     document.getElementById('edit_customer_name').value = order.customer_name || '';
+                    document.getElementById('edit_customer_fee').value = order.customer_fee || '';
                     document.getElementById('edit_sketch_name').value = order.sketch_name || '';
                     document.getElementById('edit_fabric_density').value = order.fabric_density || '';
                     document.getElementById('edit_fabric_cut').value = order.fabric_cut || '';

@@ -1,4 +1,5 @@
 import { showAlert } from './utils/alert.js';
+import { initCustomerSuggestions } from './utils/suggestion.js';
 import { initDeleteOrder } from './orders/deleteOrder.js';
 import { initEditOrder } from './orders/editOrder.js';
 import { initDuplicateOrder } from './orders/duplicateOrder.js';
@@ -54,6 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }
       });
   });
+
+    try {
+        initCustomerSuggestions("customer_name", "name_suggestions");
+        initCustomerSuggestions("edit_customer_name", "edit_name_suggestions");
+    } catch (err) {
+        console.warn('Customer suggestions init error:', err);
+    }
+
 
 });
 

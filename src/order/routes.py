@@ -188,8 +188,11 @@ def get_next_form_number():
 def get_permissions():
     policy = OrderPolicy(current_user)
     editable_fields = policy.editable_fields()
+    # Only convert to list if it's a set, not if it's "ALL"
+    if isinstance(editable_fields, set):
+        editable_fields = list(editable_fields)
     return jsonify({
-        "editable_fields": list(editable_fields) if isinstance(editable_fields, set) else editable_fields,
+        "editable_fields": editable_fields,
         "specials": {
             "images": policy.allows_special("__images__"),
             "files": policy.allows_special("__files__"),
@@ -211,7 +214,7 @@ def get_order_id(id):
         return jsonify(response)
     return jsonify(response), 404
 
-    
+
 @order_bp.route('/<id>', methods=['DELETE'])
 @login_required
 @jwt_required()

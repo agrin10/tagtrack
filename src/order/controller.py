@@ -82,7 +82,6 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         form_data = {k: str(v).strip() if isinstance(v, (str, int, float)) else v 
                     for k, v in form_data.items() if v is not None}
         
-        print("Processed form data:", form_data)
 
         # Customer name is required
         customer_name = form_data.get('customer_name')
@@ -313,7 +312,7 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
 def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     """
     Update an existing order with the provided form data.
-    Handles customer_name -> customer_id resolution.
+    Handles customer_name -> customer_id resolution and updates customer.fee if provided.
     """
     try:
         order = Order.query.get(order_id)
@@ -321,7 +320,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
 
-        # --- Handle customer_name separately ---
+        # --- Handle customer_name separately (create if not exists) ---
+        customer = None
         if form_data.get('customer_name'):
             customer_name = form_data['customer_name'].strip()
             customer = Customer.query.filter_by(name=customer_name).first()
@@ -330,10 +330,37 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 db.session.add(customer)
                 db.session.flush()  # Ensure customer.id is available
             order.customer_id = customer.id
+        else:
+            # if no customer_name provided, keep existing order.customer (if any)
+            customer = order.customer
 
-        # --- Update other fields ---
+        # --- Update customer fee if provided in form_data ---
+        if 'customer_fee' in form_data:
+            fee_raw = form_data.get('customer_fee')
+            # Accept empty string (skip) or numeric string with comma/dot
+            if fee_raw is not None and fee_raw != "":
+                try:
+                    # normalize comma decimal separators (e.g., "1,234" -> "1.234")
+                    fee_str = str(fee_raw).replace(',', '.').strip()
+                    fee_value = float(fee_str)
+                except (ValueError, TypeError):
+                    return False, {"error": f"Invalid customer_fee value: {fee_raw}"}
+                # Ensure we have a customer to update; if not, create one from order.customer_id
+                if not customer:
+                    if order.customer_id:
+                        customer = Customer.query.get(order.customer_id)
+                    else:
+                        # create an anonymous customer (if desired) or return error
+                        customer = Customer(name="Unknown Customer")
+                        db.session.add(customer)
+                        db.session.flush()
+                        order.customer_id = customer.id
+                # update the customer fee
+                customer.fee = fee_value
+
+        # --- Update other order fields ---
         for key, value in form_data.items():
-            if key == 'customer_name':  # Already handled above
+            if key == 'customer_name' or key == 'customer_fee':
                 continue
             if hasattr(order, key):
                 if key == 'created_at' and value:
@@ -402,7 +429,10 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         # --- Update or Add OrderFiles ---
         for file_id, display_name, file_name in zip_longest(existing_file_ids, file_display_names, file_names, fillvalue=""):
             if file_id:
-                order_file = OrderFile.query.get(int(file_id))
+                try:
+                    order_file = OrderFile.query.get(int(file_id))
+                except (ValueError, TypeError):
+                    order_file = None
                 if order_file:
                     order_file.display_name = display_name
                     order_file.file_name = file_name
@@ -419,6 +449,9 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         # --- Finalize ---
         order.updated_at = datetime.utcnow()
         db.session.commit()
+
+        # Refresh order (optional) so relationships are up-to-date
+        db.session.refresh(order)
 
         return True, {
             "message": "Order updated successfully",
