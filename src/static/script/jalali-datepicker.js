@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize JalaliDatePicker for all date inputs
     jalaliDatepicker.startWatch({
         separatorChar: "/",
-        minDate: "today",
+        // minDate: "today",
         initDate: false,
         autoShow: true,
         autoHide: true,
