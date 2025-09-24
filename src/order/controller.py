@@ -3,7 +3,7 @@ from src.order.models import Order, OrderImage, OrderValue , OrderFile , FormNum
 from src.production.models import JobMetric, Machine, ProductionStepLog
 from flask_login import current_user
 from datetime import datetime, date
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, Dict, Any, List , Optional
 import traceback
 from sqlalchemy import func
 import io
@@ -74,29 +74,38 @@ def allocate_form_number_for_year(start_from: int | None = None) -> int:
 
 def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     try:
-        # Debug print the incoming data
+        # Debug prints (optional)
         print("Raw form data received:", form_data)
         print("Files received:", files)
-        
-        # Convert all string values to str type and strip whitespace
-        form_data = {k: str(v).strip() if isinstance(v, (str, int, float)) else v 
-                    for k, v in form_data.items() if v is not None}
-        
 
-        # Customer name is required
+        # Normalize form_data values (convert numeric like int/float to str and strip whitespace)
+        form_data = {
+            k: (str(v).strip() if isinstance(v, (str, int, float)) else v)
+            for k, v in (form_data.items() if form_data else {})
+            if v is not None
+        }
+
+        # Required: customer name
         customer_name = form_data.get('customer_name')
         if not customer_name:
             return False, {"error": "Customer name is required"}
 
-        # Find existing customer or create new one
+        # Find or create customer
         customer = Customer.query.filter_by(name=customer_name).first()
         if not customer:
-            customer = Customer(name=customer_name , fee=form_data.get('customer_fee'))
-            
+            # if a customer_fee is provided, try to parse it
+            fee = None
+            if 'customer_fee' in form_data and form_data.get('customer_fee') not in (None, ""):
+                try:
+                    fee_str = str(form_data.get('customer_fee')).replace(',', '.').strip()
+                    fee = float(fee_str)
+                except (ValueError, TypeError):
+                    fee = None
+            customer = Customer(name=customer_name, fee=fee if fee is not None else 0.0)
             db.session.add(customer)
-            db.session.flush()  # assign ID before order is created
+            db.session.flush()  # ensure ID assigned
 
-        # Auto-generate form_number with yearly reset (only when actually creating)
+        # Form number allocation (with optional requested start)
         requested_start = None
         if form_data.get('start_form_number'):
             try:
@@ -105,19 +114,19 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                     requested_start = None
             except ValueError:
                 requested_start = None
+
         try:
             form_number = allocate_form_number_for_year(start_from=requested_start)
-        except SQLAlchemyError as e:
-            # fallback: try the simple function, or return error
+        except Exception as e:
             db.session.rollback()
-            # optionally log e
+            print("Form number allocation failed:", str(e))
             return False, {"error": "Failed to allocate form number due to DB error."}
-        # Parse dates if provided (supports both Jalali and Gregorian formats)
+
+        # Parse dates (delivery and exits)
         delivery_date = parse_date_input(form_data.get('delivery_date'))
         if form_data.get('delivery_date') and delivery_date is None:
             return False, {"error": "Invalid delivery date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        # Parse exit dates if provided (supports both Jalali and Gregorian formats)
         exit_from_office_date = parse_date_input(form_data.get('exit_from_office_date'))
         if form_data.get('exit_from_office_date') and exit_from_office_date is None:
             return False, {"error": "Invalid exit from office date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
@@ -126,20 +135,26 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         if form_data.get('exit_from_factory_date') and exit_from_factory_date is None:
             return False, {"error": "Invalid exit from factory date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        # Convert numeric fields
+        # Convert numeric fields robustly
         try:
-            width = float(form_data['width']) if form_data.get('width') else None
-            height = float(form_data['height']) if form_data.get('height') else None
-            quantity = int(form_data['quantity']) if form_data.get('quantity') else None
-            total_length_meters = float(form_data['total_length_meters']) if form_data.get('total_length_meters') else None
-            peak_quantity = int(form_data['peak_quantity']) if form_data.get('peak_quantity') else None
-        except ValueError as e:
+            width = float(form_data['width']) if form_data.get('width') not in (None, "") else None
+            height = float(form_data['height']) if form_data.get('height') not in (None, "") else None
+            quantity = int(form_data['quantity']) if form_data.get('quantity') not in (None, "") else None
+            total_length_meters = float(form_data['total_length_meters']) if form_data.get('total_length_meters') not in (None, "") else None
+            peak_quantity = int(form_data['peak_quantity']) if form_data.get('peak_quantity') not in (None, "") else None
+        except (ValueError, TypeError) as e:
             return False, {"error": f"Invalid numeric value: {str(e)}"}
+
+        # Compute sketch_name with prefix based on width
+        raw_sketch = form_data.get('sketch_name') or ""
+        base_sketch = strip_known_prefixes(raw_sketch)
+        prefix = get_sketch_prefix_for_width(width)
+        sketch_name_final = _apply_prefix_to_sketch(prefix, base_sketch)
 
         # Create new order
         new_order = Order(
-            form_number=form_number, # Use the auto-generated form number
-            customer_id=customer.id,   # ✅ use customer_id instead of customer_name
+            form_number=form_number,
+            customer_id=customer.id,
             fabric_density=form_data.get('fabric_density'),
             fabric_cut=form_data.get('fabric_cut'),
             width=width,
@@ -150,7 +165,7 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             delivery_date=delivery_date,
             exit_from_office_date=exit_from_office_date,
             exit_from_factory_date=exit_from_factory_date,
-            sketch_name=form_data.get('sketch_name'),
+            sketch_name=sketch_name_final,
             file_name=form_data.get('file_name'),
             design_specification=form_data.get('design_specification'),
             office_notes=form_data.get('office_notes'),
@@ -161,25 +176,22 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             cut_type=form_data.get('cut_type'),
             label_type=form_data.get('label_type'),
             created_by=current_user.id,
-            status=form_data.get('status', 'Pending'),  # Default status to 'Pending'
+            status=form_data.get('status', 'Pending'),
         )
 
-        # Add to database
         db.session.add(new_order)
         db.session.flush()
 
-        # --- Save Order Values ---
+        # --- Save Order Values --- #
         values = form_data.get('values[]') or form_data.get('values')
         if values:
-            # If values is a string (single value), make it a list
             if isinstance(values, str):
                 values = [values]
             for idx, value in enumerate(values, 1):
-                if value and str(value).strip() != "":
+                if value is not None and str(value).strip() != "":
                     db.session.add(OrderValue(order_id=new_order.id, value_index=idx, value=value))
-        
-        # --- Save Order Files robustly ---
-        # Get file display names and file names as lists
+
+        # --- Save Order Files robustly --- #
         if hasattr(form_data, 'getlist'):
             file_display_names = form_data.getlist('file_display_names[]')
             file_names = form_data.getlist('order_files[]')
@@ -190,11 +202,10 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                 file_display_names = [file_display_names]
             if isinstance(file_names, str):
                 file_names = [file_names]
-        # Align lists
+
         max_len = max(len(file_display_names), len(file_names))
         file_display_names += [""] * (max_len - len(file_display_names))
         file_names += [""] * (max_len - len(file_names))
-        # Save only non-empty pairs
         for display_name, file_name in zip(file_display_names, file_names):
             if display_name or file_name:
                 order_file = OrderFile(
@@ -204,15 +215,17 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                     uploaded_by=current_user.id
                 )
                 db.session.add(order_file)
+
         db.session.commit()
 
-        # Handle image uploads if any
-        if files and 'images' in files:
+        # Handle image uploads if provided
+        if files and hasattr(files, 'getlist') and 'images' in files:
             image_files = files.getlist('images')
             for file in image_files:
-                if file and file.filename:
+                if file and getattr(file, 'filename', None):
                     success, response = upload_order_image(new_order.id, file)
                     if not success:
+                        # Log warning but continue
                         print(f"Warning: Failed to upload image {file.filename}: {response.get('error')}")
 
         return True, {
@@ -222,12 +235,11 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
 
     except Exception as e:
         db.session.rollback()
-        # Get the full traceback
         error_traceback = traceback.format_exc()
         print("Error creating order:")
         print(error_traceback)
-        # Return the actual error message for debugging
         return False, {"error": f"Failed to create order: {str(e)}\nTraceback: {error_traceback}"}
+
 
 def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -308,11 +320,12 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
         db.session.rollback()
         print(f"Error deleting order {order_id}: {str(e)}")
         return False, {"error": f"Failed to delete order: {str(e)}"}
-    
+
 def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     """
-    Update an existing order with the provided form data.
+    Update an existing order with provided form_data.
     Handles customer_name -> customer_id resolution and updates customer.fee if provided.
+    Also applies sketch_name prefixing based on width.
     """
     try:
         order = Order.query.get(order_id)
@@ -320,47 +333,41 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             print(f"Order {order_id} not found")
             return False, {"error": "Order not found"}
 
-        # --- Handle customer_name separately (create if not exists) ---
+        # --- Handle customer_name separately (create if not exists) --- #
         customer = None
         if form_data.get('customer_name'):
-            customer_name = form_data['customer_name'].strip()
+            customer_name = str(form_data['customer_name']).strip()
             customer = Customer.query.filter_by(name=customer_name).first()
             if not customer:
                 customer = Customer(name=customer_name)
                 db.session.add(customer)
-                db.session.flush()  # Ensure customer.id is available
+                db.session.flush()
             order.customer_id = customer.id
         else:
-            # if no customer_name provided, keep existing order.customer (if any)
             customer = order.customer
 
-        # --- Update customer fee if provided in form_data ---
+        # --- Update customer fee if provided in form_data --- #
         if 'customer_fee' in form_data:
             fee_raw = form_data.get('customer_fee')
-            # Accept empty string (skip) or numeric string with comma/dot
             if fee_raw is not None and fee_raw != "":
                 try:
-                    # normalize comma decimal separators (e.g., "1,234" -> "1.234")
                     fee_str = str(fee_raw).replace(',', '.').strip()
                     fee_value = float(fee_str)
                 except (ValueError, TypeError):
                     return False, {"error": f"Invalid customer_fee value: {fee_raw}"}
-                # Ensure we have a customer to update; if not, create one from order.customer_id
                 if not customer:
                     if order.customer_id:
                         customer = Customer.query.get(order.customer_id)
                     else:
-                        # create an anonymous customer (if desired) or return error
                         customer = Customer(name="Unknown Customer")
                         db.session.add(customer)
                         db.session.flush()
                         order.customer_id = customer.id
-                # update the customer fee
                 customer.fee = fee_value
 
-        # --- Update other order fields ---
-        for key, value in form_data.items():
-            if key == 'customer_name' or key == 'customer_fee':
+        # --- Update other order fields (skip customer_name & customer_fee) --- #
+        for key, value in (form_data.items() if form_data else {}):
+            if key in ('customer_name', 'customer_fee'):
                 continue
             if hasattr(order, key):
                 if key == 'created_at' and value:
@@ -378,11 +385,24 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     if parsed_date is None:
                         return False, {"error": f"Invalid {key} format: {value}. Use YYYY-MM-DD or YYYY/MM/DD"}
                     value = parsed_date
+                else:
+                    # convert numeric strings to proper types for width/height/quantity etc if necessary
+                    if key in ('width', 'height', 'total_length_meters', 'fabric_cut', 'fabric_density') and value not in (None, ""):
+                        try:
+                            value = float(str(value).replace(',', '.').strip())
+                        except (ValueError, TypeError):
+                            # leave raw value; DB will error if invalid, or we can return error
+                            return False, {"error": f"Invalid numeric value for {key}: {value}"}
+                    if key in ('quantity', 'peak_quantity') and value not in (None, ""):
+                        try:
+                            value = int(str(value).strip())
+                        except (ValueError, TypeError):
+                            return False, {"error": f"Invalid integer value for {key}: {value}"}
                 setattr(order, key, value)
             else:
                 print(f"Field {key} not found in Order model")
 
-        # --- PATCH-like update for Order Values ---
+        # --- PATCH-like update for Order Values (edit-values / values) --- #
         values = (
             form_data.get('edit-values[]')
             or form_data.get('edit-values')
@@ -403,7 +423,7 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 else:
                     db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
 
-        # --- Normalize file lists ---
+        # --- Normalize file lists (edit-file_display_names / edit-file_names / existing_file_ids) --- #
         if hasattr(form_data, 'getlist'):
             file_display_names = form_data.getlist('edit-file_display_names[]')
             file_names = form_data.getlist('edit-file_names[]')
@@ -412,7 +432,6 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             file_display_names = form_data.get('edit-file_display_names[]') or []
             file_names = form_data.get('edit-file_names[]') or []
             existing_file_ids = form_data.get('existing_file_ids[]') or []
-
             if isinstance(file_display_names, str):
                 file_display_names = [file_display_names]
             if isinstance(file_names, str):
@@ -420,13 +439,12 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             if isinstance(existing_file_ids, str):
                 existing_file_ids = [existing_file_ids]
 
-        # Align lengths
         max_len = max(len(file_display_names), len(file_names), len(existing_file_ids))
         file_display_names += [""] * (max_len - len(file_display_names))
         file_names += [""] * (max_len - len(file_names))
         existing_file_ids += [""] * (max_len - len(existing_file_ids))
 
-        # --- Update or Add OrderFiles ---
+        # --- Update or Add OrderFiles --- #
         for file_id, display_name, file_name in zip_longest(existing_file_ids, file_display_names, file_names, fillvalue=""):
             if file_id:
                 try:
@@ -446,11 +464,29 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                     )
                     db.session.add(new_file)
 
-        # --- Finalize ---
+        # --- Apply sketch_name prefixing based on effective width --- #
+        # Determine width to use: prefer incoming form value, else existing order.width
+        effective_width = None
+        if 'width' in form_data and form_data.get('width') not in (None, ""):
+            try:
+                effective_width = float(str(form_data.get('width')).replace(',', '.').strip())
+            except (ValueError, TypeError):
+                effective_width = None
+        else:
+            effective_width = getattr(order, 'width', None)
+
+        if 'sketch_name' in form_data:
+            incoming_sketch_raw = (form_data.get('sketch_name') or "").strip()
+        else:
+            incoming_sketch_raw = (order.sketch_name or "").strip()
+
+        # Strip any existing known prefix(es) before applying the new one
+        incoming_sketch_base = strip_known_prefixes(incoming_sketch_raw)
+
+        prefix = get_sketch_prefix_for_width(effective_width)
+        order.sketch_name = _apply_prefix_to_sketch(prefix, incoming_sketch_base)
         order.updated_at = datetime.utcnow()
         db.session.commit()
-
-        # Refresh order (optional) so relationships are up-to-date
         db.session.refresh(order)
 
         return True, {
@@ -805,3 +841,81 @@ def get_order_images(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         print(f"Error retrieving images: {str(e)}")
         return False, {"error": f"Failed to retrieve images: {str(e)}"}
 
+def _float_eq(a: float, b: float, tol: float = 1e-3) -> bool:
+    try:
+        return abs(float(a) - float(b)) <= tol
+    except Exception:
+        return False
+
+def get_sketch_prefix_for_width(width: Optional[float]) -> Optional[str]:
+    """
+    Return Persian prefix for the provided numeric width according to the mapping:
+      1.1, 1.25, 1.32, 1.42 -> "باریک"
+      1.53, 1.67, 1.8, 2, 2.2, 2.5, 2.85 -> "اتیکت"
+      3.3, 4, 5, 6.67 -> "کتی"
+    Returns None when no matching prefix found.
+    """
+    if width is None:
+        return None
+    try:
+        w = float(width)
+    except (TypeError, ValueError):
+        return None
+
+    barik = {1.1, 1.25, 1.32, 1.42}
+    etiket = {1.53, 1.67, 1.8, 2.0, 2.2, 2.5, 2.85}
+    kati = {3.3, 4.0, 5.0, 6.67 , 6 , 7 , 8 , 10}
+
+    for val in barik:
+        if _float_eq(w, val):
+            return "باریک"
+    for val in etiket:
+        if _float_eq(w, val):
+            return "اتیکت"
+    for val in kati:
+        if _float_eq(w, val):
+            return "کتی"
+
+    return None
+
+def _apply_prefix_to_sketch(prefix: Optional[str], raw_sketch: Optional[str]) -> Optional[str]:
+    """
+    Combine prefix and raw_sketch idempotently.
+    If prefix is None -> return stripped raw_sketch or None.
+    """
+    raw_sketch_norm = (raw_sketch or "").strip()
+    if not prefix:
+        return raw_sketch_norm or None
+    # if already prefixed with the same string, return as-is
+    if raw_sketch_norm.startswith(prefix):
+        return raw_sketch_norm or prefix
+    # if sketch empty, return prefix alone
+    if raw_sketch_norm == "":
+        return prefix
+    return f"{prefix} {raw_sketch_norm}"
+KNOWN_PREFIXES = ["باریک", "اتیکت", "کتی"]
+
+def strip_known_prefixes(text: Optional[str]) -> str:
+    """
+    Remove any known prefix(es) from the start of `text`.
+    Example: "باریک اتیکت nike" -> "nike"
+    Returns stripped text (empty string if nothing left).
+    """
+    if not text:
+        return ""
+    s = text.strip()
+    # loop to remove multiple prefixes if present
+    removed = True
+    while removed:
+        removed = False
+        for p in KNOWN_PREFIXES:
+            # if it starts with prefix + space OR exactly prefix, remove it
+            if s == p:
+                s = ""
+                removed = True
+                break
+            if s.startswith(p + " "):
+                s = s[len(p):].strip()
+                removed = True
+                break
+    return s
