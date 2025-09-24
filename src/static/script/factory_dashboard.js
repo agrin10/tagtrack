@@ -226,6 +226,24 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-est-completion-date').textContent = formatDate(order.delivery_date);
         document.getElementById('modal-status-badge').textContent = order.status ? getStatusText(order.status) : 'جدید';
         document.getElementById('modal-status-badge').className = `badge bg-${getStatusBadgeClass(order.status || 'New')}`;
+        // Peak Quantity (from order directly)
+        const peakQuantityInvoice = document.getElementById('modalPeakQuantity');
+        if (peakQuantityInvoice) {
+            peakQuantityInvoice.value = (order.invoice_data?.peak_quantity) || order.peak_quantity || 0;
+        }
+
+        const peakQuantityStatus = document.getElementById('modalPeakQuantityStatus');
+        if (peakQuantityStatus) {
+            peakQuantityStatus.value = order.peak_quantity || 0;  // status uses order directly
+        }
+        const producedQuantity= document.getElementById('modalQuantityStatus');
+        if (producedQuantity){
+            producedQuantity.value = order.produced_quantity || 0;
+        }
+        const producedQuantityInvoice= document.getElementById('modalQuantity');
+        if (producedQuantityInvoice){
+            producedQuantityInvoice.value = order.produced_quantity || 0;
+        }
 
         // Production Status Form
         document.getElementById('modal-order-id').value = order.id;
@@ -254,11 +272,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowNumberInput = document.getElementById('modalRowNumber');
             const notesInput = document.getElementById('modalNotes');
 
-            if (creditCardInput) creditCardInput.value = invoice.credit_card || '';
             if (quantityInput) quantityInput.value = invoice.quantity || '';
             if (cuttingCostInput) cuttingCostInput.value = invoice.cutting_cost || '';
             if (numberOfCutsInput) numberOfCutsInput.value = invoice.number_of_cuts || '';
-            if (numberOfDensityInput) numberOfDensityInput.value = invoice.number_of_density || '';
             if (peakQuantityInput) peakQuantityInput.value = invoice.peak_quantity || '';
             if (peakWidthInput) peakWidthInput.value = invoice.peak_width || '';
             if (feeInput) feeInput.value = invoice.Fee || '';
@@ -402,6 +418,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            const statusPeakInput = document.getElementById('modalPeakQuantityStatus');
+            if (statusPeakInput) {
+                payload.peak_quantity = statusPeakInput.value;
+            }
+            const producedQuantity = document.getElementById('modalQuantityStatus');
+            if (producedQuantity) {
+                payload.produced_quantity = producedQuantity.value;
+            }
+             
             const response = await fetch(`/factory/orders/${orderId}/update-production-status`, {
                 method: 'POST',
                 headers: {
@@ -613,8 +638,8 @@ function collectJobMetricsFromModal() {
 
         // Check if any invoice fields have been filled
         const invoiceFields = [
-            'credit_card', 'quantity', 'cutting_cost', 'number_of_cuts', 
-            'number_of_density', 'peak_quantity', 'peak_width', 'Fee', 'row_number', 'notes'
+            'quantity', 'cutting_cost', 'number_of_cuts', 
+            'peak_quantity', 'peak_width', 'Fee', 'row_number', 'notes'
         ];
 
         let hasInvoiceData = false;
@@ -639,7 +664,7 @@ function collectJobMetricsFromModal() {
         const hasExistingInvoice = existingInvoiceAlert !== null;
 
         return {
-            should_save_invoice: hasInvoiceData && hasRequiredFields,
+            should_save_invoice: true,
             has_existing_invoice: hasExistingInvoice,
             ...invoiceData
         };
@@ -1400,3 +1425,6 @@ reindexMetricRows();
     setupTableSearch('#searchInput', '#ordersTable tbody tr');
 
 });
+
+
+

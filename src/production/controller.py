@@ -4,7 +4,7 @@ from datetime import datetime, date, timezone
 
 from src import db
 from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum  ,JobMetricPackageGroup , JobMetricSize ,JobMetricSizePackageGroup
-from src.order.models import Order
+from src.order.models import Order , Customer
 from src.invoice.models import Payment, InvoiceDraft
 from src.utils import parse_date_input
 
@@ -43,6 +43,7 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
 def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get invoice data for a specific order (both actual invoices and drafts).
+    If no invoice or draft exists, auto-generate one using save_invoice_draft().
     """
     try:
         # Check for actual invoice first
@@ -95,6 +96,7 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
             return False, {"error": result.get('message', 'Failed to auto-generate invoice draft')}
         
     except Exception as e:
+        db.session.rollback()
         print(f"Error retrieving invoice for order {order_id}: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve invoice: {str(e)}"}
@@ -116,7 +118,21 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         machine_data = form_data.get('machine_data', [])
         production_duration = form_data.get('production_duration')
         production_steps_data = form_data.get('production_steps', {})
-        
+
+        # 🔹 NEW: Update peak quantity directly from status form
+        peak_quantity = form_data.get('peak_quantity')
+        if peak_quantity is not None:
+            try:
+                order.peak_quantity = float(peak_quantity)
+            except ValueError:
+                return False, {"error": "Invalid peak quantity"}
+        produced_quantity = form_data.get('produced_quantity')
+        if produced_quantity is not None:
+            try:
+                order.produced_quantity = float(produced_quantity)
+            except ValueError:
+                return False, {"error": "Invalid peak quantity"}
+
         # Invoice data from factory processing
         invoice_data = form_data.get('invoice_data', {})
         should_save_invoice = invoice_data.get('should_save_invoice', False)
@@ -124,7 +140,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
             order.status = str(current_stage).strip() # Also update the main status
-            
+
             # If status is completed or shipped, automatically set progress to 100%
             if str(current_stage).strip() in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده']:
                 order.progress_percentage = 100
@@ -543,6 +559,9 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
     When order is completed, this function also converts drafts to actual invoices.
     """
     try:
+        order = Order.query.get(order_id)
+        if not order:
+            return {"success": False, "message": "Order not found"}
         # Check if invoice already exists for this order
         existing_invoice = Payment.query.filter_by(order_id=order_id).first()
         
@@ -554,8 +573,9 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         cutting_cost = invoice_data.get('cutting_cost', 0.0)
         number_of_cuts = invoice_data.get('number_of_cuts', 0)
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
-        peak_width = invoice_data.get('peak_width', 0.0)
-        fee = invoice_data.get('Fee', 0.0)
+        peak_width = order.width or 0
+        fee =fee = order.customer.fee if order.customer else Customer
+
         row_number = invoice_data.get('row_number')
         notes = invoice_data.get('notes', 'Generated from factory processing')
 
