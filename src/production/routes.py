@@ -113,7 +113,7 @@ def update_production_status_api(order_id):
 
     # Drop disallowed fields from payload
     if not perms.get('can_edit_status', False):
-        for k in ['current_stage', 'progress_percentage', 'factory_notes']:
+        for k in ['current_stage', 'progress_percentage', 'factory_notes', 'peak_quantity', 'produced_quantity']:
             form_data.pop(k, None)
     if not perms.get('can_edit_job_metrics', False):
         form_data.pop('job_metrics', None)

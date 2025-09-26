@@ -101,6 +101,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const notesInput = document.getElementById('modal-factory-notes');
             [statusSelect, progressInput, notesInput].forEach(markReadonly);
 
+            // Also lock quantities on status tab
+            const statusPeakQty = document.getElementById('modalPeakQuantityStatus');
+            const statusProducedQty = document.getElementById('modalQuantityStatus');
+            [statusPeakQty, statusProducedQty].forEach(markReadonly);
+
             const canEditAnything = perms.can_edit_job_metrics || perms.can_edit_machine_data || perms.can_edit_production_steps || perms.can_edit_invoice || perms.can_edit_status;
             if (!canEditAnything) {
                 const saveBtn = document.querySelector('button[form="updateProductionStatusForm"], #updateProductionStatusForm button[type="submit"], #updateProductionStatusForm .btn-primary');
