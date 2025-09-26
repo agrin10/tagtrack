@@ -200,6 +200,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }, 100);
+            // Re-apply permissions after async DOM injections
+            setTimeout(() => {
+                if (factoryPermsLoaded) {
+                    applyPermissionsToFactoryUI(factoryPerms);
+                }
+            }, 150);
             
         } catch (error) {
             console.error('Error loading order details:', error);
@@ -376,6 +382,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }, 100);
+
+        // Ensure permissions are enforced after modal content is populated
+        setTimeout(() => {
+            if (factoryPermsLoaded) {
+                applyPermissionsToFactoryUI(factoryPerms);
+            }
+        }, 120);
     }
 
     async function updateProductionStatus(orderId, formData) {
@@ -942,6 +955,17 @@ function addProductionRow() {
     });
 
     calculateProductionDuration();
+
+    // Enforce permissions on dynamically added row
+    if (!factoryPerms.can_edit_machine_data) {
+        newRow.querySelectorAll('input, select, textarea, button').forEach(el => {
+            if (el.tagName === 'BUTTON') {
+                hideElement(el);
+            } else {
+                markReadonly(el);
+            }
+        });
+    }
 }
 
 // --- Populate table with existing data ---
@@ -995,6 +1019,17 @@ function populateMachineData(order) {
                 newRow.remove();
                 calculateProductionDuration();
             });
+
+            // Enforce permissions per row
+            if (!factoryPerms.can_edit_machine_data) {
+                newRow.querySelectorAll('input, select, textarea, button').forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        hideElement(el);
+                    } else {
+                        markReadonly(el);
+                    }
+                });
+            }
         });
     } else {
         addProductionRow();
@@ -1004,6 +1039,11 @@ function populateMachineData(order) {
     document.getElementById('production-duration-input').value = order.production_duration || '';
 
     calculateProductionDuration();
+
+    // Re-apply permissions to entire machine section
+    if (factoryPermsLoaded) {
+        applyPermissionsToFactoryUI(factoryPerms);
+    }
 }
 
 
@@ -1199,6 +1239,25 @@ function addMetricRowToModal(metric = null) {
 
     // Ensure indexes & names updated after adding
     reindexMetricRows();
+
+    // Enforce permissions for job metrics on this newly added block
+    if (!factoryPerms.can_edit_job_metrics) {
+        newMetricRow.querySelectorAll('input, select, textarea, button').forEach(el => {
+            if (
+                el.classList.contains('add-package-group') ||
+                el.classList.contains('remove-package-group') ||
+                el.classList.contains('add-size-btn') ||
+                el.classList.contains('add-package-in-size') ||
+                el.classList.contains('remove-package-group-in-size') ||
+                el.classList.contains('remove-row') ||
+                el.tagName === 'BUTTON'
+            ) {
+                hideElement(el);
+            } else {
+                markReadonly(el);
+            }
+        });
+    }
 }
 
 // Reindex names for all dynamic fields including per-size roll/meter
