@@ -192,20 +192,19 @@ export function initAddOrder() {
                 const day = String(now.getDate()).padStart(2, '0');
                 const hours = String(now.getHours()).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
-                const datetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-                if (createdAtEl) {
-                    if (typeof convertToJalali === 'function') {
-                        try {
-                            const jalali = convertToJalali(datetimeString);
-                            createdAtEl.value = jalali;
-                        } catch (err) {
-                            // fallback to ISO local-like string
-                            createdAtEl.value = datetimeString;
-                        }
-                    } else {
-                        createdAtEl.value = datetimeString;
-                    }
+                // Convert to Jalali using your convertToJalali function
+                let jalaliDate = '';
+                if (typeof convertToJalali === 'function') {
+                    jalaliDate = convertToJalali(`${year}-${month}-${day}`);
+                } else {
+                    jalaliDate = `${year}-${month}-${day}`; // fallback
+                }
+                const jalaliDatetime = `${jalaliDate} ${hours}:${minutes}`;
+
+                const createdAtJalaliEl = document.getElementById('created_at_jalali');
+                if (createdAtJalaliEl) {
+                    createdAtJalaliEl.value = jalaliDatetime;
                 }
             } catch (err) {
                 console.warn('Error setting created_at:', err);
