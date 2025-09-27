@@ -1,5 +1,5 @@
 from src.invoice import invoice_bp
-from src.invoice.controller import invoice_list , generate_invoice_file , view_invoice , send_invoice , download_invoice , export_all, save_factory_invoice, get_invoice_for_order
+from src.invoice.controller import invoice_list  , view_invoice ,  download_invoice , export_all, get_invoice_for_order
 from flask import request , jsonify , redirect , url_for , render_template , flash 
 from flask_login import login_required, current_user
 from src.utils.decorators import role_required
@@ -32,94 +32,6 @@ def get_invoice_list():
             ), 200
     else:
         return jsonify({"message": response}), 500
-
-@invoice_bp.route('/', methods=["POST"])
-@login_required
-@jwt_required()
-@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
-def post_generate_invoice_file():
-    if request.content_type == 'application/json':
-        data = request.get_json()
-    else:
-        data = request.form
-
-    try:
-        order_id = int(data.get('order_id'))
-        quantity = data.get('quantity')
-        cutting_cost = data.get('cutting_cost')
-        number_of_cuts = data.get('number_of_cuts')
-        peak_quantity = data.get('peak_quantity')
-        peak_width = data.get('peak_width')
-        Fee = data.get('Fee')
-        notes = data.get('notes')
-        row_number = data.get('row_number')
-
-        print(f'order_id {order_id}')
-        success, message = generate_invoice_file(
-            order_id, quantity,
-            cutting_cost, number_of_cuts,
-            peak_quantity, peak_width, Fee, notes, row_number
-        )
-
-        if success:
-            if request.is_json:
-                return jsonify({"success": True, "message": message}), 200
-            flash(message), 200
-            return redirect(url_for('invoice.get_invoice_list')) 
-        else:
-            flash(message), 400
-            return redirect(url_for('invoice.get_invoice_list')) 
-
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Invalid input: {e}"}), 400
-
-@invoice_bp.route('/save-factory-invoice', methods=["POST"])
-@login_required
-@jwt_required()
-@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
-def save_factory_invoice_route():
-    """
-    Endpoint to save invoice data from factory processing tab.
-    """
-    if request.content_type == 'application/json':
-        data = request.get_json()
-    else:
-        data = request.form
-
-    try:
-        order_id = int(data.get('order_id'))
-        quantity = data.get('quantity')
-        cutting_cost = data.get('cutting_cost')
-        number_of_cuts = data.get('number_of_cuts')
-        peak_quantity = data.get('peak_quantity')
-        peak_width = data.get('peak_width')
-        Fee = data.get('Fee')
-        notes = data.get('notes')
-        row_number = data.get('row_number')
-
-        success, response = save_factory_invoice(
-            order_id, quantity,
-            cutting_cost, number_of_cuts,
-            peak_quantity, peak_width, Fee, notes, row_number, current_user.id
-        )
-
-        if success:
-            if request.is_json:
-                return jsonify({"success": True, "message": response["message"], "invoice_number": response["invoice_number"], "total_price": response["total_price"]}), 200
-            flash(response["message"], "success")
-            return redirect(url_for('invoice.get_invoice_list')) 
-        else:
-            if request.is_json:
-                return jsonify({"success": False, "message": response}), 400
-            flash(response, "error")
-            return redirect(url_for('invoice.get_invoice_list')) 
-
-    except Exception as e:
-        error_msg = f"Invalid input: {e}"
-        if request.is_json:
-            return jsonify({"success": False, "message": error_msg}), 400
-        flash(error_msg, "error")
-        return redirect(url_for('invoice.get_invoice_list'))
 
 @invoice_bp.route('/order/<int:order_id>', methods=['GET'])
 @login_required
@@ -174,13 +86,6 @@ def invoice_view(invoice_id):
         return jsonify({"success": True, "invoice": response}), 200
     else:
         return jsonify({"success": False, "error": response}), 404
-
-
-@invoice_bp.route('/send/<int:invoice_id>', methods=['POST'])
-@jwt_required()
-@role_required('Admin', "OrderManager", "Designer" , "InvoiceClerk" , "FactorySupervisor")
-def post_send_invoice(invoice_id):
-    return send_invoice(invoice_id)
 
 @invoice_bp.route('/export', methods=['GET'])
 @login_required
