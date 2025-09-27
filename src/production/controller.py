@@ -7,6 +7,21 @@ from src.production.models import JobMetric, Machine, ShiftType, ProductionStepL
 from src.order.models import Order , Customer
 from src.invoice.models import Payment, InvoiceDraft
 from src.utils import parse_date_input
+import logging
+from decimal import Decimal, ROUND_HALF_UP
+
+def get_number_of_cuts_for_order(order_id: int) -> int:
+    """
+    Returns the number_of_cuts for the given order,
+    based on the member_count of ProductionStepLog where step_name is BRESH.
+    If multiple logs exist, returns the sum.
+    """
+    logs = ProductionStepLog.query.filter_by(
+        order_id=order_id,
+        step_name="bresh"
+    ).all()
+    return sum(log.member_count for log in logs if log.member_count is not None)
+
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -55,10 +70,16 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
                 "has_actual_invoice": True,
                 "has_draft": False
             }
-        
+
         # Check for invoice draft if no actual invoice exists
         draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         if draft:
+            # --- NEW: Sync number_of_cuts from logs ---
+            number_of_cuts = get_number_of_cuts_for_order(order_id)
+            if draft.number_of_cuts != number_of_cuts:
+                draft.number_of_cuts = number_of_cuts
+                draft.updated_at = datetime.now(timezone.utc)
+                db.session.commit()
             return True, {
                 "message": "Invoice draft data retrieved successfully",
                 "invoice": draft.to_dict(),
@@ -70,11 +91,12 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found to auto-generate draft"}
-
+        number_of_cuts = get_number_of_cuts_for_order(order_id)
+        cutting_cost = get_cutting_price_for_sketch(order.sketch_name)
         defaults = {
-            'quantity': order.quantity or 0,
-            'cutting_cost': 0.0,
-            'number_of_cuts': 0,
+            'quantity': order.produced_quantity or 0,
+            'cutting_cost': cutting_cost,
+            'number_of_cuts': number_of_cuts,
             'number_of_density': 0,
             'peak_quantity': getattr(order, 'peak_quantity', None),
             'peak_width': getattr(order, 'width', None),
@@ -139,7 +161,8 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
 
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
-            order.status = str(current_stage).strip() # Also update the main status
+            # Also update the main status
+            order.status = str(current_stage).strip() 
 
             # If status is completed or shipped, automatically set progress to 100%
             if str(current_stage).strip() in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده']:
@@ -156,7 +179,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                 return False, {"error": "Invalid progress percentage"}
         if factory_notes is not None:
             order.factory_notes = str(factory_notes).strip()
-        
+
         if production_duration is not None:
             order.production_duration = str(production_duration).strip()
 
@@ -395,7 +418,7 @@ def get_machine_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         machines = Machine.query.filter_by(order_id=order_id).all()
         if not machines:
             return True, {"message": "No machine data found for this order", "machines": []}
-        
+
         return True, {
             "message": "Machine data retrieved successfully",
             "machines": [machine.to_dict() for machine in machines]
@@ -417,7 +440,7 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
 
         # Delete existing machine entries for this order
         Machine.query.filter_by(order_id=order_id).delete()
-        db.session.flush() # Ensure deletions are processed before adding new ones
+        db.session.flush()  # Ensure deletions are processed before adding new ones
 
         added_machines = []
         for data in machine_data:
@@ -436,7 +459,8 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
                 shift_type_str = data.get('shift_type')
                 # Convert to uppercase to match the Enum definition
                 shift_type = ShiftType(shift_type_str.lower()) if shift_type_str else None
-                if shift_type not in [s for s in ShiftType]: # Validate against ShiftType enum
+                # Validate against ShiftType enum
+                if shift_type not in [s for s in ShiftType]:
                     return False, {"error": f"Invalid shift type: {shift_type_str}"}
 
             except ValueError as e:
@@ -508,12 +532,13 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
         # Delete existing logs for this order
         ProductionStepLog.query.filter_by(order_id=order_id).delete()
         db.session.flush() # Ensure deletions are processed before adding new ones
-    
+
         added_logs = []
         for step_name_str, data in step_data.items():
             # Validate data before casting
             try:
-                step_name = ProductionStepEnum(step_name_str) # Convert string to Enum member
+                # Convert string to Enum member
+                step_name = ProductionStepEnum(step_name_str)
                 worker_name = data.get('worker_name')
                 date_str = data.get('date')
                 member_count = data.get('member_count')
@@ -536,9 +561,17 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
             )
             db.session.add(log)
             added_logs.append(log.to_dict())
-    
+
         db.session.commit()
-        
+
+        # --- NEW: Update invoice draft with latest number_of_cuts ---
+        number_of_cuts = get_number_of_cuts_for_order(order_id)
+        draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+        if draft:
+            draft.number_of_cuts = number_of_cuts
+            draft.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+
         return True, {
             "message": "Production step logs saved successfully",
             "production_steps": added_logs
@@ -553,136 +586,151 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
         traceback.print_exc()
         return False, {"error": f"Failed to save production step logs: {str(e)}"}
 
+def _to_decimal(value, name="value"):
+    try:
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            return Decimal('0')
+        return Decimal(str(value))
+    except Exception as e:
+        raise ValueError(f"Invalid numeric for {name}: {value} ({e})")
+
 def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
     """
-    Save or update invoice data from factory processing to payment table.
-    When order is completed, this function also converts drafts to actual invoices.
+    Robust save/update invoice using invoice_data (prefer) and fallbacks to order/customer.
+    Calculation formula used:
+      price = peak_quantity * peak_width * fee
+      unit_price = price + cutting_cost
+      total_price = unit_price * number_of_cuts   # matches your Persian formula
+    Uses Decimal for arithmetic and returns formatted numbers.
     """
     try:
         order = Order.query.get(order_id)
         if not order:
             return {"success": False, "message": "Order not found"}
-        # Check if invoice already exists for this order
-        existing_invoice = Payment.query.filter_by(order_id=order_id).first()
-        
-        # Check for existing draft
-        existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
-        
-        # Extract invoice data (only fields supported by models)
-        quantity = invoice_data.get('quantity', 0)
-        cutting_cost = invoice_data.get('cutting_cost', 0.0)
-        number_of_cuts = invoice_data.get('number_of_cuts', 0)
-        peak_quantity = invoice_data.get('peak_quantity', 0.0)
-        peak_width = order.width or 0
-        fee =fee = order.customer.fee if order.customer else Customer
 
-        row_number = invoice_data.get('row_number')
+        existing_invoice = Payment.query.filter_by(order_id=order_id).first()
+        existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+
+        # Extract / prefer invoice_data, fallback to order/customer
+        qty_raw = invoice_data.get('quantity', invoice_data.get('Quantity', None))
+        cutting_cost_raw = invoice_data.get('cutting_cost', invoice_data.get('cuttingCost', 0.0))
+        cuts_raw = invoice_data.get('number_of_cuts', invoice_data.get('number_of_cuts', None))
+        peak_quantity_raw = invoice_data.get('peak_quantity', invoice_data.get('peakQuantity', None))
+        peak_width_raw = invoice_data.get('peak_width', None)
+        if peak_width_raw is None:
+            peak_width_raw = invoice_data.get('peakWidth', None)
+        fee_raw = invoice_data.get('Fee', invoice_data.get('fee', None))  # accept Fee or fee
+        row_number = invoice_data.get('row_number', None)
         notes = invoice_data.get('notes', 'Generated from factory processing')
 
-        # Validate required fields
-        if not quantity or not peak_quantity or not peak_width or not fee:
-            return {"success": False, "message": "Required invoice fields cannot be empty."}
+        # sensible fallbacks from order / customer
+        if peak_width_raw is None:
+            peak_width_raw = getattr(order, 'width', None)
+        if fee_raw is None:
+            fee_raw = getattr(order.customer, 'fee', None) if getattr(order, 'customer', None) else None
+        if qty_raw is None:
+            qty_raw = getattr(order, 'quantity', None)
 
-        # Ensure all numeric inputs are cast correctly
+        # If number_of_cuts not provided, fallback to quantity (business choice)
+        if cuts_raw is None:
+            cuts_raw = qty_raw
+
+        # Convert to Decimal safely
         try:
-            quantity = int(quantity) if quantity else 0
-            cutting_cost = float(cutting_cost) if cutting_cost else 0.0
-            number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
-            peak_quantity = float(peak_quantity) if peak_quantity else 0.0
-            peak_width = float(peak_width) if peak_width else 0.0
-            fee = float(fee) if fee else 0.0
-        except (ValueError, TypeError) as e:
-            return {"success": False, "message": f"Invalid numeric value: {e}"}
+            quantity = _to_decimal(qty_raw, "quantity")
+            cutting_cost = _to_decimal(cutting_cost_raw, "cutting_cost")
+            number_of_cuts = _to_decimal(cuts_raw, "number_of_cuts")
+            peak_quantity = _to_decimal(peak_quantity_raw, "peak_quantity")
+            peak_width = _to_decimal(peak_width_raw, "peak_width")
+            fee = _to_decimal(fee_raw, "fee")
+        except ValueError as ve:
+            return {"success": False, "message": str(ve)}
 
-        # Validate that values are positive
-        if quantity <= 0 or peak_quantity <= 0 or peak_width <= 0 or fee <= 0:
-            return {"success": False, "message": "Quantity, peak_quantity, peak_width, and Fee must be positive values."}
+        # Validation: required positives (adjust rules if you want different)
+        if peak_quantity <= 0 or peak_width <= 0 or fee <= 0 or number_of_cuts <= 0:
+            return {"success": False, "message": "peak_quantity, peak_width, fee and number_of_cuts must be positive."}
+        press_cost = _compute_press_cost_one_time(order_id)  # Decimal('350') or Decimal('0')
 
-        # Calculate prices
-        unit_price = peak_quantity * peak_width * fee
-        total_price = (unit_price * quantity) + cutting_cost + number_of_cuts
+        # Calculation with Decimal and rounding to 2 decimal places
+        price = (peak_quantity * peak_width * fee).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        services = (_to_decimal(cutting_cost, "cutting_cost") + press_cost).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        unit_price = (price + services).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        total_price = (unit_price * number_of_cuts).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
+        # Update existing invoice
         if existing_invoice:
-            # Update existing invoice
-            existing_invoice.unit_price = unit_price
-            existing_invoice.quantity = quantity
-            existing_invoice.cutting_cost = cutting_cost
-            existing_invoice.number_of_cuts = number_of_cuts
-            existing_invoice.peak_quantity = peak_quantity
-            existing_invoice.peak_width = peak_width
-            existing_invoice.Fee = fee
+            existing_invoice.unit_price = float(unit_price)
+            existing_invoice.quantity = int(quantity) if quantity == quantity.to_integral() else float(quantity)
+            existing_invoice.cutting_cost = float(cutting_cost)
+            existing_invoice.number_of_cuts = int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts)
+            existing_invoice.peak_quantity = float(peak_quantity)
+            existing_invoice.peak_width = float(peak_width)
+            # preserve your model naming (you used Fee earlier)
+            setattr(existing_invoice, 'Fee', float(fee))
             existing_invoice.row_number = row_number
-            existing_invoice.total_price = total_price
+            existing_invoice.total_price = float(total_price)
             existing_invoice.notes = notes
-            
-            # Remove draft if it exists (since we now have an actual invoice)
+
             if existing_draft:
                 db.session.delete(existing_draft)
-            
+
             db.session.commit()
-            
-            # Ensure order is marked invoiced
+
+            # mark order invoiced
             try:
-                order_row = Order.query.get(order_id)
-                if order_row:
-                    order_row.invoiced = True
-                    db.session.commit()
+                order.invoiced = True
+                db.session.commit()
             except Exception:
                 db.session.rollback()
+
             return {
                 "success": True,
                 "message": "Invoice updated successfully from factory processing",
                 "invoice_number": existing_invoice.invoice_number,
-                "total_price": total_price,
+                "total_price": float(total_price),
                 "is_update": True
             }
-        else:
-            # Create new invoice
-            # Generate invoice number
-            last_invoice = Payment.query.order_by(Payment.id.desc()).first()
-            new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
-            invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
 
-            new_invoice = Payment(
-                order_id=order_id,
-                invoice_number=invoice_number,
-                unit_price=unit_price,
-                quantity=quantity,
-                cutting_cost=cutting_cost,
-                number_of_cuts=number_of_cuts,
-                peak_quantity=peak_quantity,
-                peak_width=peak_width,
-                Fee=fee,
-                row_number=row_number,
-                total_price=total_price,
-                status='Generated',
-                notes=notes,
-                created_by=user_id
-            )
+        # Create new invoice
+        last_invoice = Payment.query.order_by(Payment.id.desc()).first()
+        new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
+        invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
 
-            db.session.add(new_invoice)
-            
-            # Remove draft if it exists (since we now have an actual invoice)
-            if existing_draft:
-                db.session.delete(existing_draft)
-            
-            # Mark order as invoiced
-            try:
-                order_row = Order.query.get(order_id)
-                if order_row:
-                    order_row.invoiced = True
-            except Exception:
-                pass
+        new_invoice = Payment(
+            order_id=order_id,
+            invoice_number=invoice_number,
+            unit_price=float(unit_price),
+            quantity=int(quantity) if quantity == quantity.to_integral() else float(quantity),
+            cutting_cost=float(cutting_cost),
+            number_of_cuts=int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts),
+            peak_quantity=float(peak_quantity),
+            peak_width=float(peak_width),
+            Fee=float(fee),
+            row_number=row_number,
+            total_price=float(total_price),
+            status='Generated',
+            notes=notes,
+            created_by=user_id
+        )
 
-            db.session.commit()
-            
-            return {
-                "success": True,
-                "message": "Invoice created successfully from factory processing",
-                "invoice_number": invoice_number,
-                "total_price": total_price,
-                "is_update": False
-            }
+        db.session.add(new_invoice)
+        if existing_draft:
+            db.session.delete(existing_draft)
+
+        try:
+            order.invoiced = True
+        except Exception:
+            pass
+
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message": "Invoice created successfully from factory processing",
+            "invoice_number": invoice_number,
+            "total_price": float(total_price),
+            "is_update": False
+        }
 
     except Exception as e:
         db.session.rollback()
@@ -764,3 +812,56 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Error saving invoice draft: {e}"}
+
+
+def get_cutting_price_for_sketch(sketch_name: str) -> float:
+    """
+    Returns the cutting price based on the prefix of sketch_name.
+    باریک = 50, اتیکت = 75, کتی = 90
+    """
+    logging.info(f'get cutting proce is working')
+    if not sketch_name:
+        return 0.0
+    sketch_name = sketch_name.strip()
+    if sketch_name.startswith("باریک"):
+        return 50.0
+    elif sketch_name.startswith("اتیکت"):
+        return 75.0
+    elif sketch_name.startswith("کتی"):
+        return 90.0
+    return 0.0
+
+
+def get_number_of_cuts_for_order(order_id: int) -> int:
+    """
+    Returns the number_of_cuts for the given order,
+    based on the member_count of ProductionStepLog where step_name is BRESH.
+    If multiple logs exist, returns the sum.
+    """
+    print(f"started get number of cuts function ")
+    logs = ProductionStepLog.query.filter_by(
+        order_id=order_id,
+        step_name="bresh"
+    ).all()
+    return sum(log.member_count for log in logs if log.member_count is not None)
+PRESS_UNIT_COST = Decimal('350')  # one-time press fee if condition met
+
+def _compute_press_cost_one_time(order_id: int) -> Decimal:
+    """
+    Return PRESS_UNIT_COST if there exists at least one ProductionStepLog
+    for this order with step_name == ProductionStepEnum.PRESS and member_count > 0.
+    Otherwise return Decimal('0').
+    """
+    try:
+        press_logs = ProductionStepLog.query.filter_by(order_id=order_id, step_name=ProductionStepEnum.PRESS).all()
+        for log in press_logs:
+            try:
+                if (log.member_count or 0) > 0:
+                    return PRESS_UNIT_COST
+            except Exception:
+                # if member_count is malformed, ignore that log
+                continue
+        return Decimal('0')
+    except Exception:
+        # On DB/read error, treat as no press fee to avoid failing invoice save
+        return Decimal('0')
