@@ -115,7 +115,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <tr><th class="bg-light">قیمت واحد</th><td><span class="text-primary fw-bold">${iranMoney(invoice.unit_price)} تومان</span></td></tr>
                 <tr><th class="bg-light">مقدار تولیدی</th><td>${invoice.quantity}</td></tr>
                 <tr><th class="bg-light">هزینه برش</th><td>${iranMoney(invoice.cutting_cost)} تومان</td></tr>
-                <tr><th class="bg-light">کارمزد</th><td>${iranMoney(invoice.Fee)} تومان</td></tr>
+                <tr><th class="bg-light">هزینه پرس</th><td>${iranMoney(invoice.lamination_cost)} تومان</td></tr>
+                <tr><th class="bg-light">فی مشتری</th><td>${iranMoney(invoice.Fee)} تومان</td></tr>
                 <tr><th class="bg-light">مبلغ کل</th><td><strong class="text-danger">${iranMoney(invoice.total_price)}  تومان</strong></td></tr>
 
                 <tr class="table-info text-center text-uppercase fw-bold">
