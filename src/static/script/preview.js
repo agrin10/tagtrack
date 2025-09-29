@@ -107,12 +107,12 @@ document.querySelectorAll('.preview-btn').forEach(btn => {
                         <div class="col-6"><strong>متر کل:</strong> ${order.total_length_meters ? order.total_length_meters + ' m' : '-'}</div>
                     </div>
                     <div class="row mb-2">
-                        <div class="col-6"><strong>نوع لمینیشن:</strong> ${order.lamination_type ?? '-'}</div>
+                        <div class="col-6"><strong>نوع پرس:</strong> ${order.lamination_type ?? '-'}</div>
                         <div class="col-6"><strong>نوع برش:</strong> ${order.cut_type ?? '-'}</div>
                     </div>
                     <div class="row mb-2">
-                        <div class="col-6"><strong>نوع لیبل:</strong> ${order.label_type ?? '-'}</div>
-                        <div class="col-6"><strong>نوع فیوزینگ:</strong> ${order.fusing_type ?? '-'}</div>
+                        <div class="col-6"><strong>نوع آهار:</strong> ${order.label_type ?? '-'}</div>
+                        <div class="col-6"><strong>نوع چسب:</strong> ${order.fusing_type ?? '-'}</div>
                     </div>
                     <div class="row mb-2">
                         <div class="col-6"><strong>تاریخ تحویل:</strong> ${convertToJalali(order.delivery_date)}</div>
