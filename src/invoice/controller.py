@@ -375,7 +375,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         if peak_quantity <= 0 or peak_width <= 0 or fee <= 0 or number_of_cuts <= 0:
             return {"success": False, "message": "peak_quantity, peak_width, fee and number_of_cuts must be positive."}
         press_cost = _compute_press_cost_one_time(order_id)  # Decimal('350') or Decimal('0')
-
+        lamination_cost = press_cost
         # Calculation with Decimal and rounding to 2 decimal places
         price = (peak_quantity * peak_width * fee).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         services = (_to_decimal(cutting_cost, "cutting_cost") + press_cost).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -390,6 +390,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             existing_invoice.number_of_cuts = int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts)
             existing_invoice.peak_quantity = float(peak_quantity)
             existing_invoice.peak_width = float(peak_width)
+            existing_invoice.lamination_cost = float(lamination_cost)
             # preserve your model naming (you used Fee earlier)
             setattr(existing_invoice, 'Fee', float(fee))
             existing_invoice.row_number = row_number
@@ -430,6 +431,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             number_of_cuts=int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts),
             peak_quantity=float(peak_quantity),
             peak_width=float(peak_width),
+            lamination_cost=float(lamination_cost),
             Fee=float(fee),
             row_number=row_number,
             total_price=float(total_price),
@@ -464,6 +466,7 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
 def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
     """
     Save invoice data as a draft for later completion when order is finished.
+    Now supports 'lamination_cost' (added to InvoiceDraft table).
     """
     try:
         # Check if draft already exists for this order
@@ -471,15 +474,18 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-        # Extract invoice data (only fields supported by models)
+
+        # Extract invoice data (now includes lamination_cost)
         quantity = invoice_data.get('quantity', 0)
         cutting_cost = invoice_data.get('cutting_cost', 0.0)
         number_of_cuts = invoice_data.get('number_of_cuts', 0)
         peak_quantity = invoice_data.get('peak_quantity', 0.0)
         peak_width = invoice_data.get('peak_width', 0.0)
-        fee = invoice_data.get('Fee', 0.0)
+        fee = invoice_data.get('Fee', invoice_data.get('fee', 0.0))
+        lamination_cost = invoice_data.get('lamination_cost')
         row_number = invoice_data.get('row_number')
         notes = invoice_data.get('notes', '')
+
         # Ensure all numeric inputs are cast correctly
         try:
             quantity = int(quantity) if quantity else 0
@@ -488,50 +494,58 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             peak_quantity = float(peak_quantity) if peak_quantity else 0.0
             peak_width = float(peak_width) if peak_width else 0.0
             fee = float(fee) if fee else 0.0
+            lamination_cost = float(lamination_cost) if lamination_cost else 0.0
             row_number = int(row_number) if row_number else None
         except (ValueError, TypeError) as e:
             return {"success": False, "message": f"Invalid numeric value: {e}"}
+
+        # Optionally update some order fields (as you did before)
         if quantity is not None:
             try:
                 order.produced_quantity = float(quantity)
-            except ValueError:
-                return {"success": False, "message": f"Invalid quantity value: {e}"}
+            except Exception:
+                return {"success": False, "message": "Invalid quantity value"}
+
         if fee is not None:
             try:
-                order.customer.fee = float(fee)
-            except ValueError:
-                return {"success": False, "message": f"Invalid fee value: {e}"}
+                if getattr(order, 'customer', None):
+                    order.customer.fee = float(fee)
+            except Exception:
+                return {"success": False, "message": "Invalid fee value"}
+
         if peak_width is not None:
             try:
                 order.width = float(peak_width)
-            except ValueError:
-                return {"success": False, "message": f"Invalid width value: {e}"}
+            except Exception:
+                return {"success": False, "message": "Invalid width value"}
 
         if existing_draft:
-            # Update existing draft
+            # Update existing draft (include lamination_cost)
             existing_draft.quantity = quantity
             existing_draft.cutting_cost = cutting_cost
             existing_draft.number_of_cuts = number_of_cuts
             existing_draft.peak_quantity = peak_quantity
             existing_draft.peak_width = peak_width
             existing_draft.Fee = fee
+            existing_draft.lamination_cost = lamination_cost
             existing_draft.row_number = row_number
             existing_draft.notes = notes
             existing_draft.updated_at = datetime.now(timezone.utc)
-            
+
             db.session.commit()
-            
+
             return {
                 "success": True,
                 "message": "Invoice draft updated successfully",
                 "is_update": True
             }
         else:
-            # Create new draft
+            # Create new draft (include lamination_cost)
             new_draft = InvoiceDraft(
                 order_id=order_id,
                 quantity=quantity,
                 cutting_cost=cutting_cost,
+                lamination_cost=lamination_cost,
                 number_of_cuts=number_of_cuts,
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
@@ -543,7 +557,7 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
 
             db.session.add(new_draft)
             db.session.commit()
-            
+
             return {
                 "success": True,
                 "message": "Invoice draft created successfully",
@@ -553,7 +567,6 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Error saving invoice draft: {e}"}
-
 
 def get_cutting_price_for_sketch(sketch_name: str) -> float:
     """
@@ -588,23 +601,43 @@ PRESS_UNIT_COST = Decimal('350')  # one-time press fee if condition met
 
 def _compute_press_cost_one_time(order_id: int) -> Decimal:
     """
-    Return PRESS_UNIT_COST if there exists at least one ProductionStepLog
-    for this order with step_name == ProductionStepEnum.PRESS and member_count > 0.
-    Otherwise return Decimal('0').
+    Return PRESS_UNIT_COST if at least one ProductionStepLog for this order
+    indicates a press step with member_count > 0. Robust to:
+     - step_name stored as enum or string (case-insensitive, substring match)
+     - member_count stored as int, numeric-string, or float-string
     """
     try:
-        press_logs = ProductionStepLog.query.filter_by(order_id=order_id, step_name=ProductionStepEnum.PRESS).all()
-        for log in press_logs:
+        logs = ProductionStepLog.query.filter_by(order_id=order_id).all()
+        for log in logs:
+            step_raw = getattr(log, "step_name", "") or ""
+            # normalize step_name whether enum or string
             try:
-                if (log.member_count or 0) > 0:
-                    return PRESS_UNIT_COST
+                # if it's an enum value (SQLAlchemy Enum), use .name or str()
+                step_str = (step_raw.name if hasattr(step_raw, "name") else str(step_raw)).lower()
             except Exception:
-                # if member_count is malformed, ignore that log
+                step_str = str(step_raw).lower()
+
+            # accept 'press' anywhere in name (helps with different conventions)
+            if "press" not in step_str:
                 continue
-        return Decimal('0')
+
+            # parse member_count defensively
+            member_raw = getattr(log, "member_count", 0) or 0
+            try:
+                member_count = int(member_raw)
+            except Exception:
+                try:
+                    member_count = int(float(member_raw))
+                except Exception:
+                    member_count = 0
+
+            if member_count > 0:
+                return PRESS_UNIT_COST
+
+        return Decimal("0")
     except Exception:
-        # On DB/read error, treat as no press fee to avoid failing invoice save
-        return Decimal('0')
+        # be conservative on DB errors
+        return Decimal("0")
 def get_number_of_cuts_for_order(order_id: int) -> int:
     """
     Returns the number_of_cuts for the given order,

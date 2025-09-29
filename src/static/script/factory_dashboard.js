@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(order);
         
         document.getElementById('modal-form-number').textContent = order.form_number;
-        document.getElementById('modal-customer-details').textContent = `${order.customer_name} • ${order.quantity || 0} عدد`;
+        document.getElementById('modal-customer-details').textContent = `${order.customer_name} • طرح ${order.sketch_name} `;
         
         // Set progress bar - if status is completed or shipped, set to 100%
         let progressPercentage = order.progress_percentage || 0;
@@ -275,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const creditCardInput = document.getElementById('modalCreditCard');
             const quantityInput = document.getElementById('modalQuantity');
             const cuttingCostInput = document.getElementById('modalCuttingCost');
+            const laminationCostInput = document.getElementById('modalLaminationCost');
             const numberOfCutsInput = document.getElementById('modalNumberOfCuts');
             const numberOfDensityInput = document.getElementById('modalNumberOfDensity');
             const peakQuantityInput = document.getElementById('modalPeakQuantity');
@@ -285,6 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (quantityInput) quantityInput.value = invoice.quantity || '';
             if (cuttingCostInput) cuttingCostInput.value = invoice.cutting_cost || '';
+            if (laminationCostInput) laminationCostInput.value = invoice.lamination_cost || '';
             if (numberOfCutsInput) numberOfCutsInput.value = invoice.number_of_cuts || '';
             if (peakQuantityInput) peakQuantityInput.value = invoice.peak_quantity || '';
             if (peakWidthInput) peakWidthInput.value = invoice.peak_width || '';
@@ -317,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Trigger price calculation to update the total
             setTimeout(() => {
-                const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost', 'modalNumberOfCuts'];
+                const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost','modalLaminationCost', 'modalNumberOfCuts'];
                 priceInputs.forEach(inputId => {
                     const input = document.getElementById(inputId);
                     if (input) {
@@ -656,7 +658,7 @@ function collectJobMetricsFromModal() {
 
         // Check if any invoice fields have been filled
         const invoiceFields = [
-            'quantity', 'cutting_cost', 'number_of_cuts', 
+            'quantity', 'cutting_cost', 'lamination_cost','number_of_cuts', 
             'peak_quantity', 'peak_width', 'Fee', 'row_number', 'notes'
         ];
 
@@ -863,6 +865,7 @@ function getStatusText(status) {
             const peakWidth = parseFloat(document.getElementById('modalPeakWidth')?.value) || 0;
             const fee = parseFloat(document.getElementById('modalFee')?.value) || 0;
             const cuttingCost = parseFloat(document.getElementById('modalCuttingCost')?.value) || 0;
+            const laminationCost = parseFloat(document.getElementById('modalLaminationCost')?.value) || 0;
             const numberOfCuts = parseInt(document.getElementById('modalNumberOfCuts')?.value) || 0;
 
             const unitPrice = peakQuantity * peakWidth * fee;
@@ -876,7 +879,7 @@ function getStatusText(status) {
         }
 
         // Add event listeners for price calculation
-        const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost', 'modalNumberOfCuts'];
+        const priceInputs = ['modalQuantity', 'modalPeakQuantity', 'modalPeakWidth', 'modalFee', 'modalCuttingCost','modalLaminationCost', 'modalNumberOfCuts'];
         priceInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
             if (input) {

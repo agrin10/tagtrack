@@ -49,7 +49,7 @@
                                     else order.status
                                 }}
                             </span>                        </div>
-                        <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.quantity }} عدد</h6>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ order.customer_name }} • {{ order.sketch_name}}</h6>
                         <div class="progress mb-2" style="height: 8px;">
                             <div class="progress-bar bg-primary" role="progressbar" 
                                  data-progress="{% if order.status in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده'] %}100{% else %}{{ order.progress_percentage or 0 }}{% endif %}" 

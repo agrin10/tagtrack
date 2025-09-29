@@ -12,6 +12,7 @@ class Payment(db.Model):
     unit_price = db.Column(db.Float, nullable=False)          
     quantity = db.Column(db.Integer, nullable=False)
     cutting_cost = db.Column(db.Float, default=0.0)  
+    lamination_cost = db.Column(db.Float, default=0.0)  
     number_of_cuts = db.Column(db.Integer)
     peak_quantity = db.Column(db.Float , nullable=False)
     peak_width = db.Column(db.Integer)
@@ -55,8 +56,8 @@ class Payment(db.Model):
             "notes": self.notes,
             "issue_date": self.issue_date.isoformat() if self.issue_date else None,
             "payment_date": self.payment_date.isoformat() if self.payment_date else None,
-            "created_by": self.created_by
-
+            "created_by": self.created_by,
+            "lamination_cost":self.lamination_cost
         }
 
 class InvoiceDraft(db.Model):
@@ -70,6 +71,7 @@ class InvoiceDraft(db.Model):
     number_of_cuts = db.Column(db.Integer, nullable=True)
     peak_quantity = db.Column(db.Float, nullable=True)
     peak_width = db.Column(db.Float, nullable=True)
+    lamination_cost = db.Column(db.Float, nullable=True)
     Fee = db.Column(db.Float, nullable=True)
     row_number = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
@@ -88,6 +90,7 @@ class InvoiceDraft(db.Model):
             "cutting_cost": self.cutting_cost,
             "number_of_cuts": self.number_of_cuts,
             "peak_quantity": self.peak_quantity,
+            "lamination_cost": self.lamination_cost,
             "peak_width": self.peak_width,
             "Fee": self.Fee,
             "row_number": self.row_number,

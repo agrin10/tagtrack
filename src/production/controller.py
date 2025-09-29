@@ -2,14 +2,16 @@ from typing import Tuple, Dict, Any, List
 import traceback
 from datetime import datetime, date, timezone
 from src import db
-from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum  ,JobMetricPackageGroup , JobMetricSize ,JobMetricSizePackageGroup
-from src.order.models import Order , Customer
+from src.production.models import JobMetric, Machine, ShiftType, ProductionStepLog, ProductionStepEnum, JobMetricPackageGroup, JobMetricSize, JobMetricSizePackageGroup
+from src.order.models import Order, Customer
 from src.invoice.models import Payment, InvoiceDraft
 from src.utils import parse_date_input
 import logging
 from decimal import Decimal, ROUND_HALF_UP
-from src.invoice.controller import save_invoice_draft , save_invoice_from_factory , get_cutting_price_for_sketch , get_number_of_cuts_for_order
+from src.invoice.controller import save_invoice_draft, save_invoice_from_factory, get_cutting_price_for_sketch, get_number_of_cuts_for_order, _compute_press_cost_one_time
 
+
+PRESS_UNIT_COST = Decimal('350')  # one-time press fee if condition met
 
 
 def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
@@ -20,7 +22,7 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-        
+
         order_dict = order.to_dict()
         # Add job metrics to the order dict
         success, metrics_data = get_job_metrics_for_order(order_id)
@@ -44,10 +46,13 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve order details: {str(e)}"}
 
+
 def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get invoice data for a specific order (both actual invoices and drafts).
     If no invoice or draft exists, auto-generate one using save_invoice_draft().
+    When auto-generating or when a draft exists, include lamination_cost = 350
+    if press logs require it.
     """
     try:
         # Check for actual invoice first
@@ -63,10 +68,17 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         # Check for invoice draft if no actual invoice exists
         draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         if draft:
-            # --- NEW: Sync number_of_cuts from logs ---
+            # --- Sync number_of_cuts and lamination_cost from logs ---
             number_of_cuts = get_number_of_cuts_for_order(order_id)
+            lamination_cost = float(_compute_press_cost_one_time(order_id))
+            updated = False
             if draft.number_of_cuts != number_of_cuts:
                 draft.number_of_cuts = number_of_cuts
+                updated = True
+            if draft.lamination_cost != lamination_cost:
+                draft.lamination_cost = lamination_cost
+                updated = True
+            if updated:
                 draft.updated_at = datetime.now(timezone.utc)
                 db.session.commit()
             return True, {
@@ -82,12 +94,22 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
             return False, {"error": "Order not found to auto-generate draft"}
         number_of_cuts = get_number_of_cuts_for_order(order_id)
         cutting_cost = get_cutting_price_for_sketch(order.sketch_name)
+
+        # Compute press/lamination cost using helper (Decimal)
+        press_cost_decimal = _compute_press_cost_one_time(order_id)
+        if press_cost_decimal and press_cost_decimal > 0:
+            lamination_cost_value = float(press_cost_decimal)
+        else:
+            lamination_cost_value = float(
+                getattr(order, "lamination_cost", 0.0) or 0.0)
+
         defaults = {
             'quantity': order.produced_quantity or 0,
             'cutting_cost': cutting_cost,
             'number_of_cuts': number_of_cuts,
             'number_of_density': 0,
             'peak_quantity': getattr(order, 'peak_quantity', None),
+            'lamination_cost': lamination_cost_value,
             'peak_width': getattr(order, 'width', None),
             'Fee': (order.customer.fee if getattr(order, 'customer', None) else None),
             'row_number': None,
@@ -105,12 +127,13 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
             }
         else:
             return False, {"error": result.get('message', 'Failed to auto-generate invoice draft')}
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error retrieving invoice for order {order_id}: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve invoice: {str(e)}"}
+
 
 def update_order_production_status(order_id: int, form_data: Dict[str, Any], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -156,7 +179,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         if current_stage is not None:
             order.current_stage = str(current_stage).strip()
             # Also update the main status
-            order.status = str(current_stage).strip() 
+            order.status = str(current_stage).strip()
 
             # If status is completed or shipped, automatically set progress to 100%
             if str(current_stage).strip() in ['Completed', 'تکمیل شده', 'Shipped', 'ارسال شده']:
@@ -184,7 +207,8 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         save_machine_data_for_order(order_id, machine_data, user_id)
 
         # Save production step logs
-        save_production_step_logs_for_order(order_id, production_steps_data, user_id)
+        save_production_step_logs_for_order(
+            order_id, production_steps_data, user_id)
 
         # Handle invoice data - generate actual invoice when status is "Completed"
         invoice_result = None
@@ -193,14 +217,17 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
         if should_save_invoice and invoice_data:
             if is_completed:
                 # Generate actual invoice when order is completed
-                invoice_result = save_invoice_from_factory(order_id, invoice_data, user_id)
+                invoice_result = save_invoice_from_factory(
+                    order_id, invoice_data, user_id)
             else:
                 # Save invoice data as draft/placeholder for later completion
-                invoice_result = save_invoice_draft(order_id, invoice_data, user_id)
+                invoice_result = save_invoice_draft(
+                    order_id, invoice_data, user_id)
         elif is_completed:
             # If order is completed but no invoice_data flag provided, attempt to
             # promote draft to invoice, or generate from order defaults.
-            existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
+            existing_draft = InvoiceDraft.query.filter_by(
+                order_id=order_id).first()
             if existing_draft:
                 draft_data = {
                     'quantity': existing_draft.quantity or (order.quantity or 0),
@@ -212,7 +239,8 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                     'row_number': existing_draft.row_number,
                     'notes': existing_draft.notes or 'Generated from completed order'
                 }
-                invoice_result = save_invoice_from_factory(order_id, draft_data, user_id)
+                invoice_result = save_invoice_from_factory(
+                    order_id, draft_data, user_id)
             else:
                 # Build sensible defaults from order
                 defaults = {
@@ -227,7 +255,8 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                 }
                 # Only attempt creation if required values are positive
                 if defaults['quantity'] > 0 and defaults['peak_quantity'] > 0 and defaults['peak_width'] > 0 and defaults['Fee'] > 0:
-                    invoice_result = save_invoice_from_factory(order_id, defaults, user_id)
+                    invoice_result = save_invoice_from_factory(
+                        order_id, defaults, user_id)
 
         order.updated_at = datetime.now(timezone.utc)
         db.session.commit()
@@ -240,7 +269,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                 response_message += ". Invoice data saved as draft for completion."
 
         return True, {
-            "message": response_message, 
+            "message": response_message,
             "order": order.to_dict(),
             "invoice_result": invoice_result,
             "is_completed": is_completed
@@ -248,9 +277,11 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error updating order production status for order {order_id}: {str(e)}")
+        print(
+            f"Error updating order production status for order {order_id}: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to update order production status: {str(e)}"}
+
 
 def get_job_metrics_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -269,6 +300,7 @@ def get_job_metrics_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         print(f"Error retrieving job metrics: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve job metrics: {str(e)}"}
+
 
 def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -321,22 +353,26 @@ def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]]
 
                 # optional legacy/aggregate fields (if provided)
                 try:
-                    metric.package_count = int(data.get('package_count')) if data.get('package_count') is not None else (total_package_count or None)
+                    metric.package_count = int(data.get('package_count')) if data.get(
+                        'package_count') is not None else (total_package_count or None)
                 except Exception:
                     metric.package_count = total_package_count or None
 
                 try:
-                    metric.package_value = float(data.get('package_value')) if data.get('package_value') is not None else None
+                    metric.package_value = float(data.get('package_value')) if data.get(
+                        'package_value') is not None else None
                 except Exception:
                     metric.package_value = None
 
                 # roll_count and meterage at row-level
                 try:
-                    metric.roll_count = int(data.get('roll_count')) if data.get('roll_count') is not None else None
+                    metric.roll_count = int(data.get('roll_count')) if data.get(
+                        'roll_count') is not None else None
                 except Exception:
                     metric.roll_count = None
                 try:
-                    metric.meterage = float(data.get('meterage')) if data.get('meterage') is not None else None
+                    metric.meterage = float(data.get('meterage')) if data.get(
+                        'meterage') is not None else None
                 except Exception:
                     metric.meterage = None
 
@@ -346,12 +382,14 @@ def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]]
                 for s_idx, s in enumerate(sizes_in):
                     name = s.get('name')
                     try:
-                        size_roll = int(s.get('roll_count')) if s.get('roll_count') is not None else None
+                        size_roll = int(s.get('roll_count')) if s.get(
+                            'roll_count') is not None else None
                     except Exception:
                         db.session.rollback()
                         return False, {"error": f"Invalid roll_count for size {s_idx} in metric {idx}"}
                     try:
-                        size_meter = float(s.get('meterage')) if s.get('meterage') is not None else None
+                        size_meter = float(s.get('meterage')) if s.get(
+                            'meterage') is not None else None
                     except Exception:
                         db.session.rollback()
                         return False, {"error": f"Invalid meterage for size {s_idx} in metric {idx}"}
@@ -404,6 +442,7 @@ def save_job_metrics_for_order(order_id: int, metrics_data: List[Dict[str, Any]]
         traceback.print_exc()
         return False, {"error": f"Failed to save job metrics: {str(e)}"}
 
+
 def get_machine_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get all machine data for a specific order.
@@ -421,6 +460,7 @@ def get_machine_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         print(f"Error retrieving machine data: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve machine data: {str(e)}"}
+
 
 def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -445,14 +485,19 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
 
                 # Combine with today's date for datetime objects
                 today = date.today()
-                start_time = datetime.strptime(f"{today} {start_time_str}", "%Y-%m-%d %H:%M") if start_time_str else None
-                end_time = datetime.strptime(f"{today} {end_time_str}", "%Y-%m-%d %H:%M") if end_time_str else None
+                start_time = datetime.strptime(
+                    f"{today} {start_time_str}", "%Y-%m-%d %H:%M") if start_time_str else None
+                end_time = datetime.strptime(
+                    f"{today} {end_time_str}", "%Y-%m-%d %H:%M") if end_time_str else None
 
-                starting_quantity = int(data.get('starting_quantity', 0)) if data.get('starting_quantity') else 0
-                remaining_quantity = int(data.get('remaining_quantity', 0)) if data.get('remaining_quantity') else 0
+                starting_quantity = int(data.get('starting_quantity', 0)) if data.get(
+                    'starting_quantity') else 0
+                remaining_quantity = int(data.get('remaining_quantity', 0)) if data.get(
+                    'remaining_quantity') else 0
                 shift_type_str = data.get('shift_type')
                 # Convert to uppercase to match the Enum definition
-                shift_type = ShiftType(shift_type_str.lower()) if shift_type_str else None
+                shift_type = ShiftType(
+                    shift_type_str.lower()) if shift_type_str else None
                 # Validate against ShiftType enum
                 if shift_type not in [s for s in ShiftType]:
                     return False, {"error": f"Invalid shift type: {shift_type_str}"}
@@ -469,14 +514,14 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
                 end_time=end_time,
                 starting_quantity=starting_quantity,
                 remaining_quantity=remaining_quantity,
-                shift_type=shift_type, # Now passing an Enum member
+                shift_type=shift_type,  # Now passing an Enum member
                 created_by=user_id
             )
             db.session.add(machine)
             added_machines.append(machine.to_dict())
 
         db.session.commit()
-        
+
         return True, {
             "message": "Machine data saved successfully",
             "machines": added_machines
@@ -491,6 +536,7 @@ def save_machine_data_for_order(order_id: int, machine_data: List[Dict[str, Any]
         traceback.print_exc()
         return False, {"error": f"Failed to save machine data: {str(e)}"}
 
+
 def get_production_step_logs_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get all production step logs for a specific order.
@@ -499,11 +545,11 @@ def get_production_step_logs_for_order(order_id: int) -> Tuple[bool, Dict[str, A
         logs = ProductionStepLog.query.filter_by(order_id=order_id).all()
         if not logs:
             return True, {"message": "No production step logs found for this order", "production_steps": {}}
-        
+
         step_data = {}
         for log in logs:
             step_data[log.step_name.value] = log.to_dict()
-    
+
         return True, {
             "message": "Production step logs retrieved successfully",
             "production_steps": step_data
@@ -512,6 +558,7 @@ def get_production_step_logs_for_order(order_id: int) -> Tuple[bool, Dict[str, A
         print(f"Error retrieving production step logs: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve production step logs: {str(e)}"}
+
 
 def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any], user_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -522,10 +569,10 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-    
+
         # Delete existing logs for this order
         ProductionStepLog.query.filter_by(order_id=order_id).delete()
-        db.session.flush() # Ensure deletions are processed before adding new ones
+        db.session.flush()  # Ensure deletions are processed before adding new ones
 
         added_logs = []
         for step_name_str, data in step_data.items():
@@ -539,12 +586,12 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
 
                 # Parse date (supports both Jalali and Gregorian formats)
                 date_obj = parse_date_input(date_str) if date_str else None
-    
+
             except ValueError as e:
                 return False, {"error": f"Invalid data format for production step entry: {str(e)}"}
             except KeyError as e:
                 return False, {"error": f"Missing data for production step entry: {str(e)}"}
-    
+
             log = ProductionStepLog(
                 order_id=order_id,
                 step_name=step_name,
@@ -558,11 +605,18 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
 
         db.session.commit()
 
-        # --- NEW: Update invoice draft with latest number_of_cuts ---
+        # --- NEW: Update invoice draft with latest number_of_cuts, lamination_cost, and cutting_cost ---
         number_of_cuts = get_number_of_cuts_for_order(order_id)
+        lamination_cost = float(_compute_press_cost_one_time(order_id))
+        order = Order.query.get(order_id)
+        cutting_cost = get_cutting_price_for_sketch(
+            order.sketch_name) if order and hasattr(order, "sketch_name") else 0.0
+
         draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         if draft:
             draft.number_of_cuts = number_of_cuts
+            draft.lamination_cost = lamination_cost
+            draft.cutting_cost = cutting_cost
             draft.updated_at = datetime.now(timezone.utc)
             db.session.commit()
 
@@ -570,7 +624,7 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
             "message": "Production step logs saved successfully",
             "production_steps": added_logs
         }
-    
+
     except ValueError as e:
         db.session.rollback()
         return False, {"error": f"Invalid data format: {str(e)}"}
@@ -579,4 +633,3 @@ def save_production_step_logs_for_order(order_id: int, step_data: Dict[str, Any]
         print(f"Error saving production step logs: {str(e)}")
         traceback.print_exc()
         return False, {"error": f"Failed to save production step logs: {str(e)}"}
-
