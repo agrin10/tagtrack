@@ -59,8 +59,6 @@ def invoice_list(page: int = 1, per_page: int = 10, search: str = None, status: 
             "total": pagination.total,
             "pagination": pagination
         }
-        
-
     except Exception as e:
         print(f"Error retrieving orders: {str(e)}")
         return False, {"error": f"Failed to retrieve orders: {e}"}
@@ -336,23 +334,52 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         existing_invoice = Payment.query.filter_by(order_id=order_id).first()
         existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
 
-        # Extract / prefer invoice_data, fallback to order/customer
-        qty_raw = invoice_data.get('quantity', invoice_data.get('Quantity', None))
-        cutting_cost_raw = invoice_data.get('cutting_cost', invoice_data.get('cuttingCost', 0.0))
-        cuts_raw = invoice_data.get('number_of_cuts', invoice_data.get('number_of_cuts', None))
-        peak_quantity_raw = invoice_data.get('peak_quantity', invoice_data.get('peakQuantity', None))
+        # --- Extract raw inputs (accept various key spellings) ---
+        # invoice_data preferred, fallback to draft (if present)
+        def pick(key_variants, dtype='raw'):
+            """Return first non-None value among invoice_data keys, then draft attribute."""
+            for k in key_variants:
+                if k in invoice_data and invoice_data.get(k) is not None:
+                    return invoice_data.get(k)
+            # fallback to draft attribute if available
+            if existing_draft:
+                # map small set of keys to draft attribute names
+                draft_map = {
+                    'quantity': 'quantity',
+                    'cutting_cost': 'cutting_cost',
+                    'number_of_cuts': 'number_of_cuts',
+                    'peak_quantity': 'peak_quantity',
+                    'peak_width': 'peak_width',
+                    'lamination_cost': 'lamination_cost',
+                    'Fee': 'Fee',
+                    'row_number': 'row_number',
+                    'notes': 'notes'
+                }
+                for k in key_variants:
+                    attr = draft_map.get(k)
+                    if attr and getattr(existing_draft, attr, None) is not None:
+                        return getattr(existing_draft, attr)
+            return None
+
+        qty_raw = pick(['quantity', 'Quantity'])
+        cutting_cost_raw = pick(['cutting_cost', 'cuttingCost']) or 0.0
+        cuts_raw = pick(['number_of_cuts', 'number_of_cuts'])
+        peak_quantity_raw = pick(['peak_quantity', 'peakQuantity'])
         peak_width_raw = invoice_data.get('peak_width', None)
         if peak_width_raw is None:
             peak_width_raw = invoice_data.get('peakWidth', None)
-        fee_raw = invoice_data.get('Fee', invoice_data.get('fee', None))  # accept Fee or fee
-        row_number = invoice_data.get('row_number', None)
-        notes = invoice_data.get('notes', 'Generated from factory processing')
+        if peak_width_raw is None and existing_draft:
+            peak_width_raw = getattr(existing_draft, 'peak_width', None)
+        fee_raw = pick(['Fee', 'fee'])
+        row_number = pick(['row_number', 'rowNumber'])
+        notes = pick(['notes']) or (existing_draft.notes if existing_draft and existing_draft.notes else 'Generated from factory processing')
+        lamination_cost_raw = pick(['lamination_cost', 'laminationCost'])
 
         # sensible fallbacks from order / customer
         if peak_width_raw is None:
             peak_width_raw = getattr(order, 'width', None)
         if fee_raw is None:
-            fee_raw = getattr(order.customer, 'fee', None) if getattr(order, 'customer', None) else None
+            fee_raw = getattr(order, 'customer', None) and getattr(order.customer, 'fee', None)
         if qty_raw is None:
             qty_raw = getattr(order, 'quantity', None)
 
@@ -360,7 +387,27 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
         if cuts_raw is None:
             cuts_raw = qty_raw
 
-        # Convert to Decimal safely
+        # Enforce: this function should get data fully from existing draft if present.
+        # If there is no existing draft, require that invoice_data contains required fields.
+        if not existing_draft:
+            missing = []
+            if qty_raw is None:
+                missing.append('quantity')
+            if peak_quantity_raw is None:
+                missing.append('peak_quantity')
+            if peak_width_raw is None:
+                missing.append('peak_width')
+            if fee_raw is None:
+                missing.append('fee')
+            if cuts_raw is None:
+                missing.append('number_of_cuts')
+            # lamination_cost specifically must come from draft (per your requirement)
+            if lamination_cost_raw is None:
+                missing.append('lamination_cost (draft required)')
+            if missing:
+                return {"success": False, "message": f"Missing required fields and no draft present: {', '.join(missing)}"}
+
+        # Now convert to Decimal using your helper _to_decimal
         try:
             quantity = _to_decimal(qty_raw, "quantity")
             cutting_cost = _to_decimal(cutting_cost_raw, "cutting_cost")
@@ -368,14 +415,14 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             peak_quantity = _to_decimal(peak_quantity_raw, "peak_quantity")
             peak_width = _to_decimal(peak_width_raw, "peak_width")
             fee = _to_decimal(fee_raw, "fee")
+            lamination_cost = _to_decimal(lamination_cost_raw, "lamination_cost")
         except ValueError as ve:
             return {"success": False, "message": str(ve)}
 
-        # Validation: required positives (adjust rules if you want different)
+        # Validation: required positives
         if peak_quantity <= 0 or peak_width <= 0 or fee <= 0 or number_of_cuts <= 0:
             return {"success": False, "message": "peak_quantity, peak_width, fee and number_of_cuts must be positive."}
-        press_cost = _compute_press_cost_one_time(order_id)  # Decimal('350') or Decimal('0')
-        lamination_cost = press_cost
+        press_cost = lamination_cost
         # Calculation with Decimal and rounding to 2 decimal places
         price = (peak_quantity * peak_width * fee).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         services = (_to_decimal(cutting_cost, "cutting_cost") + press_cost).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -384,23 +431,32 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
 
         # Update existing invoice
         if existing_invoice:
-            existing_invoice.unit_price = float(unit_price)
-            existing_invoice.quantity = int(quantity) if quantity == quantity.to_integral() else float(quantity)
-            existing_invoice.cutting_cost = float(cutting_cost)
-            existing_invoice.number_of_cuts = int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts)
-            existing_invoice.peak_quantity = float(peak_quantity)
-            existing_invoice.peak_width = float(peak_width)
-            existing_invoice.lamination_cost = float(lamination_cost)
-            # preserve your model naming (you used Fee earlier)
-            setattr(existing_invoice, 'Fee', float(fee))
-            existing_invoice.row_number = row_number
-            existing_invoice.total_price = float(total_price)
-            existing_invoice.notes = notes
+            try:
+                existing_invoice.unit_price = float(unit_price)
+                existing_invoice.quantity = int(quantity) if quantity == quantity.to_integral() else float(quantity)
+                existing_invoice.cutting_cost = float(cutting_cost)
+                existing_invoice.number_of_cuts = int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts)
+                existing_invoice.peak_quantity = float(peak_quantity)
+                existing_invoice.peak_width = float(peak_width)
+                existing_invoice.lamination_cost = float(lamination_cost)
+                # preserve your model naming (you used Fee earlier)
+                setattr(existing_invoice, 'Fee', float(fee))
+                existing_invoice.row_number = row_number
+                existing_invoice.total_price = float(total_price)
+                existing_invoice.notes = notes
 
-            if existing_draft:
-                db.session.delete(existing_draft)
+                # Set updated_at only if the column exists on the model to avoid TypeError
+                if 'updated_at' in Payment.__table__.columns:
+                    existing_invoice.updated_at = datetime.now(timezone.utc)
 
-            db.session.commit()
+                # If there was a draft, remove it (keeps your current behavior)
+                if existing_draft:
+                    db.session.delete(existing_draft)
+
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return {"success": False, "message": f"Failed updating invoice: {e}"}
 
             # mark order invoiced
             try:
@@ -418,46 +474,57 @@ def save_invoice_from_factory(order_id: int, invoice_data: Dict[str, Any], user_
             }
 
         # Create new invoice
-        last_invoice = Payment.query.order_by(Payment.id.desc()).first()
-        new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
-        invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
-
-        new_invoice = Payment(
-            order_id=order_id,
-            invoice_number=invoice_number,
-            unit_price=float(unit_price),
-            quantity=int(quantity) if quantity == quantity.to_integral() else float(quantity),
-            cutting_cost=float(cutting_cost),
-            number_of_cuts=int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts),
-            peak_quantity=float(peak_quantity),
-            peak_width=float(peak_width),
-            lamination_cost=float(lamination_cost),
-            Fee=float(fee),
-            row_number=row_number,
-            total_price=float(total_price),
-            status='Generated',
-            notes=notes,
-            created_by=user_id
-        )
-
-        db.session.add(new_invoice)
-        if existing_draft:
-            db.session.delete(existing_draft)
-
         try:
-            order.invoiced = True
-        except Exception:
-            pass
+            last_invoice = Payment.query.order_by(Payment.id.desc()).first()
+            new_invoice_number_id = (last_invoice.id if last_invoice else 0) + 1
+            invoice_number = f"INV-{datetime.utcnow().year}-{new_invoice_number_id:03d}"
 
-        db.session.commit()
+            new_invoice_kwargs = dict(
+                order_id=order_id,
+                invoice_number=invoice_number,
+                unit_price=float(unit_price),
+                quantity=int(quantity) if quantity == quantity.to_integral() else float(quantity),
+                cutting_cost=float(cutting_cost),
+                number_of_cuts=int(number_of_cuts) if number_of_cuts == number_of_cuts.to_integral() else float(number_of_cuts),
+                peak_quantity=float(peak_quantity),
+                peak_width=float(peak_width),
+                lamination_cost=float(lamination_cost),
+                Fee=float(fee),
+                row_number=row_number,
+                total_price=float(total_price),
+                status='Generated',
+                notes=notes,
+                created_by=user_id,
+                created_at=datetime.now(timezone.utc)
+            )
 
-        return {
-            "success": True,
-            "message": "Invoice created successfully from factory processing",
-            "invoice_number": invoice_number,
-            "total_price": float(total_price),
-            "is_update": False
-        }
+            # Only set updated_at on creation if column exists (prevents TypeError)
+            if 'updated_at' in Payment.__table__.columns:
+                new_invoice_kwargs['updated_at'] = datetime.now(timezone.utc)
+
+            new_invoice = Payment(**new_invoice_kwargs)
+
+            db.session.add(new_invoice)
+            if existing_draft:
+                db.session.delete(existing_draft)
+
+            try:
+                order.invoiced = True
+            except Exception:
+                pass
+
+            db.session.commit()
+
+            return {
+                "success": True,
+                "message": "Invoice created successfully from factory processing",
+                "invoice_number": invoice_number,
+                "total_price": float(total_price),
+                "is_update": False
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {"success": False, "message": f"Error creating invoice: {e}"}
 
     except Exception as e:
         db.session.rollback()
@@ -473,86 +540,97 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
         existing_draft = InvoiceDraft.query.filter_by(order_id=order_id).first()
         order = Order.query.get(order_id)
         if not order:
-            return False, {"error": "Order not found"}
+            return {"success": False, "message": "Order not found"}
 
-        # Extract invoice data (now includes lamination_cost)
-        quantity = invoice_data.get('quantity', 0)
-        cutting_cost = invoice_data.get('cutting_cost', 0.0)
-        number_of_cuts = invoice_data.get('number_of_cuts', 0)
-        peak_quantity = invoice_data.get('peak_quantity', 0.0)
-        peak_width = invoice_data.get('peak_width', 0.0)
-        fee = invoice_data.get('Fee', invoice_data.get('fee', 0.0))
-        lamination_cost = invoice_data.get('lamination_cost')
-        row_number = invoice_data.get('row_number')
+        # Determine whether the caller provided a lamination_cost explicitly
+        lamination_cost_provided = 'lamination_cost' in invoice_data and invoice_data.get('lamination_cost') not in (None, '')
+
+        # Extract raw fields (strings from form are expected)
+        qty_raw = invoice_data.get('quantity', 0)
+        cutting_cost_raw = invoice_data.get('cutting_cost', 0.0)
+        number_of_cuts_raw = invoice_data.get('number_of_cuts', 0)
+        peak_quantity_raw = invoice_data.get('peak_quantity', 0.0)
+        peak_width_raw = invoice_data.get('peak_width', 0.0)
+        fee_raw = invoice_data.get('Fee', invoice_data.get('fee', 0.0))
+        lamination_cost_raw = invoice_data.get('lamination_cost', None)
+        row_number_raw = invoice_data.get('row_number', None)
         notes = invoice_data.get('notes', '')
 
-        # Ensure all numeric inputs are cast correctly
+        # Parse numeric values defensively
         try:
-            quantity = int(quantity) if quantity else 0
-            cutting_cost = float(cutting_cost) if cutting_cost else 0.0
-            number_of_cuts = int(number_of_cuts) if number_of_cuts else 0
-            peak_quantity = float(peak_quantity) if peak_quantity else 0.0
-            peak_width = float(peak_width) if peak_width else 0.0
-            fee = float(fee) if fee else 0.0
-            lamination_cost = float(lamination_cost) if lamination_cost else 0.0
-            row_number = int(row_number) if row_number else None
+            quantity = int(qty_raw) if qty_raw not in (None, '') else 0
+            cutting_cost = float(cutting_cost_raw) if cutting_cost_raw not in (None, '') else 0.0
+            number_of_cuts = int(number_of_cuts_raw) if number_of_cuts_raw not in (None, '') else 0
+            peak_quantity = float(peak_quantity_raw) if peak_quantity_raw not in (None, '') else 0.0
+            peak_width = float(peak_width_raw) if peak_width_raw not in (None, '') else 0.0
+            fee = float(fee_raw) if fee_raw not in (None, '') else 0.0
+            lamination_cost = float(lamination_cost_raw) if lamination_cost_raw not in (None, '') else None
+            row_number = int(row_number_raw) if row_number_raw not in (None, '') else None
         except (ValueError, TypeError) as e:
             return {"success": False, "message": f"Invalid numeric value: {e}"}
 
-        # Optionally update some order fields (as you did before)
+        # Optionally update some order fields (if provided)
         if quantity is not None:
             try:
                 order.produced_quantity = float(quantity)
             except Exception:
-                return {"success": False, "message": "Invalid quantity value"}
+                return {"success": False, "message": "Invalid quantity value for order"}
 
         if fee is not None:
             try:
                 if getattr(order, 'customer', None):
                     order.customer.fee = float(fee)
             except Exception:
-                return {"success": False, "message": "Invalid fee value"}
+                return {"success": False, "message": "Invalid fee value for customer"}
 
         if peak_width is not None:
             try:
+                # keep original behavior: update order.width from provided peak_width
                 order.width = float(peak_width)
             except Exception:
-                return {"success": False, "message": "Invalid width value"}
+                return {"success": False, "message": "Invalid width value for order"}
 
+        # If we have an existing draft, update it; otherwise create a new one
+        now = datetime.now(timezone.utc)
         if existing_draft:
-            # Update existing draft (include lamination_cost)
             existing_draft.quantity = quantity
             existing_draft.cutting_cost = cutting_cost
             existing_draft.number_of_cuts = number_of_cuts
             existing_draft.peak_quantity = peak_quantity
+            # Only set lamination_cost if provided by user; otherwise preserve existing draft value
+            if lamination_cost_provided:
+                existing_draft.lamination_cost = lamination_cost if lamination_cost is not None else existing_draft.lamination_cost
+            # otherwise, do not overwrite lamination_cost here
             existing_draft.peak_width = peak_width
             existing_draft.Fee = fee
-            existing_draft.lamination_cost = lamination_cost
             existing_draft.row_number = row_number
             existing_draft.notes = notes
-            existing_draft.updated_at = datetime.now(timezone.utc)
+            existing_draft.updated_at = now
 
             db.session.commit()
 
             return {
                 "success": True,
                 "message": "Invoice draft updated successfully",
-                "is_update": True
+                "is_update": True,
+                "draft_id": existing_draft.id
             }
         else:
-            # Create new draft (include lamination_cost)
+            # If lamination_cost wasn't explicitly provided, keep None for now; get_invoice_data_for_order may fill it from press logs if needed
             new_draft = InvoiceDraft(
                 order_id=order_id,
                 quantity=quantity,
                 cutting_cost=cutting_cost,
-                lamination_cost=lamination_cost,
+                lamination_cost=lamination_cost if lamination_cost_provided else None,
                 number_of_cuts=number_of_cuts,
                 peak_quantity=peak_quantity,
                 peak_width=peak_width,
                 Fee=fee,
                 row_number=row_number,
                 notes=notes,
-                created_by=user_id
+                created_by=user_id,
+                created_at=now,
+                updated_at=now
             )
 
             db.session.add(new_draft)
@@ -561,7 +639,8 @@ def save_invoice_draft(order_id: int, invoice_data: Dict[str, Any], user_id: int
             return {
                 "success": True,
                 "message": "Invoice draft created successfully",
-                "is_update": False
+                "is_update": False,
+                "draft_id": new_draft.id
             }
 
     except Exception as e:

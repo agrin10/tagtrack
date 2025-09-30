@@ -33,6 +33,7 @@ class Payment(db.Model):
     payment_date = db.Column(db.DateTime, nullable=True)        
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False,default=datetime.utcnow, onupdate=datetime.utcnow)
     
     order = db.relationship('Order', back_populates='payments')
 

@@ -9,6 +9,7 @@ from src.utils import parse_date_input
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 from src.invoice.controller import save_invoice_draft, save_invoice_from_factory, get_cutting_price_for_sketch, get_number_of_cuts_for_order, _compute_press_cost_one_time
+from decimal import Decimal, InvalidOperation
 
 
 PRESS_UNIT_COST = Decimal('350')  # one-time press fee if condition met
@@ -46,7 +47,6 @@ def get_order_details_for_modal(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         traceback.print_exc()
         return False, {"error": f"Failed to retrieve order details: {str(e)}"}
 
-
 def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get invoice data for a specific order (both actual invoices and drafts).
@@ -70,17 +70,46 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         if draft:
             # --- Sync number_of_cuts and lamination_cost from logs ---
             number_of_cuts = get_number_of_cuts_for_order(order_id)
-            lamination_cost = float(_compute_press_cost_one_time(order_id))
             updated = False
             if draft.number_of_cuts != number_of_cuts:
                 draft.number_of_cuts = number_of_cuts
                 updated = True
-            if draft.lamination_cost != lamination_cost:
-                draft.lamination_cost = lamination_cost
+
+            # Compute press/lamination cost using helper (Decimal)
+            try:
+                press_cost_decimal = _compute_press_cost_one_time(order_id)
+            except Exception:
+                # In case helper raises, treat as no press cost
+                press_cost_decimal = None
+
+            lamination_cost_from_press = None
+            try:
+                if press_cost_decimal is not None:
+                    # ensure positive numeric value
+                    if isinstance(press_cost_decimal, Decimal):
+                        if press_cost_decimal > 0:
+                            lamination_cost_from_press = float(press_cost_decimal)
+                    else:
+                        # if helper returned float/int
+                        if float(press_cost_decimal) > 0:
+                            lamination_cost_from_press = float(press_cost_decimal)
+            except (InvalidOperation, ValueError, TypeError):
+                lamination_cost_from_press = None
+
+            # Only set lamination_cost from press logs if draft has no meaningful lamination_cost
+            try:
+                draft_lamination_value = float(draft.lamination_cost) if draft.lamination_cost not in (None, '') else None
+            except (ValueError, TypeError):
+                draft_lamination_value = None
+
+            if lamination_cost_from_press is not None and (draft_lamination_value is None or draft_lamination_value == 0.0):
+                draft.lamination_cost = lamination_cost_from_press
                 updated = True
+
             if updated:
                 draft.updated_at = datetime.now(timezone.utc)
                 db.session.commit()
+
             return True, {
                 "message": "Invoice draft data retrieved successfully",
                 "invoice": draft.to_dict(),
@@ -100,17 +129,16 @@ def get_invoice_data_for_order(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         if press_cost_decimal and press_cost_decimal > 0:
             lamination_cost_value = float(press_cost_decimal)
         else:
-            lamination_cost_value = float(
-                getattr(order, "lamination_cost", 0.0) or 0.0)
+            lamination_cost_value = float(getattr(order, "lamination_cost", 0.0) or 0.0)
 
         defaults = {
             'quantity': order.produced_quantity or 0,
-            'cutting_cost': cutting_cost,
+            'cutting_cost': cutting_cost or 0.0,
             'number_of_cuts': number_of_cuts,
             'number_of_density': 0,
-            'peak_quantity': getattr(order, 'peak_quantity', None),
+            'peak_quantity': getattr(order, 'peak_quantity', None) or 0.0,
             'lamination_cost': lamination_cost_value,
-            'peak_width': getattr(order, 'width', None),
+            'peak_width': getattr(order, 'width', None) or 0.0,
             'Fee': (order.customer.fee if getattr(order, 'customer', None) else None),
             'row_number': None,
             'notes': 'Auto-generated draft from order data'
@@ -233,6 +261,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                     'quantity': existing_draft.quantity or (order.quantity or 0),
                     'cutting_cost': existing_draft.cutting_cost or 0.0,
                     'number_of_cuts': existing_draft.number_of_cuts or 0,
+                    'lamination_cost': existing_draft.lamination_cost or 0,
                     'peak_quantity': existing_draft.peak_quantity or getattr(order, 'peak_quantity', 0.0) or 0.0,
                     'peak_width': existing_draft.peak_width or getattr(order, 'width', 0.0) or 0.0,
                     'Fee': existing_draft.Fee or (getattr(order.customer, 'fee', 0.0) if getattr(order, 'customer', None) else 0.0),
@@ -247,6 +276,7 @@ def update_order_production_status(order_id: int, form_data: Dict[str, Any], use
                     'quantity': order.quantity or 0,
                     'cutting_cost': 0.0,
                     'number_of_cuts': 0,
+                    'lamination_cost': 0,
                     'peak_quantity': getattr(order, 'peak_quantity', 0.0) or 0.0,
                     'peak_width': getattr(order, 'width', 0.0) or 0.0,
                     'Fee': (getattr(order.customer, 'fee', 0.0) if getattr(order, 'customer', None) else 0.0),
