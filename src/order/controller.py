@@ -1,9 +1,11 @@
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from src import db
-from src.order.models import Order, OrderImage, OrderValue , OrderFile , FormNumberSequence , Customer
+from src.order.models import Order, OrderImage, OrderValue, OrderFile, FormNumberSequence, Customer
 from src.production.models import JobMetric, Machine, ProductionStepLog
 from flask_login import current_user
 from datetime import datetime, date
-from typing import Tuple, Dict, Any, List , Optional
+from typing import Tuple, Dict, Any, List, Optional
 import traceback
 from sqlalchemy import func
 import io
@@ -13,7 +15,8 @@ from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 import re
-import uuid , logging
+import uuid
+import logging
 from itertools import zip_longest
 from src.utils import parse_date_input
 
@@ -21,8 +24,10 @@ logging.basicConfig(level=logging.INFO)
 # Add these constants at the top of the file
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'uploads', 'orders')
+UPLOAD_FOLDER = os.path.join(os.path.dirname(
+    os.path.dirname(__file__)), 'static', 'uploads', 'orders')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 def _get_next_form_number_for_year() -> int:
     current_year = datetime.now().year
@@ -36,8 +41,6 @@ def _get_next_form_number_for_year() -> int:
 
     return (max_form_number or 0) + 1
 
-from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
 
 def allocate_form_number_for_year(start_from: int | None = None) -> int:
     """
@@ -49,7 +52,8 @@ def allocate_form_number_for_year(start_from: int | None = None) -> int:
     current_year = datetime.now().year
 
     # Lock the row for this year (for update)
-    seq = db.session.query(FormNumberSequence).filter_by(year=current_year).with_for_update().first()
+    seq = db.session.query(FormNumberSequence).filter_by(
+        year=current_year).with_for_update().first()
 
     if not seq:
         # create a new sequence row
@@ -62,7 +66,8 @@ def allocate_form_number_for_year(start_from: int | None = None) -> int:
     # Now decide next number
     if start_from and start_from > seq.last_number:
         next_number = start_from
-        seq.last_number = start_from  # set the last_number to start_from (first allocated)
+        # set the last_number to start_from (first allocated)
+        seq.last_number = start_from
     else:
         seq.last_number = seq.last_number + 1
         next_number = seq.last_number
@@ -97,11 +102,13 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
             fee = None
             if 'customer_fee' in form_data and form_data.get('customer_fee') not in (None, ""):
                 try:
-                    fee_str = str(form_data.get('customer_fee')).replace(',', '.').strip()
+                    fee_str = str(form_data.get('customer_fee')
+                                  ).replace(',', '.').strip()
                     fee = float(fee_str)
                 except (ValueError, TypeError):
                     fee = None
-            customer = Customer(name=customer_name, fee=fee if fee is not None else 0.0)
+            customer = Customer(name=customer_name,
+                                fee=fee if fee is not None else 0.0)
             db.session.add(customer)
             db.session.flush()  # ensure ID assigned
 
@@ -109,14 +116,16 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         requested_start = None
         if form_data.get('start_form_number'):
             try:
-                requested_start = int(str(form_data.get('start_form_number')).strip())
+                requested_start = int(
+                    str(form_data.get('start_form_number')).strip())
                 if requested_start <= 0:
                     requested_start = None
             except ValueError:
                 requested_start = None
 
         try:
-            form_number = allocate_form_number_for_year(start_from=requested_start)
+            form_number = allocate_form_number_for_year(
+                start_from=requested_start)
         except Exception as e:
             db.session.rollback()
             print("Form number allocation failed:", str(e))
@@ -127,21 +136,28 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
         if form_data.get('delivery_date') and delivery_date is None:
             return False, {"error": "Invalid delivery date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        exit_from_office_date = parse_date_input(form_data.get('exit_from_office_date'))
+        exit_from_office_date = parse_date_input(
+            form_data.get('exit_from_office_date'))
         if form_data.get('exit_from_office_date') and exit_from_office_date is None:
             return False, {"error": "Invalid exit from office date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
-        exit_from_factory_date = parse_date_input(form_data.get('exit_from_factory_date'))
+        exit_from_factory_date = parse_date_input(
+            form_data.get('exit_from_factory_date'))
         if form_data.get('exit_from_factory_date') and exit_from_factory_date is None:
             return False, {"error": "Invalid exit from factory date format. Use YYYY-MM-DD or YYYY/MM/DD format"}
 
         # Convert numeric fields robustly
         try:
-            width = float(form_data['width']) if form_data.get('width') not in (None, "") else None
-            height = float(form_data['height']) if form_data.get('height') not in (None, "") else None
-            quantity = int(form_data['quantity']) if form_data.get('quantity') not in (None, "") else None
-            total_length_meters = float(form_data['total_length_meters']) if form_data.get('total_length_meters') not in (None, "") else None
-            peak_quantity = int(form_data['peak_quantity']) if form_data.get('peak_quantity') not in (None, "") else None
+            width = float(form_data['width']) if form_data.get(
+                'width') not in (None, "") else None
+            height = float(form_data['height']) if form_data.get(
+                'height') not in (None, "") else None
+            quantity = int(form_data['quantity']) if form_data.get(
+                'quantity') not in (None, "") else None
+            total_length_meters = float(form_data['total_length_meters']) if form_data.get(
+                'total_length_meters') not in (None, "") else None
+            peak_quantity = int(form_data['peak_quantity']) if form_data.get(
+                'peak_quantity') not in (None, "") else None
         except (ValueError, TypeError) as e:
             return False, {"error": f"Invalid numeric value: {str(e)}"}
 
@@ -189,7 +205,8 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                 values = [values]
             for idx, value in enumerate(values, 1):
                 if value is not None and str(value).strip() != "":
-                    db.session.add(OrderValue(order_id=new_order.id, value_index=idx, value=value))
+                    db.session.add(OrderValue(
+                        order_id=new_order.id, value_index=idx, value=value))
 
         # --- Save Order Files robustly --- #
         if hasattr(form_data, 'getlist'):
@@ -226,7 +243,8 @@ def add_order(form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, An
                     success, response = upload_order_image(new_order.id, file)
                     if not success:
                         # Log warning but continue
-                        print(f"Warning: Failed to upload image {file.filename}: {response.get('error')}")
+                        print(
+                            f"Warning: Failed to upload image {file.filename}: {response.get('error')}")
 
         return True, {
             "message": "Order created successfully",
@@ -247,41 +265,46 @@ def get_orders(page: int = 1, per_page: int = 10, search: str = None, status: st
     Returns a tuple of (success, response) where response contains either the orders list or an error message.
     """
     try:
-        query = Order.query.join(Customer)  # ✅ join with customer so we can filter by name
+        # ✅ join with customer so we can filter by name
+        query = Order.query.join(Customer)
 
         # Apply search filter
         if search:
             query = query.filter(
                 db.or_(
-                    Customer.name.ilike(f'%{search}%'),                 # ✅ search customer name
-                    db.cast(Order.form_number, db.String).ilike(f'%{search}%')  # ✅ search form number
+                    # ✅ search customer name
+                    Customer.name.ilike(f'%{search}%'),
+                    db.cast(Order.form_number, db.String).ilike(
+                        f'%{search}%')  # ✅ search form number
                 )
             )
-        
+
         # Apply status filter
         if status and status.lower() != 'all':
             query = query.filter(db.func.lower(Order.status) == status.lower())
 
         # Order by form_number descending (highest to lowest)
         query = query.order_by(Order.form_number.desc())
-        
+
         # Paginate the results
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        
+        pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False)
+
         # Convert orders to list of dictionaries
         orders_list = [order.to_dict() for order in pagination.items]
-        
+
         return True, {
             "message": "Orders retrieved successfully",
             "orders": orders_list,
             "total": pagination.total,
-            "pagination":pagination
+            "pagination": pagination
         }
-        
+
     except Exception as e:
         print(f"Error retrieving orders: {str(e)}")
         return False, {"error": "Failed to retrieve orders"}
-    
+
+
 def get_order_by_id(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Get a specific order by its ID.
@@ -290,17 +313,18 @@ def get_order_by_id(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-        
+
         return True, {
             "message": "Order retrieved successfully",
             "order": order.to_dict()
         }
-        
+
     except Exception as e:
         print(f"Error retrieving order {order_id}: {str(e)}")
         return False, {"error": f"Failed to retrieve order: {str(e)}"}
-    
-def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
+
+
+def delete_order_by_id(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
     Delete an order by its ID.
     """
@@ -308,18 +332,19 @@ def delete_order_by_id(order_id: int) -> Tuple[bool , Dict[str, Any]]:
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-        
+
         db.session.delete(order)
         db.session.commit()
-        
+
         return True, {
             "message": "سفارش با موفقیت حذف شد",
         }
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error deleting order {order_id}: {str(e)}")
         return False, {"error": f"Failed to delete order: {str(e)}"}
+
 
 def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -417,11 +442,13 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
                 values.append("")
             for idx in range(1, 9):
                 value = values[idx - 1] if idx - 1 < len(values) else ""
-                order_value = OrderValue.query.filter_by(order_id=order.id, value_index=idx).first()
+                order_value = OrderValue.query.filter_by(
+                    order_id=order.id, value_index=idx).first()
                 if order_value:
                     order_value.value = value
                 else:
-                    db.session.add(OrderValue(order_id=order.id, value_index=idx, value=value))
+                    db.session.add(OrderValue(order_id=order.id,
+                                   value_index=idx, value=value))
 
         # --- Normalize file lists (edit-file_display_names / edit-file_names / existing_file_ids) --- #
         if hasattr(form_data, 'getlist'):
@@ -429,7 +456,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             file_names = form_data.getlist('edit-file_names[]')
             existing_file_ids = form_data.getlist('existing_file_ids[]')
         else:
-            file_display_names = form_data.get('edit-file_display_names[]') or []
+            file_display_names = form_data.get(
+                'edit-file_display_names[]') or []
             file_names = form_data.get('edit-file_names[]') or []
             existing_file_ids = form_data.get('existing_file_ids[]') or []
             if isinstance(file_display_names, str):
@@ -439,7 +467,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
             if isinstance(existing_file_ids, str):
                 existing_file_ids = [existing_file_ids]
 
-        max_len = max(len(file_display_names), len(file_names), len(existing_file_ids))
+        max_len = max(len(file_display_names), len(
+            file_names), len(existing_file_ids))
         file_display_names += [""] * (max_len - len(file_display_names))
         file_names += [""] * (max_len - len(file_names))
         existing_file_ids += [""] * (max_len - len(existing_file_ids))
@@ -469,7 +498,8 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         effective_width = None
         if 'width' in form_data and form_data.get('width') not in (None, ""):
             try:
-                effective_width = float(str(form_data.get('width')).replace(',', '.').strip())
+                effective_width = float(
+                    str(form_data.get('width')).replace(',', '.').strip())
             except (ValueError, TypeError):
                 effective_width = None
         else:
@@ -484,7 +514,32 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         incoming_sketch_base = strip_known_prefixes(incoming_sketch_raw)
 
         prefix = get_sketch_prefix_for_width(effective_width)
-        order.sketch_name = _apply_prefix_to_sketch(prefix, incoming_sketch_base)
+        new_sketch_name = _apply_prefix_to_sketch(prefix, incoming_sketch_base)
+        sketch_name_changed = (order.sketch_name != new_sketch_name)
+        order.sketch_name = new_sketch_name
+
+        # --- Synchronize InvoiceDraft fields if present --- #
+        invoice_draft = None
+        try:
+            from src.invoice.models import InvoiceDraft
+            invoice_draft = InvoiceDraft.query.filter_by(
+                order_id=order.id).first()
+        except Exception:
+            invoice_draft = None
+
+        if invoice_draft:
+            # Update peak_width and peak_quantity if present on order
+            invoice_draft.peak_width = order.width
+            invoice_draft.peak_quantity = order.peak_quantity
+            # Optionally update sketch_name if you store it in draft (add if needed)
+            # invoice_draft.sketch_name = order.sketch_name  # Uncomment if field exists
+            # --- Update cutting_cost if sketch_name changed ---
+            if sketch_name_changed:
+                from src.invoice.controller import get_cutting_price_for_sketch
+                invoice_draft.cutting_cost = get_cutting_price_for_sketch(
+                    order.sketch_name)
+            invoice_draft.updated_at = datetime.utcnow()
+
         order.updated_at = datetime.utcnow()
         db.session.commit()
         db.session.refresh(order)
@@ -499,6 +554,7 @@ def update_order_id(order_id: int, form_data: Dict[str, Any], files=None) -> Tup
         print(f"Error updating order {order_id}: {str(e)}")
         print("Full error details:", traceback.format_exc())
         return False, {"error": f"Failed to update order: {str(e)}"}
+
 
 def duplicate_order(order_id):
     """
@@ -516,15 +572,17 @@ def duplicate_order(order_id):
         # Step 2: Create new order with copied values
         new_order_data = {
             'form_number': form_number,
-            'customer_id': original_order.get('customer_id'),  # ✅ use customer_id
-            'customer_name': original_order.get('customer_name'),  # ensure add_order passes customer validation
+            # ✅ use customer_id
+            'customer_id': original_order.get('customer_id'),
+            # ensure add_order passes customer validation
+            'customer_name': original_order.get('customer_name'),
             'fabric_density': original_order.get('fabric_density'),
             'fabric_cut': original_order.get('fabric_cut'),
             'width': original_order.get('width'),
             'height': original_order.get('height'),
             'quantity': original_order.get('quantity'),
             'total_length_meters': original_order.get('total_length_meters'),
-            'peak_quantity':original_order.get('peak_quantity'),
+            'peak_quantity': original_order.get('peak_quantity'),
             'fusing_type': original_order.get('fusing_type'),
             'lamination_type': original_order.get('lamination_type'),
             'cut_type': original_order.get('cut_type'),
@@ -585,6 +643,7 @@ def duplicate_order(order_id):
         print(f"Error in duplicate_order: {str(e)}")
         return False, {"error": "An error occurred while duplicating the order"}
 
+
 def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool, Dict[str, Any]]:
     """
     Generate a Persian Excel report of orders with RTL layout and formatted columns.
@@ -643,9 +702,12 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
             ws.column_dimensions[col].width = width
 
         header_font = Font(bold=True, color="FFFFFF", size=11, name="Calibri")
-        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        data_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        header_fill = PatternFill(
+            start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True)
+        data_alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True)
         data_font = Font(name="B Kamran", size=11)
 
         # Add headers
@@ -658,7 +720,8 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
 
         # Add order data
         for row_idx, order in enumerate(orders, 2):
-            customer_name = order.customer.name if getattr(order, 'customer', None) else None
+            customer_name = order.customer.name if getattr(
+                order, 'customer', None) else None
             values = [
                 order.form_number,
                 customer_name,
@@ -685,7 +748,8 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
 
                 # Zebra row fill
                 if row_idx % 2 == 0:
-                    cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+                    cell.fill = PatternFill(
+                        start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 
         # Borders
         thin_border = Border(
@@ -720,13 +784,16 @@ def generate_excel_report(search: str = None, status: str = None) -> Tuple[bool,
         traceback.print_exc()
         return False, {"error": "خطا در تولید فایل اکسل."}
 
+
 def _allowed_file(filename: str) -> bool:
     """Check if the file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def _ensure_upload_folder():
     """Ensure the upload folder exists"""
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -742,15 +809,15 @@ def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
         # Validate file
         if not file or not file.filename:
             return False, {"error": "No file provided"}
-        
+
         # Check if file has an extension
         original_filename = secure_filename(file.filename)
         if '.' not in original_filename:
             return False, {"error": "File must have an extension"}
-        
+
         if not _allowed_file(original_filename):
             return False, {"error": f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"}
-        
+
         if file.content_length and file.content_length > MAX_FILE_SIZE:
             return False, {"error": f"File too large. Maximum size is {MAX_FILE_SIZE/1024/1024}MB"}
 
@@ -760,14 +827,14 @@ def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
         # Generate unique filename
         file_ext = original_filename.rsplit('.', 1)[-1].lower()
         unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
-        
+
         # Save file
         file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
         file.save(file_path)
-        
+
         # Get file size
         file_size = os.path.getsize(file_path)
-        
+
         # Create image record
         image = OrderImage(
             order_id=order_id,
@@ -778,20 +845,21 @@ def upload_order_image(order_id: int, file) -> Tuple[bool, Dict[str, Any]]:
             mime_type=file.content_type,
             uploaded_by=current_user.id
         )
-        
+
         db.session.add(image)
         db.session.commit()
-        
+
         return True, {
             "message": "Image uploaded successfully",
             "image": image.to_dict()
         }
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error uploading image: {str(e)}")
         print(traceback.format_exc())
         return False, {"error": f"Failed to upload image: {str(e)}"}
+
 
 def delete_order_image(image_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -802,24 +870,25 @@ def delete_order_image(image_id: int) -> Tuple[bool, Dict[str, Any]]:
         image = OrderImage.query.get(image_id)
         if not image:
             return False, {"error": "Image not found"}
-        
+
         # Delete file from filesystem
         try:
             if os.path.exists(image.file_path):
                 os.remove(image.file_path)
         except Exception as e:
             print(f"Error deleting file: {str(e)}")
-        
+
         # Delete from database
         db.session.delete(image)
         db.session.commit()
-        
+
         return True, {"message": "Image deleted successfully"}
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Error deleting image: {str(e)}")
         return False, {"error": f"Failed to delete image: {str(e)}"}
+
 
 def get_order_images(order_id: int) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -830,22 +899,24 @@ def get_order_images(order_id: int) -> Tuple[bool, Dict[str, Any]]:
         order = Order.query.get(order_id)
         if not order:
             return False, {"error": "Order not found"}
-        
+
         images = [image.to_dict() for image in order.images]
         return True, {
             "message": "Images retrieved successfully",
             "images": images
         }
-        
+
     except Exception as e:
         print(f"Error retrieving images: {str(e)}")
         return False, {"error": f"Failed to retrieve images: {str(e)}"}
+
 
 def _float_eq(a: float, b: float, tol: float = 1e-3) -> bool:
     try:
         return abs(float(a) - float(b)) <= tol
     except Exception:
         return False
+
 
 def get_sketch_prefix_for_width(width: Optional[float]) -> Optional[str]:
     """
@@ -864,7 +935,7 @@ def get_sketch_prefix_for_width(width: Optional[float]) -> Optional[str]:
 
     barik = {1.1, 1.25, 1.32, 1.42}
     etiket = {1.53, 1.67, 1.8, 2.0, 2.2, 2.5, 2.85}
-    kati = {3.3, 4.0, 5.0, 6.67 , 6 , 7 , 8 , 10}
+    kati = {3.3, 4.0, 5.0, 6.67, 6, 7, 8, 10}
 
     for val in barik:
         if _float_eq(w, val):
@@ -877,6 +948,7 @@ def get_sketch_prefix_for_width(width: Optional[float]) -> Optional[str]:
             return "کتی"
 
     return None
+
 
 def _apply_prefix_to_sketch(prefix: Optional[str], raw_sketch: Optional[str]) -> Optional[str]:
     """
@@ -893,7 +965,10 @@ def _apply_prefix_to_sketch(prefix: Optional[str], raw_sketch: Optional[str]) ->
     if raw_sketch_norm == "":
         return prefix
     return f"{prefix} {raw_sketch_norm}"
+
+
 KNOWN_PREFIXES = ["باریک", "اتیکت", "کتی"]
+
 
 def strip_known_prefixes(text: Optional[str]) -> str:
     """
