@@ -57,6 +57,22 @@ export function initEditOrder() {
             const imageInputs = form.querySelectorAll('input[type="file"][id="editOrderImages"], #editImagePreviewContainer .btn-primary, #editImagePreviewContainer .btn-danger');
             imageInputs.forEach(el => { if (el.tagName === 'INPUT') { el.disabled = true; el.style.display = 'none'; } else { el.style.display = 'none'; } });
         }
+
+        // --- Lamination dropdown special handling ---
+        if (!all && !editable.includes('lamination_type')) {
+            // Disable the dropdown button
+            const laminationDropdownBtn = document.getElementById('editLaminationDropdown');
+            if (laminationDropdownBtn) {
+                laminationDropdownBtn.disabled = true;
+                laminationDropdownBtn.classList.add('bg-light');
+                laminationDropdownBtn.setAttribute('title', 'You do not have permission to edit this field');
+            }
+            // Disable the hidden input
+            const laminationInput = document.getElementById('edit_lamination_type');
+            if (laminationInput) {
+                laminationInput.disabled = true;
+            }
+        }
     }
 
     // Handle edit button click

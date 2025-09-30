@@ -79,6 +79,22 @@ export function initAddOrder() {
             const imageButtons = createOrderForm.querySelectorAll('[data-role="add-image"], .add-image-btn');
             imageButtons.forEach(btn => btn.style.display = 'none');
         }
+
+        // --- Lamination dropdown special handling ---
+        if (!all && !editable.includes('lamination_type')) {
+            // Disable the dropdown button
+            const laminationDropdownBtn = document.getElementById('laminationDropdown');
+            if (laminationDropdownBtn) {
+                laminationDropdownBtn.disabled = true;
+                laminationDropdownBtn.classList.add('bg-light');
+                laminationDropdownBtn.setAttribute('title', 'You do not have permission to edit this field');
+            }
+            // Disable the hidden input
+            const laminationInput = document.getElementById('lamination_type');
+            if (laminationInput) {
+                laminationInput.disabled = true;
+            }
+        }
     }
 
     // --- small safe utilities ---
